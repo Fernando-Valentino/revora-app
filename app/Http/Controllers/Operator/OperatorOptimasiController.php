@@ -89,7 +89,7 @@ class OperatorOptimasiController extends Controller
         return $dataset;
     }
 
-    public function index()
+    public function index(Request $request)
     {
         // 1. Cek SVR Standar sebagai prasyarat
         $lastRun = $this->getLatestRun('svr_default');
@@ -221,6 +221,60 @@ class OperatorOptimasiController extends Controller
         $bestGsId  = $gsRun ? $gsRun->id : null;
         $bestGwoId = $gwoRun ? $gwoRun->id : null;
 
+        // --- DATA EVALUASI UNTUK MASING-MASING MODEL OPTIMASI ---
+        $rayons = \App\Models\Rayon::all();
+        $rayonId = $request->input('rayon_id', 0);
+
+        // 1. Grid Search Evaluation Data
+        $gsChartData = collect([]);
+        $gsPredictions = collect([]);
+        $gsMetricsObj = null;
+        if ($gsRun) {
+            $gsMetricsObj = $gsRun->modelMetrics()->where('dataset_type', 'test')->first();
+            if ($rayonId > 0) {
+                $gsChartData = $gsRun->predictionResults()
+                    ->where('rayon_id', $rayonId)
+                    ->orderBy('tanggal', 'asc')
+                    ->get();
+            } else {
+                $gsChartData = $gsRun->predictionResults()
+                    ->select('tanggal', DB::raw('SUM(actual_value) as actual_value'), DB::raw('SUM(predicted_value) as predicted_value'))
+                    ->groupBy('tanggal')
+                    ->orderBy('tanggal', 'asc')
+                    ->get();
+            }
+            $gsPredictionsQuery = $gsRun->predictionResults()->orderBy('tanggal', 'desc');
+            if ($rayonId > 0) {
+                $gsPredictionsQuery->where('rayon_id', $rayonId);
+            }
+            $gsPredictions = $gsPredictionsQuery->paginate(10, ['*'], 'page_gs')->withQueryString();
+        }
+
+        // 2. GWO Evaluation Data
+        $gwoChartData = collect([]);
+        $gwoPredictions = collect([]);
+        $gwoMetricsObj = null;
+        if ($gwoRun) {
+            $gwoMetricsObj = $gwoRun->modelMetrics()->where('dataset_type', 'test')->first();
+            if ($rayonId > 0) {
+                $gwoChartData = $gwoRun->predictionResults()
+                    ->where('rayon_id', $rayonId)
+                    ->orderBy('tanggal', 'asc')
+                    ->get();
+            } else {
+                $gwoChartData = $gwoRun->predictionResults()
+                    ->select('tanggal', DB::raw('SUM(actual_value) as actual_value'), DB::raw('SUM(predicted_value) as predicted_value'))
+                    ->groupBy('tanggal')
+                    ->orderBy('tanggal', 'asc')
+                    ->get();
+            }
+            $gwoPredictionsQuery = $gwoRun->predictionResults()->orderBy('tanggal', 'desc');
+            if ($rayonId > 0) {
+                $gwoPredictionsQuery->where('rayon_id', $rayonId);
+            }
+            $gwoPredictions = $gwoPredictionsQuery->paginate(10, ['*'], 'page_gwo')->withQueryString();
+        }
+
         return view('operator.optimasi.index', compact(
             'comparisons', 
             'lastRun', 
@@ -229,7 +283,15 @@ class OperatorOptimasiController extends Controller
             'bestGsId', 
             'bestGwoId',
             'gsRun',
-            'gwoRun'
+            'gwoRun',
+            'rayons',
+            'rayonId',
+            'gsChartData',
+            'gsPredictions',
+            'gsMetricsObj',
+            'gwoChartData',
+            'gwoPredictions',
+            'gwoMetricsObj'
         ));
     }
 
@@ -425,6 +487,20 @@ class OperatorOptimasiController extends Controller
         $gammaMin    = (float)$request->input('gamma_min', 0.0001);
         $gammaMax    = (float)$request->input('gamma_max', 0.1);
 
+        // Cari model GWO terbaik sebelumnya di DB untuk warm start
+        $bestGwoPrev = $this->getBestRun('svr_gwo');
+        $bestC = null;
+        $bestEpsilon = null;
+        $bestGamma = null;
+        if ($bestGwoPrev) {
+            $bestParam = $bestGwoPrev->modelParameter;
+            if ($bestParam) {
+                $bestC = $bestParam->c_value;
+                $bestEpsilon = $bestParam->epsilon_value;
+                $bestGamma = $bestParam->gamma_value;
+            }
+        }
+
         // Load dataset from DB
         $dataset = $this->getDataset();
 
@@ -432,15 +508,18 @@ class OperatorOptimasiController extends Controller
         try {
             $fastApiService = app(FastApiService::class);
             $response = $fastApiService->post('train/gwo', [
-                'dataset'     => $dataset,
-                'wolves'      => $wolves,
-                'iterations'  => $iterations,
-                'c_min'       => $cMin,
-                'c_max'       => $cMax,
-                'epsilon_min' => $epsilonMin,
-                'epsilon_max' => $epsilonMax,
-                'gamma_min'   => $gammaMin,
-                'gamma_max'   => $gammaMax
+                'dataset'      => $dataset,
+                'wolves'       => $wolves,
+                'iterations'   => $iterations,
+                'c_min'        => $cMin,
+                'c_max'        => $cMax,
+                'epsilon_min'  => $epsilonMin,
+                'epsilon_max'  => $epsilonMax,
+                'gamma_min'    => $gammaMin,
+                'gamma_max'    => $gammaMax,
+                'best_c'       => $bestC,
+                'best_epsilon' => $bestEpsilon,
+                'best_gamma'   => $bestGamma
             ]);
 
             if ($response === null || !isset($response['status']) || $response['status'] !== 'success') {

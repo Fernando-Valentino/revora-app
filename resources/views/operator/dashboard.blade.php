@@ -111,7 +111,7 @@
             <div class="card h-100 mb-0 dashboard-card-hover bg-white" style="padding: 16px 20px; border-radius: 12px;">
                 <div class="d-flex align-items-center">
                     <div class="icon-box bg-info-subtle text-info me-3">
-                        <i class="bi bi-grid-3x3 me-3"></i>
+                        <i class="bi bi-grid-3x3 fs-5"></i>
                     </div>
                     <div>
                         <span class="text-uppercase text-secondary fw-semibold d-block mb-1" style="font-size: 10px; letter-spacing: 0.5px;">Akurasi SVR-Grid Search</span>
@@ -140,6 +140,22 @@
                 </div>
                 <div style="height: 260px; position: relative;">
                     <canvas id="revenueTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Model Performance Chart Card -->
+            <div class="card mb-4 bg-white" style="border-radius: 12px; padding: 20px 24px;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-dark" style="font-size: 14px;">Grafik Perbandingan Performa Model (MAPE & R²)</h5>
+                        <span class="text-secondary small d-block" style="font-size: 11px;">Perbandingan rata-rata kesalahan perkiraan (MAPE) dan tingkat kecocokan model (R² Score)</span>
+                    </div>
+                    <a href="{{ route('operator.optimasi.index') }}" class="btn btn-outline-primary btn-sm rounded-2" style="font-size: 11.5px; padding: 4px 10px;">
+                        <i class="bi bi-sliders me-1"></i> Kelola Optimasi
+                    </a>
+                </div>
+                <div style="height: 260px; position: relative; width: 100%;">
+                    <canvas id="performanceChart"></canvas>
                 </div>
             </div>
 
@@ -393,6 +409,75 @@
                 }
             }
         });
+
+        // --- MODEL PERFORMANCE COMPARISON CHART ---
+        const mapeSvrDefault = @json($performanceMetrics['mape_default'] ?? null);
+        const r2SvrDefault   = @json($performanceMetrics['r2_default']   ?? null);
+        const mapeGridSearch = @json($performanceMetrics['mape_gs']      ?? null);
+        const r2GridSearch   = @json($performanceMetrics['r2_gs']        ?? null);
+        const mapeGwo        = @json($performanceMetrics['mape_gwo']     ?? null);
+        const r2Gwo          = @json($performanceMetrics['r2_gwo']       ?? null);
+
+        const canvasPerfEl = document.getElementById('performanceChart');
+        if (typeof Chart !== 'undefined' && canvasPerfEl) {
+            const ctxPerf = canvasPerfEl.getContext('2d');
+            new Chart(ctxPerf, {
+                type: 'bar',
+                data: {
+                    labels: ['SVR Standar (Default)', 'SVR + Grid Search', 'SVR + GWO (Grey Wolf)'],
+                    datasets: [
+                        {
+                            label: 'MAPE (%) (Semakin Kecil Semakin Baik)',
+                            data: [mapeSvrDefault, mapeGridSearch, mapeGwo],
+                            backgroundColor: [
+                                'rgba(220, 38, 38, 0.75)',
+                                'rgba(245, 158, 11, 0.75)',
+                                'rgba(16, 185, 129, 0.75)'
+                            ],
+                            borderColor: ['rgb(220, 38, 38)', 'rgb(245, 158, 11)', 'rgb(16, 185, 129)'],
+                            borderWidth: 1.5,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'R² Score (Semakin Besar Semakin Baik)',
+                            data: [r2SvrDefault, r2GridSearch, r2Gwo],
+                            backgroundColor: 'rgba(0, 91, 170, 0.15)',
+                            borderColor: '#005BAA',
+                            borderWidth: 1.5,
+                            type: 'line',
+                            tension: 0.2,
+                            pointBackgroundColor: '#005BAA',
+                            pointRadius: 4,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { font: { family: 'Inter', size: 11 } } },
+                        tooltip: { padding: 10, backgroundColor: '#1f2937', titleFont: { family: 'Inter', size: 11, weight: 'bold' }, bodyFont: { family: 'Inter', size: 11 } }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear', display: true, position: 'left',
+                            title: { display: true, text: 'MAPE (%)', font: { family: 'Inter', size: 11, weight: 'bold' } },
+                            grid: { borderDash: [5, 5], color: '#e2e8f0' },
+                            ticks: { callback: v => v + '%', font: { family: 'Inter', size: 10 } }
+                        },
+                        y1: {
+                            type: 'linear', display: true, position: 'right',
+                            title: { display: true, text: 'R² Score', font: { family: 'Inter', size: 11, weight: 'bold' } },
+                            grid: { drawOnChartArea: false },
+                            min: 0, max: 1.0,
+                            ticks: { font: { family: 'Inter', size: 10 } }
+                        },
+                        x: { ticks: { font: { family: 'Inter', size: 11 } } }
+                    }
+                }
+            });
+        }
     });
 </script>
 @endsection

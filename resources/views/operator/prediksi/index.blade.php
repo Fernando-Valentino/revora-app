@@ -1053,77 +1053,77 @@
                     $meanActual = $lastRun->predictionResults()->avg('actual_value') ?? 0;
                     $rmsePercentage = $meanActual > 0 ? ($rmse / $meanActual) * 100 : 0;
                     
-                    // 1. Klasifikasi MAPE
+                    // 1. Klasifikasi MAPE (Tingkat Kesalahan Perkiraan)
                     if ($mape < 10) {
-                        $mapeCategory = "Sangat Akurat (Excellent)";
-                        $mapeDesc = "Nilai MAPE < 10% diklasifikasikan sebagai <strong>Sangat Akurat (Excellent)</strong>. Deviasi hasil prediksi sangat kecil terhadap data aktual.";
+                        $mapeCategory = "Sangat Akurat (Sangat Tepat)";
+                        $mapeDesc = "Rata-rata kesalahan tebakan model sangat kecil, yaitu kurang dari 10%. Hasil perkiraan ini sangat mendekati kenyataan pendapatan di lapangan.";
                         $mapeColor = "text-success border-success bg-success-subtle";
                         $mapeAlertClass = "alert-success text-success-emphasis bg-success-subtle border-success-subtle";
                         $mapeIcon = "bi-patch-check-fill text-success";
                     } elseif ($mape <= 20) {
-                        $mapeCategory = "Baik (Good)";
-                        $mapeDesc = "Nilai MAPE 10% - 20% diklasifikasikan sebagai <strong>Baik (Good)</strong>. Hasil peramalan dinilai handal dan layak digunakan.";
+                        $mapeCategory = "Baik (Layak Digunakan)";
+                        $mapeDesc = "Rata-rata kesalahan tebakan model berkisar antara 10% hingga 20%. Hasil perkiraan ini cukup andal dan layak digunakan untuk perencanaan.";
                         $mapeColor = "text-primary border-primary bg-primary-subtle";
                         $mapeAlertClass = "alert-primary text-primary-emphasis bg-primary-subtle border-primary-subtle";
                         $mapeIcon = "bi-check-circle-fill text-primary";
                     } elseif ($mape <= 50) {
-                        $mapeCategory = "Cukup (Reasonable)";
-                        $mapeDesc = "Nilai MAPE 20% - 50% diklasifikasikan sebagai <strong>Cukup (Reasonable)</strong>. Perlu dicatat terdapat fluktuasi moderat pada beberapa titik data.";
+                        $mapeCategory = "Cukup Akurat (Perlu Dipantau)";
+                        $mapeDesc = "Rata-rata kesalahan tebakan model berkisar antara 20% hingga 50%. Hasil perkiraan ini memiliki fluktuasi (naik-turun) sedang.";
                         $mapeColor = "text-warning border-warning bg-warning-subtle";
                         $mapeAlertClass = "alert-warning text-warning-emphasis bg-warning-subtle border-warning-subtle";
                         $mapeIcon = "bi-exclamation-triangle-fill text-warning";
                     } else {
-                        $mapeCategory = "Buruk (Inaccurate)";
-                        $mapeDesc = "Nilai MAPE > 50% diklasifikasikan sebagai <strong>Buruk (Inaccurate)</strong>. Model peramalan kurang andal karena simpangan tinggi.";
+                        $mapeCategory = "Kurang Akurat";
+                        $mapeDesc = "Rata-rata kesalahan tebakan model melebihi 50%. Model kurang disarankan untuk perencanaan karena selisih tebakannya cukup besar.";
                         $mapeColor = "text-danger border-danger bg-danger-subtle";
                         $mapeAlertClass = "alert-danger text-danger-emphasis bg-danger-subtle border-danger-subtle";
                         $mapeIcon = "bi-x-circle-fill text-danger";
                     }
 
-                    // 2. Klasifikasi R2 Score
+                    // 2. Klasifikasi R2 Score (Kemampuan Membaca Pola Pendapatan)
                     if ($r2 >= 0.67) {
-                        $r2Category = "Model Kuat (Strong)";
-                        $r2Desc = "Nilai R² Score 0.67 - 1.00 diklasifikasikan sebagai <strong>Model Kuat (Strong)</strong>. Model mampu menjelaskan variabilitas data secara optimal.";
+                        $r2Category = "Sangat Kuat (Sangat Baik)";
+                        $r2Desc = "Model sangat pintar dalam mengikuti pola naik-turunnya transaksi pendapatan harian di lapangan secara tepat.";
                         $r2Icon = "bi-graph-up text-success";
                     } elseif ($r2 >= 0.33) {
-                        $r2Category = "Model Moderat";
-                        $r2Desc = "Nilai R² Score 0.33 - 0.67 diklasifikasikan sebagai <strong>Model Moderat</strong>. Variasi data sebagian dipengaruhi oleh faktor di luar model.";
+                        $r2Category = "Cukup Baik";
+                        $r2Desc = "Model cukup baik dalam mengikuti pola naik-turunnya transaksi, meskipun ada beberapa faktor luar yang tidak terbaca.";
                         $r2Icon = "bi-graph-up text-primary";
                     } else {
-                        $r2Category = "Model Lemah";
-                        $r2Desc = "Nilai R² Score < 0.33 diklasifikasikan sebagai <strong>Model Lemah</strong>. Model kesulitan menangkap variasi/pola dalam data retribusi.";
+                        $r2Category = "Kurang Baik";
+                        $r2Desc = "Model kesulitan mengenali pola naik-turunnya transaksi pendapatan. Perlu penyesuaian agar lebih peka terhadap perubahan data.";
                         $r2Icon = "bi-graph-up text-danger";
                     }
                     
-                    // 3. Klasifikasi RMSE
+                    // 3. Klasifikasi RMSE (Selisih Nominal Rata-Rata)
                     if ($rmsePercentage < 10) {
-                        $rmseCategory = "Sangat Baik";
-                        $rmseDesc = "Nilai RMSE (Rp " . number_format($rmse, 0, ',', '.') . ") berada di bawah 10% dari nilai rata-rata aktual (Rp " . number_format($meanActual, 0, ',', '.') . "), yaitu sebesar <strong>" . number_format($rmsePercentage, 2, ',', '.') . "%</strong>. Kinerja dikategorikan <strong>Sangat Baik</strong>.";
+                        $rmseCategory = "Sangat Kecil (Bagus)";
+                        $rmseDesc = "Rata-rata selisih nominal uang antara hasil tebakan dan kenyataan di lapangan berada di batas aman (di bawah 10% dari rata-rata pendapatan, yaitu sebesar <strong>" . number_format($rmsePercentage, 2, ',', '.') . "%</strong>). Kinerja dikategorikan <strong>Sangat Baik</strong>.";
                         $rmseColor = "text-success";
                         $rmseIcon = "bi-shield-check-fill text-success";
                     } else {
-                        $rmseCategory = "Perlu Optimasi";
-                        $rmseDesc = "Nilai RMSE (Rp " . number_format($rmse, 0, ',', '.') . ") bernilai sebesar <strong>" . number_format($rmsePercentage, 2, ',', '.') . "%</strong> dari rata-rata data aktual (Rp " . number_format($meanActual, 0, ',', '.') . "). Deviasi varian error melampaui 10% ambang batas ideal.";
+                        $rmseCategory = "Perlu Perbaikan (Terlalu Lebar)";
+                        $rmseDesc = "Rata-rata selisih nominal uang antara tebakan dan kenyataan di lapangan melampaui batas toleransi 10% (yaitu sebesar <strong>" . number_format($rmsePercentage, 2, ',', '.') . "%</strong> dari rata-rata pendapatan Rp " . number_format($meanActual, 0, ',', '.') . "). Setelan model perlu diperbaiki agar selisih uangnya lebih kecil.";
                         $rmseColor = "text-warning";
                         $rmseIcon = "bi-exclamation-octagon-fill text-warning";
                     }
                     
-                    // 4. Klasifikasi MAE
-                    $maeCategory = "Presisi Tinggi";
-                    $maeDesc = "Nilai MAE sebesar Rp " . number_format($mae, 0, ',', '.') . " menunjukkan rata-rata error absolut. Semakin mendekati nilai 0 menunjukkan tingkat <strong>Presisi Tinggi</strong>.";
+                    // 4. Klasifikasi MAE (Selisih Uang Riil Per Hari)
+                    $maeCategory = "Sangat Presisi (Tepat)";
+                    $maeDesc = "Rata-rata selisih mutlak antara hasil perkiraan dengan data riil adalah sebesar <strong>Rp " . number_format($mae, 0, ',', '.') . "</strong> per hari. Angka yang kecil ini membuktikan keakuratan model dalam rupiah.";
                     $maeIcon = "bi-pin-map-fill text-primary";
 
                     // 5. Rekomendasi berdasarkan kombinasi nilai
                     $recommendations = [];
                     if ($mape < 10 && $r2 >= 0.67) {
-                        $recommendations[] = "<strong>Model Siap Digunakan:</strong> Kinerja model SVR ini sangat baik dengan tingkat kesalahan sangat rendah. Sangat layak digunakan untuk mendukung pengambilan keputusan penetapan target retribusi.";
-                        $recommendations[] = "<strong>Pertahankan Parameter Default:</strong> Parameter aktif saat ini sudah optimal untuk dataset saat ini. Pemantauan berkala direkomendasikan tanpa perlu optimasi mendesak.";
+                        $recommendations[] = "<strong>Model Siap Digunakan:</strong> Performa model ini sangat baik dengan tingkat kesalahan yang sangat rendah. Sangat layak digunakan untuk membantu dinas menentukan target retribusi parkir harian.";
+                        $recommendations[] = "<strong>Pertahankan Setelan Saat Ini:</strong> Setelan parameter model saat ini sudah sangat optimal. Anda hanya perlu memantau kinerja model secara berkala.";
                     } else {
-                        $recommendations[] = "<strong>Lakukan Optimasi Parameter:</strong> Jalankan penyetelan hyperparameter (C, Epsilon, Gamma) menggunakan algoritma <strong>Grey Wolf Optimizer (GWO)</strong> atau <strong>Grid Search</strong> di menu Optimasi Parameter untuk menekan error.";
-                        $recommendations[] = "<strong>Tambahkan Data Historis:</strong> Jika akurasi belum optimal, pertimbangkan untuk memperpanjang rentang data training historis pendapatan agar model dapat belajar lebih komprehensif.";
+                        $recommendations[] = "<strong>Lakukan Pengaturan Ulang:</strong> Nilai ketepatan masih bisa ditingkatkan. Jalankan pencarian setelan terbaik (optimasi parameter C, Epsilon, Gamma) menggunakan metode <strong>Grey Wolf Optimizer (GWO)</strong> atau <strong>Grid Search</strong> di menu Optimasi.";
+                        $recommendations[] = "<strong>Tambahkan Data Transaksi:</strong> Jika keakuratan masih kurang, pertimbangkan untuk menambahkan data transaksi pendapatan parkir historis yang lebih lengkap agar model dapat belajar lebih baik.";
                     }
                     
-                    $recommendations[] = "<strong>Retraining Model Berkala:</strong> Lakukan pelatihan ulang (Generate Prediksi) secara rutin setiap ada penambahan data transaksi pendapatan harian terbaru agar model tetap adaptif terhadap tren terbaru.";
+                    $recommendations[] = "<strong>Pelatihan Ulang Berkala:</strong> Lakukan pelatihan ulang (Generate Prediksi) secara rutin setiap kali ada penambahan data transaksi pendapatan harian baru agar model tetap mengikuti tren terbaru.";
                 @endphp
 
                 <div class="row g-3">
@@ -1135,7 +1135,7 @@
                             <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
                                 <div class="fs-4"><i class="bi {{ $mapeIcon }}"></i></div>
                                 <div>
-                                    <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">Akurasi MAPE ({{ number_format($mape, 2, ',', '.') }}%): <span class="{{ explode(' ', $mapeColor)[0] }}">{{ $mapeCategory }}</span></div>
+                                    <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">Tingkat Kesalahan Perkiraan (MAPE: {{ number_format($mape, 2, ',', '.') }}%): <span class="{{ explode(' ', $mapeColor)[0] }}">{{ $mapeCategory }}</span></div>
                                     <div class="text-secondary small" style="line-height: 1.5;">{!! $mapeDesc !!}</div>
                                 </div>
                             </div>
@@ -1144,7 +1144,7 @@
                             <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
                                 <div class="fs-4"><i class="bi {{ $r2Icon }}"></i></div>
                                 <div>
-                                    <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">R² Score ({{ number_format($r2, 4, ',', '.') }}): <span class="text-dark">{{ $r2Category }}</span></div>
+                                    <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">Kemampuan Membaca Pola Pendapatan (R² Score: {{ number_format($r2, 4, ',', '.') }}): <span class="text-dark">{{ $r2Category }}</span></div>
                                     <div class="text-secondary small" style="line-height: 1.5;">{!! $r2Desc !!}</div>
                                 </div>
                             </div>
@@ -1153,7 +1153,7 @@
                             <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
                                 <div class="fs-4"><i class="bi {{ $rmseIcon }}"></i></div>
                                 <div>
-                                    <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">RMSE: <span class="{{ $rmseColor }}">{{ $rmseCategory }}</span></div>
+                                    <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">Selisih Nominal Rata-Rata (RMSE): <span class="{{ $rmseColor }}">{{ $rmseCategory }}</span></div>
                                     <div class="text-secondary small" style="line-height: 1.5;">{!! $rmseDesc !!}</div>
                                 </div>
                             </div>
@@ -1162,7 +1162,7 @@
                             <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
                                 <div class="fs-4"><i class="bi {{ $maeIcon }}"></i></div>
                                 <div>
-                                    <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">MAE: <span class="text-primary-custom">{{ $maeCategory }}</span></div>
+                                    <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">Selisih Uang Riil Per Hari (MAE): <span class="text-primary-custom">{{ $maeCategory }}</span></div>
                                     <div class="text-secondary small" style="line-height: 1.5;">{!! $maeDesc !!}</div>
                                 </div>
                             </div>
@@ -1200,7 +1200,6 @@
                         <div style="height: 380px; position: relative; width: 100%;">
                             <canvas id="svrChart"></canvas>
                         </div>
-                        
                         <!-- Detailed Graph Analysis Card -->
                         <div class="mt-4 p-3 bg-light rounded-3 border-start border-4 border-primary shadow-sm">
                             <h6 class="fw-bold text-dark mb-2"><i class="bi bi-info-circle-fill text-primary-custom me-1"></i>Analisis Pola & Kesesuaian Tren Grafik</h6>
@@ -1210,24 +1209,24 @@
                                         <i class="bi bi-arrow-repeat text-primary-custom me-1"></i>
                                         <strong>Tingkat Kesesuaian Pola:</strong> 
                                         @if($totalDiffPercent < 5)
-                                            Sangat Konvergen (Deviasi Akumulasi hanya <strong>{{ number_format($totalDiffPercent, 2, ',', '.') }}%</strong>). Model SVR mampu merekonstruksi pergerakan tren pendapatan harian secara sangat presisi.
+                                            Sangat Cocok (Selisih Total hanya <strong>{{ number_format($totalDiffPercent, 2, ',', '.') }}%</strong>). Model perkiraan mampu mengikuti naik-turunnya tren pendapatan harian secara sangat tepat.
                                         @elseif($totalDiffPercent < 15)
-                                            Konvergen Baik (Deviasi Akumulasi <strong>{{ number_format($totalDiffPercent, 2, ',', '.') }}%</strong>). Pola peramalan mengikuti fluktuasi data riil dengan baik.
+                                            Cocok dengan Baik (Selisih Total <strong>{{ number_format($totalDiffPercent, 2, ',', '.') }}%</strong>). Pola perkiraan mengikuti naik-turunnya data riil dengan baik.
                                         @else
-                                            Deviasi Cukup Tinggi (Deviasi Akumulasi <strong>{{ number_format($totalDiffPercent, 2, ',', '.') }}%</strong>). Model perlu penyesuaian parameter untuk menekan simpangan tren.
+                                            Selisih Cukup Lebar (Selisih Total <strong>{{ number_format($totalDiffPercent, 2, ',', '.') }}%</strong>). Model perkiraan perlu penyesuaian setelan parameter agar perkiraannya lebih mendekati kenyataan.
                                         @endif
                                     </div>
                                     <div>
                                         <i class="bi bi-calendar-check text-primary-custom me-1"></i>
                                         <strong>Puncak Realisasi (Aktual):</strong> 
-                                        Terjadi pada tanggal <strong>{{ $maxActualDate }}</strong> sebesar <strong>Rp {{ number_format($maxActualVal, 0, ',', '.') }}</strong>, di mana model memproyeksikan <strong>Rp {{ number_format($predictedAtMaxActual, 0, ',', '.') }}</strong> (akurasi <strong>{{ number_format($maxActualAccuracy, 2, ',', '.') }}%</strong> pada hari puncak).
+                                        Terjadi pada tanggal <strong>{{ $maxActualDate }}</strong> sebesar <strong>Rp {{ number_format($maxActualVal, 0, ',', '.') }}</strong>, di mana model memperkirakan sebesar <strong>Rp {{ number_format($predictedAtMaxActual, 0, ',', '.') }}</strong> (ketepatan <strong>{{ number_format($maxActualAccuracy, 2, ',', '.') }}%</strong> pada hari puncak).
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-2">
                                         <i class="bi bi-graph-up-arrow text-warning me-1"></i>
                                         <strong>Puncak Peramalan (Prediksi SVR):</strong> 
-                                        Diproyeksikan pada tanggal <strong>{{ $maxPredictedDate }}</strong> sebesar <strong>Rp {{ number_format($maxPredictedVal, 0, ',', '.') }}</strong> (realisasi aktual hari tersebut: <strong>Rp {{ number_format($actualAtMaxPredicted, 0, ',', '.') }}</strong>).
+                                        Diperkirakan pada tanggal <strong>{{ $maxPredictedDate }}</strong> sebesar <strong>Rp {{ number_format($maxPredictedVal, 0, ',', '.') }}</strong> (realisasi riil di lapangan pada hari tersebut: <strong>Rp {{ number_format($actualAtMaxPredicted, 0, ',', '.') }}</strong>).>).
                                     </div>
                                     <div>
                                         <i class="bi bi-lightning-fill text-warning me-1"></i>
@@ -1321,10 +1320,10 @@
                                     @endif
                                 </div>
                                 <div class="col-md-4">
-                                    <span class="text-xs text-uppercase fw-semibold d-block text-secondary mb-1">Metrik Deviasi Nominal</span>
-                                    <div class="fw-bold text-dark fs-6 mb-1">Rp {{ number_format($avgDailyDeviation, 0, ',', '.') }} / hari</div>
-                                    <span class="d-block small">Rata-rata kesalahan absolut harian.</span>
-                                    <span class="d-block text-xs text-muted">Digunakan sebagai acuan toleransi deviasi setoran juru parkir di lapangan.</span>
+                                    <span class="text-xs text-uppercase fw-semibold d-block text-secondary mb-1">Rata-Rata Selisih Uang (Deviasi Nominal Harian)</span>
+                                    <div class="fw-bold text-dark fs-6 mb-1">Rp {{ number_format(abs($avgDailyDeviation), 0, ',', '.') }} / hari</div>
+                                    <span class="d-block small">Rata-rata selisih perkiraan dalam rupiah per hari.</span>
+                                    <span class="d-block text-xs text-muted">Digunakan sebagai acuan batas wajar selisih setoran juru parkir di lapangan.</span>
                                 </div>
                             </div>
                         </div>

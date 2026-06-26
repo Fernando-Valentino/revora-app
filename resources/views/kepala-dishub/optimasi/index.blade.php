@@ -6,14 +6,6 @@
 @section('content')
 <div class="container-fluid p-0">
     
-    <!-- Info Box: MODE LIHAT -->
-    <div class="alert alert-secondary d-flex align-items-center py-2 px-3 mb-4 rounded-3 border-secondary-subtle" role="alert">
-        <i class="bi bi-eye-fill me-2 fs-5 text-dark"></i>
-        <div class="small">
-            <span class="fw-bold text-dark">MODE LIHAT:</span> Pengguna hanya dapat memantau hasil optimasi parameter tanpa opsi untuk menjalankan ulang tuning model.
-        </div>
-    </div>
-
     <!-- Result Cards (Grid Search vs GWO) -->
     <div class="row g-4 mb-4">
         <!-- Grid Search Result Card -->
@@ -115,6 +107,199 @@
             <h5 class="card-title"><i class="bi bi-bar-chart-line me-2 text-dark"></i>Grafik Perbandingan Performa Model</h5>
             <div style="position: relative; height: 320px;">
                 <canvas id="performanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analisis Perbandingan Performa Model -->
+    <div class="card mb-4 bg-white shadow-sm border border-light">
+        <div class="card-body">
+            <h5 class="card-title text-dark mb-3"><i class="bi bi-chat-left-text-fill me-2 text-primary"></i>Analisis Perbandingan Performa Model</h5>
+            
+            @php
+                $defaultMape = $chartMetrics['mape_default'];
+                $gsMape = $chartMetrics['mape_gs'];
+                $gwoMape = $chartMetrics['mape_gwo'];
+
+                $models = [];
+                if ($defaultMape !== null) $models['SVR Standar (Default)'] = $defaultMape;
+                if ($gsMape !== null) $models['SVR + Grid Search'] = $gsMape;
+                if ($gwoMape !== null) $models['SVR + GWO (Grey Wolf)'] = $gwoMape;
+
+                $bestModelName = '-';
+                $bestModelMape = 0;
+                if (count($models) > 0) {
+                    asort($models);
+                    $bestModelName = array_key_first($models);
+                    $bestModelMape = reset($models);
+                }
+
+                $gsImprovement = ($defaultMape !== null && $gsMape !== null) ? ($defaultMape - $gsMape) : 0;
+                $gwoImprovement = ($defaultMape !== null && $gwoMape !== null) ? ($defaultMape - $gwoMape) : 0;
+                
+                // Extract exact parameters from SVR runs
+                $defaultC = $lastRun ? ($lastRun->modelParameter?->c_value ?? '1.0') : '1.0';
+                $defaultEps = $lastRun ? ($lastRun->modelParameter?->epsilon_value ?? '0.1') : '0.1';
+                $defaultGam = $lastRun ? ($lastRun->modelParameter?->gamma_value ?? 'scale') : 'scale';
+
+                $gsParamC = $gsRun ? ($gsRun->modelParameter?->c_value ?? '-') : '-';
+                $gsParamEps = $gsRun ? ($gsRun->modelParameter?->epsilon_value ?? '-') : '-';
+                $gsParamGam = $gsRun ? ($gsRun->modelParameter?->gamma_value ?? '-') : '-';
+
+                $gwoParamC = $gwoRun ? ($gwoRun->modelParameter?->c_value ?? '-') : '-';
+                $gwoParamEps = $gwoRun ? ($gwoRun->modelParameter?->epsilon_value ?? '-') : '-';
+                $gwoParamGam = $gwoRun ? ($gwoRun->modelParameter?->gamma_value ?? '-') : '-';
+
+                // Helper formatter to trim trailing zeros of decimals and support precise representation
+                $formatParamVal = function ($val, int $maxDecimals = 8): string {
+                    if ($val === null || $val === '' || $val === '-') {
+                        return '-';
+                    }
+                    if (!is_numeric($val)) {
+                        return $val;
+                    }
+                    $formatted = number_format((float)$val, $maxDecimals, ',', '.');
+                    if (strpos($formatted, ',') !== false) {
+                        $formatted = rtrim($formatted, '0');
+                        $formatted = rtrim($formatted, ',');
+                    }
+                    return $formatted;
+                };
+
+                // Best model interpretations
+                $bestRunObj = null;
+                $bestR2Val = 0;
+                if ($bestModelName === 'SVR Standar (Default)') {
+                    $bestRunObj = $lastRun;
+                } elseif ($bestModelName === 'SVR + Grid Search') {
+                    $bestRunObj = $gsRun;
+                } elseif ($bestModelName === 'SVR + GWO (Grey Wolf)') {
+                    $bestRunObj = $gwoRun;
+                }
+
+                if ($bestRunObj) {
+                    $bestMetric = $bestRunObj->modelMetrics()->where('dataset_type', 'test')->first();
+                    if ($bestMetric) {
+                        $bestR2Val = (float)$bestMetric->r2_score;
+                    }
+                }
+
+                $bestModelMapeInterpret = 'Cukup Akurat';
+                if ($bestModelMape < 10) {
+                    $bestModelMapeInterpret = 'Sangat Akurat';
+                } elseif ($bestModelMape <= 20) {
+                    $bestModelMapeInterpret = 'Baik';
+                }
+
+                $bestR2Interpret = 'Model Lemah';
+                if ($bestR2Val >= 0.67) {
+                    $bestR2Interpret = 'Model Kuat';
+                } elseif ($bestR2Val >= 0.33) {
+                    $bestR2Interpret = 'Model Moderat';
+                }
+
+                // Set class and alerts depending on the best model
+                $alertClass = 'alert-success text-success-emphasis bg-success-subtle border-success-subtle';
+                $iconClass = 'bi-patch-check-fill text-success';
+                if ($bestModelName === 'SVR Standar (Default)') {
+                    $alertClass = 'alert-warning text-warning-emphasis bg-warning-subtle border-warning-subtle';
+                    $iconClass = 'bi-exclamation-triangle-fill text-warning';
+                }
+            @endphp
+
+            <div class="row g-3">
+                <!-- Temuan & Komparasi Kinerja -->
+                <div class="col-md-7">
+                    <h6 class="fw-bold text-secondary text-uppercase mb-2 shadow-none border-0 pb-0" style="font-size: 11px; letter-spacing: 0.5px;">Temuan &amp; Komparasi Kinerja</h6>
+                    <div class="d-flex flex-column gap-3">
+                        <!-- Card SVR Default -->
+                        <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
+                            <div class="fs-4"><i class="bi bi-cpu text-secondary"></i></div>
+                            <div>
+                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">SVR Standar (Default): <span class="text-secondary">{{ $defaultMape !== null ? number_format($defaultMape, 2, ',', '.') . '%' : '-' }}</span></div>
+                                <div class="text-secondary small" style="line-height: 1.5;">
+                                    Menggunakan setelan awal (C = {{ $formatParamVal($defaultC, 6) }}, &epsilon; = {{ $formatParamVal($defaultEps, 8) }}, &gamma; = {{ $formatParamVal($defaultGam, 6) }}). Model ini digunakan sebagai acuan awal akurasi pembanding sebelum dilakukan perbaikan/optimasi.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Card Grid Search -->
+                        <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
+                            <div class="fs-4"><i class="bi bi-grid-3x3 text-warning"></i></div>
+                            <div>
+                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">SVR + Grid Search: <span class="text-warning">{{ $gsMape !== null ? number_format($gsMape, 2, ',', '.') . '%' : '-' }}</span></div>
+                                <div class="text-secondary small" style="line-height: 1.5;">
+                                    @if($gsMape !== null)
+                                        Menggunakan setelan parameter yang lebih presisi (C = {{ $formatParamVal($gsParamC, 6) }}, &epsilon; = {{ $formatParamVal($gsParamEps, 8) }}, &gamma; = {{ $formatParamVal($gsParamGam, 6) }}).
+                                        @if($gsImprovement > 0)
+                                            Berhasil mengurangi tingkat kesalahan sebesar <strong class="text-success">{{ number_format($gsImprovement, 2, ',', '.') }}%</strong> dibanding model awal dengan melakukan pencarian setelan terbaik dalam rentang nilai tertentu.
+                                        @else
+                                            Setelan hasil Grid Search tidak berhasil memberikan peningkatan akurasi dibandingkan model awal.
+                                        @endif
+                                    @else
+                                        Pencarian setelan dengan Grid Search belum dijalankan.
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card GWO -->
+                        <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
+                            <div class="fs-4"><i class="bi bi-activity text-success"></i></div>
+                            <div>
+                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">SVR + GWO (Grey Wolf): <span class="text-success">{{ $gwoMape !== null ? number_format($gwoMape, 2, ',', '.') . '%' : '-' }}</span></div>
+                                <div class="text-secondary small" style="line-height: 1.5;">
+                                    @if($gwoMape !== null)
+                                        Menggunakan setelan parameter yang lebih presisi (C = {{ $formatParamVal($gwoParamC, 6) }}, &epsilon; = {{ $formatParamVal($gwoParamEps, 8) }}, &gamma; = {{ $formatParamVal($gwoParamGam, 6) }}).
+                                        @if($gwoImprovement > 0)
+                                            Berhasil mengurangi tingkat kesalahan sebesar <strong class="text-success">{{ number_format($gwoImprovement, 2, ',', '.') }}%</strong> dibanding model awal melalui pencarian otomatis secara optimal.
+                                        @else
+                                            Setelan hasil GWO tidak berhasil memberikan peningkatan akurasi dibandingkan model awal.
+                                        @endif
+                                    @else
+                                        Pencarian setelan dengan Grey Wolf Optimizer (GWO) belum dijalankan.
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rekomendasi Model Terbaik -->
+                <div class="col-md-5">
+                    <div class="p-3 rounded-3 h-100 {{ $alertClass }} border border-0">
+                        <h6 class="fw-bold text-uppercase mb-3 d-flex align-items-center" style="font-size: 11px; letter-spacing: 0.5px;">
+                            <i class="bi {{ $iconClass }} me-2 fs-5"></i>Rekomendasi Keputusan
+                        </h6>
+                        <div style="font-size: 12.5px; line-height: 1.6;">
+                            @if(count($models) > 0)
+                                <p class="mb-3">
+                                    Berdasarkan hasil uji coba, model <strong>{{ $bestModelName }}</strong> terpilih sebagai model dengan tingkat kesalahan terkecil (MAPE = <strong>{{ number_format($bestModelMape, 2, ',', '.') }}%</strong> - kategori <strong>{{ $bestModelMapeInterpret }}</strong>), dan kemampuan membaca pola data sebesar <strong>{{ number_format($bestR2Val, 4, ',', '.') }}</strong> (kategori <strong>{{ $bestR2Interpret }}</strong>).
+                                </p>
+                                <p class="mb-3 small text-secondary-emphasis">
+                                    Setelan parameter terbaik yang aktif digunakan adalah:<br>
+                                    &bull; C = <strong>{{ $formatParamVal($bestRunObj?->modelParameter?->c_value, 6) }}</strong><br>
+                                    &bull; &epsilon; = <strong>{{ $formatParamVal($bestRunObj?->modelParameter?->epsilon_value, 8) }}</strong><br>
+                                    &bull; &gamma; = <strong>{{ $formatParamVal($bestRunObj?->modelParameter?->gamma_value, 6) }}</strong>
+                                </p>
+                                <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+                                    <li class="d-flex align-items-start gap-2">
+                                        <i class="bi bi-check2-circle mt-0.5 flex-shrink-0 text-success"></i>
+                                        <span>Gunakan model <strong>{{ $bestModelName }}</strong> sebagai acuan resmi penetapan target retribusi parkir harian.</span>
+                                    </li>
+                                    <li class="d-flex align-items-start gap-2">
+                                        <i class="bi bi-check2-circle mt-0.5 flex-shrink-0 text-success"></i>
+                                        <span>Metode Grey Wolf (GWO) terbukti lebih unggul menemukan setelan terbaik dibandingkan Grid Search standar.</span>
+                                    </li>
+                                </ul>
+                            @else
+                                <p class="mb-0">
+                                    Belum ada hasil optimasi yang disimpan untuk dibandingkan.
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

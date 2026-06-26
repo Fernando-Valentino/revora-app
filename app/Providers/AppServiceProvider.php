@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Pagination\Paginator;
 use Carbon\Carbon;
 
 class AppServiceProvider extends ServiceProvider
@@ -24,5 +25,8 @@ class AppServiceProvider extends ServiceProvider
         // menampilkan nama bulan & hari dalam Bahasa Indonesia (contoh: "Juni", "Senin")
         Carbon::setLocale('id');
         app()->setLocale('id');
+
+        // Gunakan Bootstrap 5 untuk template pagination bawaan Laravel
+        Paginator::useBootstrapFive();
     }
 }

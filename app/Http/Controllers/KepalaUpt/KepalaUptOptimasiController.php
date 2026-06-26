@@ -15,6 +15,17 @@ class KepalaUptOptimasiController extends Controller
             ->first();
     }
 
+    private function getBestRun(string $modelType): ?ModelRun
+    {
+        return ModelRun::where('model_runs.model_type', $modelType)
+            ->where('model_runs.status', 'success')
+            ->join('model_metrics', 'model_runs.id', '=', 'model_metrics.model_run_id')
+            ->where('model_metrics.dataset_type', 'test')
+            ->orderBy('model_metrics.mape', 'asc')
+            ->select('model_runs.*')
+            ->first();
+    }
+
     private function mapeCategory(float $mape): string
     {
         if ($mape < 10)  return 'Sangat Akurat';
@@ -58,9 +69,9 @@ class KepalaUptOptimasiController extends Controller
             }
         }
 
-        // 4. Cari model Grid Search & GWO
-        $gsRun  = $this->getLatestRun('svr_grid_search');
-        $gwoRun = $this->getLatestRun('svr_gwo');
+        // 4. Cari model Grid Search & GWO (menggunakan best run sesuai Operator)
+        $gsRun  = $this->getBestRun('svr_grid_search');
+        $gwoRun = $this->getBestRun('svr_gwo');
 
         // Helper row komparasi
         $buildRow = function (string $metode, ?ModelRun $run, array $fallback) {
@@ -160,6 +171,6 @@ class KepalaUptOptimasiController extends Controller
             'r2_gwo'       => $gwoMetric ? (float)$gwoMetric->r2_score : $SKRIPSI_GWO['r2_raw'],
         ];
 
-        return view('kepala-upt.optimasi.index', compact('grid_best', 'gwo_best', 'comparisons', 'chartMetrics'));
+        return view('kepala-upt.optimasi.index', compact('grid_best', 'gwo_best', 'comparisons', 'chartMetrics', 'lastRun', 'gsRun', 'gwoRun'));
     }
 }
