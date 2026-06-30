@@ -8,6 +8,7 @@ use App\Models\Rayon;
 use App\Models\Pendapatan;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class OperatorLaporanController extends Controller
@@ -87,6 +88,35 @@ class OperatorLaporanController extends Controller
             }
         }
 
+        // Rayon Analysis (best, worst, avg daily deviation)
+        $rayonStats = collect([]);
+        $bestRayon = null;
+        $worstRayon = null;
+        $avgDailyDeviation = 0;
+
+        if ($latestRun && count($reports) > 0) {
+            $rayonStats = $latestRun->predictionResults()
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->when($rayonId > 0, fn($q) => $q->where('rayon_id', $rayonId))
+                ->select(
+                    'rayon_name',
+                    DB::raw('AVG(percentage_error) as avg_mape'),
+                    DB::raw('AVG(error_value) as avg_error'),
+                    DB::raw('SUM(actual_value) as total_actual'),
+                    DB::raw('SUM(predicted_value) as total_predicted')
+                )
+                ->groupBy('rayon_name')
+                ->get();
+
+            $bestRayon  = $rayonStats->sortBy('avg_mape')->first();
+            $worstRayon = $rayonStats->sortByDesc('avg_mape')->first();
+
+            $avgDailyDeviation = $latestRun->predictionResults()
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->when($rayonId > 0, fn($q) => $q->where('rayon_id', $rayonId))
+                ->avg('error_value') ?? 0;
+        }
+
         // Summary
         $summary = [
             'periode' => date('d M Y', strtotime($startDate)) . ' - ' . date('d M Y', strtotime($endDate)),
@@ -137,7 +167,11 @@ class OperatorLaporanController extends Controller
             'rayonId',
             'chartLabels',
             'chartActualValues',
-            'chartPredictValues'
+            'chartPredictValues',
+            'bestRayon',
+            'worstRayon',
+            'avgDailyDeviation',
+            'rayonStats'
         ));
     }
 

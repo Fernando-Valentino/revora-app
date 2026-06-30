@@ -480,11 +480,11 @@ class OperatorOptimasiController extends Controller
 
         $wolves      = (int)$request->input('wolves', 12);
         $iterations  = (int)$request->input('iterations', 20);
-        $cMin        = (float)$request->input('c_min', 1.0);
-        $cMax        = (float)$request->input('c_max', 1000.0);
+        $cMin        = (float)$request->input('c_min', 10.0);
+        $cMax        = (float)$request->input('c_max', 300.0);
         $epsilonMin  = (float)$request->input('epsilon_min', 0.0001);
-        $epsilonMax  = (float)$request->input('epsilon_max', 0.1);
-        $gammaMin    = (float)$request->input('gamma_min', 0.0001);
+        $epsilonMax  = (float)$request->input('epsilon_max', 0.05);
+        $gammaMin    = (float)$request->input('gamma_min', 0.0005);
         $gammaMax    = (float)$request->input('gamma_max', 0.1);
 
         // Cari model GWO terbaik sebelumnya di DB untuk warm start

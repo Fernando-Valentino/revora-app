@@ -1328,35 +1328,6 @@
                                 </div>
                             </div>
 
-                            <!-- Detailed Rayon Analysis Box -->
-                            <div class="mt-4 p-3 bg-light rounded-3 border-start border-4 border-success shadow-sm">
-                                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-grid-3x3-gap-fill text-success me-1"></i>Analisis Akurasi Prediksi Per Rayon (Grid Search)</h6>
-                                <div class="row g-3 mt-1 text-sm text-secondary">
-                                    <div class="col-md-4 border-end border-light-subtle">
-                                        <span class="text-xs text-uppercase fw-semibold d-block text-secondary mb-1">Rayon Paling Presisi</span>
-                                        @if($gsBestRayon)
-                                            <div class="fw-bold text-success fs-6 mb-1">{{ $gsBestRayon->rayon_name }}</div>
-                                            <span class="d-block small">Rata-rata MAPE: <strong>{{ number_format($gsBestRayon->avg_mape, 2, ',', '.') }}%</strong></span>
-                                        @else
-                                            <span class="text-muted small">Data tidak tersedia</span>
-                                        @endif
-                                    </div>
-                                    <div class="col-md-4 border-end border-light-subtle">
-                                        <span class="text-xs text-uppercase fw-semibold d-block text-secondary mb-1">Deviasi Terbesar</span>
-                                        @if($gsWorstRayon)
-                                            <div class="fw-bold text-danger fs-6 mb-1">{{ $gsWorstRayon->rayon_name }}</div>
-                                            <span class="d-block small">Rata-rata MAPE: <strong>{{ number_format($gsWorstRayon->avg_mape, 2, ',', '.') }}%</strong></span>
-                                        @else
-                                            <span class="text-muted small">Data tidak tersedia</span>
-                                        @endif
-                                    </div>
-                                    <div class="col-md-4">
-                                        <span class="text-xs text-uppercase fw-semibold d-block text-secondary mb-1">Rata-Rata Selisih Uang (Deviasi Nominal Harian)</span>
-                                        <div class="fw-bold text-dark fs-6 mb-1">Rp {{ number_format(abs($gsAvgDailyDeviation), 0, ',', '.') }} / hari</div>
-                                    </div>
-                                </div>
-                            </div>
-
                             <!-- Pagination container -->
                             @if($gsPredictions->hasPages())
                                 <div class="pagination-container mt-4 d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
@@ -1368,6 +1339,90 @@
                                     </div>
                                 </div>
                             @endif
+
+                            <!-- Detailed Rayon Analysis Box (Grid Search) -->
+                            <div class="mt-4 p-3 bg-white rounded-3 border shadow-sm">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-grid-3x3-gap-fill text-success me-1"></i>Analisis Akurasi Prediksi Per Rayon (Grid Search)</h6>
+                                    <span class="badge bg-success-subtle text-success px-2 py-1 rounded-pill" style="font-size: 10px;">Seluruh Periode Pelatihan</span>
+                                </div>
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-4">
+                                        <div class="p-3 rounded-3 h-100 border border-success-subtle bg-success-subtle">
+                                            <span class="text-uppercase fw-semibold d-block text-secondary mb-1" style="font-size: 9px; letter-spacing: 0.4px;">Rayon Paling Presisi (Lowest Error)</span>
+                                            @if($gsBestRayon)
+                                                <div class="fw-bold text-success mb-1" style="font-size: 16px;">{{ $gsBestRayon->rayon_name }}</div>
+                                                <span class="d-block small text-dark">Rata-rata MAPE: <strong>{{ number_format(abs($gsBestRayon->avg_mape), 2, ',', '.') }}%</strong></span>
+                                                <span class="d-block mt-1" style="font-size: 10.5px; color: #555;">Akurasi peramalan di wilayah ini dinilai sangat andal.</span>
+                                            @else
+                                                <span class="text-muted small">Data tidak tersedia</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 rounded-3 h-100 border border-danger-subtle bg-danger-subtle">
+                                            <span class="text-uppercase fw-semibold d-block text-secondary mb-1" style="font-size: 9px; letter-spacing: 0.4px;">Rayon dengan Deviasi Terbesar</span>
+                                            @if($gsWorstRayon)
+                                                <div class="fw-bold text-danger mb-1" style="font-size: 16px;">{{ $gsWorstRayon->rayon_name }}</div>
+                                                <span class="d-block small text-dark">Rata-rata MAPE: <strong>{{ number_format(abs($gsWorstRayon->avg_mape), 2, ',', '.') }}%</strong></span>
+                                                <span class="d-block mt-1" style="font-size: 10.5px; color: #555;">Deviasi dipengaruhi fluktuasi transaksi harian yang kurang stabil.</span>
+                                            @else
+                                                <span class="text-muted small">Data tidak tersedia</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 rounded-3 h-100 border bg-light">
+                                            <span class="text-uppercase fw-semibold d-block text-secondary mb-1" style="font-size: 9px; letter-spacing: 0.4px;">Rata-Rata Selisih Uang (Deviasi Nominal Harian)</span>
+                                            <div class="fw-bold text-dark mb-1" style="font-size: 16px;">Rp {{ number_format(abs($gsAvgDailyDeviation), 0, ',', '.') }} / hari</div>
+                                            <span class="d-block small text-secondary">Rata-rata selisih perkiraan dalam rupiah per hari.</span>
+                                            <span class="d-block mt-1" style="font-size: 10.5px; color: #555;">Acuan batas wajar selisih setoran juru parkir di lapangan.</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                @if($gsRayonStats->count() > 0)
+                                <div class="border-top pt-3">
+                                    <h6 class="fw-bold text-dark mb-2" style="font-size: 12.5px;"><i class="bi bi-table me-2 text-primary"></i>Rincian Kinerja Seluruh Rayon (Grid Search)</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover align-middle mb-0" style="font-size: 12px;">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Rayon</th>
+                                                    <th style="text-align: right;">Total Aktual (Rp)</th>
+                                                    <th style="text-align: right;">Total Prediksi (Rp)</th>
+                                                    <th style="text-align: right;">Avg Error (Rp)</th>
+                                                    <th style="text-align: right; width: 120px;">Rata-rata MAPE</th>
+                                                    <th style="text-align: center; width: 120px;">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($gsRayonStats->sortBy('avg_mape') as $rs)
+                                                    @php
+                                                        $mapeVal = abs($rs->avg_mape);
+                                                        $statusClass = $mapeVal < 10 ? 'text-success' : ($mapeVal <= 20 ? 'text-primary' : 'text-danger');
+                                                        $statusText  = $mapeVal < 10 ? 'Sangat Akurat' : ($mapeVal <= 20 ? 'Baik' : 'Perlu Perhatian');
+                                                        $badgeClass  = $mapeVal < 10 ? 'bg-success-subtle text-success' : ($mapeVal <= 20 ? 'bg-primary-subtle text-primary' : 'bg-danger-subtle text-danger');
+                                                    @endphp
+                                                    <tr>
+                                                        <td><span class="badge bg-primary-subtle text-primary px-2 py-1" style="font-size: 10px;">{{ $rs->rayon_name }}</span></td>
+                                                        <td style="text-align: right; font-weight: 500;">Rp {{ number_format($rs->total_actual, 0, ',', '.') }}</td>
+                                                        <td style="text-align: right; font-weight: 500; color: #005BAA;">Rp {{ number_format($rs->total_predicted, 0, ',', '.') }}</td>
+                                                        <td style="text-align: right; color: {{ $rs->avg_error >= 0 ? '#10b981' : '#ef4444' }};">
+                                                            {{ $rs->avg_error >= 0 ? '+' : '' }}Rp {{ number_format($rs->avg_error, 0, ',', '.') }}
+                                                        </td>
+                                                        <td style="text-align: right;" class="{{ $statusClass }} fw-bold">{{ number_format($mapeVal, 2, ',', '.') }}%</td>
+                                                        <td style="text-align: center;">
+                                                            <span class="badge {{ $badgeClass }} px-2 py-1" style="font-size: 10px;">{{ $statusText }}</span>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 @endif
@@ -1735,35 +1790,6 @@
                                 </div>
                             </div>
 
-                            <!-- Detailed Rayon Analysis Box -->
-                            <div class="mt-4 p-3 bg-light rounded-3 border-start border-4 border-success shadow-sm">
-                                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-grid-3x3-gap-fill text-success me-1"></i>Analisis Akurasi Prediksi Per Rayon (GWO)</h6>
-                                <div class="row g-3 mt-1 text-sm text-secondary">
-                                    <div class="col-md-4 border-end border-light-subtle">
-                                        <span class="text-xs text-uppercase fw-semibold d-block text-secondary mb-1">Rayon Paling Presisi</span>
-                                        @if($gwoBestRayon)
-                                            <div class="fw-bold text-success fs-6 mb-1">{{ $gwoBestRayon->rayon_name }}</div>
-                                            <span class="d-block small">Rata-rata MAPE: <strong>{{ number_format($gwoBestRayon->avg_mape, 2, ',', '.') }}%</strong></span>
-                                        @else
-                                            <span class="text-muted small">Data tidak tersedia</span>
-                                        @endif
-                                    </div>
-                                    <div class="col-md-4 border-end border-light-subtle">
-                                        <span class="text-xs text-uppercase fw-semibold d-block text-secondary mb-1">Deviasi Terbesar</span>
-                                        @if($gwoWorstRayon)
-                                            <div class="fw-bold text-danger fs-6 mb-1">{{ $gwoWorstRayon->rayon_name }}</div>
-                                            <span class="d-block small">Rata-rata MAPE: <strong>{{ number_format($gwoWorstRayon->avg_mape, 2, ',', '.') }}%</strong></span>
-                                        @else
-                                            <span class="text-muted small">Data tidak tersedia</span>
-                                        @endif
-                                    </div>
-                                    <div class="col-md-4">
-                                        <span class="text-xs text-uppercase fw-semibold d-block text-secondary mb-1">Rata-Rata Selisih Uang (Deviasi Nominal Harian)</span>
-                                        <div class="fw-bold text-dark fs-6 mb-1">Rp {{ number_format(abs($gwoAvgDailyDeviation), 0, ',', '.') }} / hari</div>
-                                    </div>
-                                </div>
-                            </div>
-
                             <!-- Pagination container -->
                             @if($gwoPredictions->hasPages())
                                 <div class="pagination-container mt-4 d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
@@ -1775,6 +1801,90 @@
                                     </div>
                                 </div>
                             @endif
+
+                            <!-- Detailed Rayon Analysis Box (GWO) -->
+                            <div class="mt-4 p-3 bg-white rounded-3 border shadow-sm">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-grid-3x3-gap-fill text-success me-1"></i>Analisis Akurasi Prediksi Per Rayon (GWO)</h6>
+                                    <span class="badge bg-success-subtle text-success px-2 py-1 rounded-pill" style="font-size: 10px;">Seluruh Periode Pelatihan</span>
+                                </div>
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-4">
+                                        <div class="p-3 rounded-3 h-100 border border-success-subtle bg-success-subtle">
+                                            <span class="text-uppercase fw-semibold d-block text-secondary mb-1" style="font-size: 9px; letter-spacing: 0.4px;">Rayon Paling Presisi (Lowest Error)</span>
+                                            @if($gwoBestRayon)
+                                                <div class="fw-bold text-success mb-1" style="font-size: 16px;">{{ $gwoBestRayon->rayon_name }}</div>
+                                                <span class="d-block small text-dark">Rata-rata MAPE: <strong>{{ number_format(abs($gwoBestRayon->avg_mape), 2, ',', '.') }}%</strong></span>
+                                                <span class="d-block mt-1" style="font-size: 10.5px; color: #555;">Akurasi peramalan di wilayah ini dinilai sangat andal.</span>
+                                            @else
+                                                <span class="text-muted small">Data tidak tersedia</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 rounded-3 h-100 border border-danger-subtle bg-danger-subtle">
+                                            <span class="text-uppercase fw-semibold d-block text-secondary mb-1" style="font-size: 9px; letter-spacing: 0.4px;">Rayon dengan Deviasi Terbesar</span>
+                                            @if($gwoWorstRayon)
+                                                <div class="fw-bold text-danger mb-1" style="font-size: 16px;">{{ $gwoWorstRayon->rayon_name }}</div>
+                                                <span class="d-block small text-dark">Rata-rata MAPE: <strong>{{ number_format(abs($gwoWorstRayon->avg_mape), 2, ',', '.') }}%</strong></span>
+                                                <span class="d-block mt-1" style="font-size: 10.5px; color: #555;">Deviasi dipengaruhi fluktuasi transaksi harian yang kurang stabil.</span>
+                                            @else
+                                                <span class="text-muted small">Data tidak tersedia</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 rounded-3 h-100 border bg-light">
+                                            <span class="text-uppercase fw-semibold d-block text-secondary mb-1" style="font-size: 9px; letter-spacing: 0.4px;">Rata-Rata Selisih Uang (Deviasi Nominal Harian)</span>
+                                            <div class="fw-bold text-dark mb-1" style="font-size: 16px;">Rp {{ number_format(abs($gwoAvgDailyDeviation), 0, ',', '.') }} / hari</div>
+                                            <span class="d-block small text-secondary">Rata-rata selisih perkiraan dalam rupiah per hari.</span>
+                                            <span class="d-block mt-1" style="font-size: 10.5px; color: #555;">Acuan batas wajar selisih setoran juru parkir di lapangan.</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                @if($gwoRayonStats->count() > 0)
+                                <div class="border-top pt-3">
+                                    <h6 class="fw-bold text-dark mb-2" style="font-size: 12.5px;"><i class="bi bi-table me-2 text-primary"></i>Rincian Kinerja Seluruh Rayon (GWO)</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover align-middle mb-0" style="font-size: 12px;">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Rayon</th>
+                                                    <th style="text-align: right;">Total Aktual (Rp)</th>
+                                                    <th style="text-align: right;">Total Prediksi (Rp)</th>
+                                                    <th style="text-align: right;">Avg Error (Rp)</th>
+                                                    <th style="text-align: right; width: 120px;">Rata-rata MAPE</th>
+                                                    <th style="text-align: center; width: 120px;">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($gwoRayonStats->sortBy('avg_mape') as $rs)
+                                                    @php
+                                                        $mapeVal = abs($rs->avg_mape);
+                                                        $statusClass = $mapeVal < 10 ? 'text-success' : ($mapeVal <= 20 ? 'text-primary' : 'text-danger');
+                                                        $statusText  = $mapeVal < 10 ? 'Sangat Akurat' : ($mapeVal <= 20 ? 'Baik' : 'Perlu Perhatian');
+                                                        $badgeClass  = $mapeVal < 10 ? 'bg-success-subtle text-success' : ($mapeVal <= 20 ? 'bg-primary-subtle text-primary' : 'bg-danger-subtle text-danger');
+                                                    @endphp
+                                                    <tr>
+                                                        <td><span class="badge bg-primary-subtle text-primary px-2 py-1" style="font-size: 10px;">{{ $rs->rayon_name }}</span></td>
+                                                        <td style="text-align: right; font-weight: 500;">Rp {{ number_format($rs->total_actual, 0, ',', '.') }}</td>
+                                                        <td style="text-align: right; font-weight: 500; color: #005BAA;">Rp {{ number_format($rs->total_predicted, 0, ',', '.') }}</td>
+                                                        <td style="text-align: right; color: {{ $rs->avg_error >= 0 ? '#10b981' : '#ef4444' }};">
+                                                            {{ $rs->avg_error >= 0 ? '+' : '' }}Rp {{ number_format($rs->avg_error, 0, ',', '.') }}
+                                                        </td>
+                                                        <td style="text-align: right;" class="{{ $statusClass }} fw-bold">{{ number_format($mapeVal, 2, ',', '.') }}%</td>
+                                                        <td style="text-align: center;">
+                                                            <span class="badge {{ $badgeClass }} px-2 py-1" style="font-size: 10px;">{{ $statusText }}</span>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 @endif
@@ -2011,6 +2121,20 @@
                 }
             });
         } else {
+            let cMin = 10.0;
+            let cMax = 300.0;
+            let epsMin = 0.0001;
+            let epsMax = 0.05;
+            let gamMin = 0.0005;
+            let gamMax = 0.1;
+
+            document.getElementById('c_min').value = cMin;
+            document.getElementById('c_max').value = cMax;
+            document.getElementById('epsilon_min').value = epsMin;
+            document.getElementById('epsilon_max').value = epsMax;
+            document.getElementById('gamma_min').value = gamMin;
+            document.getElementById('gamma_max').value = gamMax;
+
             fields.forEach(id => {
                 const el = document.getElementById(id);
                 if (el && !el.hasAttribute('disabled')) {
@@ -2172,11 +2296,11 @@
         } else {
             let wolves = 12;
             let iterations = 20;
-            let cMin = 1.0;
-            let cMax = 1000.0;
+            let cMin = 10.0;
+            let cMax = 300.0;
             let epsMin = 0.0001;
-            let epsMax = 0.1;
-            let gamMin = 0.0001;
+            let epsMax = 0.05;
+            let gamMin = 0.0005;
             let gamMax = 0.1;
 
             if (!sessionStorage.getItem('temp_gwo_wolves')) {
