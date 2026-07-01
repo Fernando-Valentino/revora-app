@@ -1119,7 +1119,7 @@
                         $recommendations[] = "<strong>Model Siap Digunakan:</strong> Performa model ini sangat baik dengan tingkat kesalahan yang sangat rendah. Sangat layak digunakan untuk membantu dinas menentukan target retribusi parkir harian.";
                         $recommendations[] = "<strong>Pertahankan Setelan Saat Ini:</strong> Setelan parameter model saat ini sudah sangat optimal. Anda hanya perlu memantau kinerja model secara berkala.";
                     } else {
-                        $recommendations[] = "<strong>Lakukan Pengaturan Ulang:</strong> Nilai ketepatan masih bisa ditingkatkan. Jalankan pencarian setelan terbaik (optimasi parameter C, Epsilon, Gamma) menggunakan metode <strong>Grey Wolf Optimizer (GWO)</strong> atau <strong>Grid Search</strong> di menu Optimasi.";
+                        $recommendations[] = "<strong>Lakukan Pengaturan Ulang:</strong> Nilai ketepatan masih bisa ditingkatkan. Jalankan pencarian setelan terbaik (optimasi parameter C, Epsilon, Gamma) menggunakan metode <strong>Grid Search</strong> atau <strong>Grey Wolf Optimizer (GWO)</strong> di menu Optimasi.";
                         $recommendations[] = "<strong>Tambahkan Data Transaksi:</strong> Jika keakuratan masih kurang, pertimbangkan untuk menambahkan data transaksi pendapatan parkir historis yang lebih lengkap agar model dapat belajar lebih baik.";
                     }
                     

@@ -46,7 +46,7 @@
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
                 <h4 class="fw-bold mb-1" style="font-size: 18px;"><i class="bi bi-speedometer2 me-2"></i>Dashboard Operator</h4>
-                <p class="mb-0 opacity-75 small" style="font-size: 12px;">Selamat datang kembali! Pantau tren realisasi pendapatan, latih model prediksi SVR-GWO, dan kelola data retribusi parkir harian.</p>
+                <p class="mb-0 opacity-75 small" style="font-size: 12px;">Selamat datang kembali! Pantau tren realisasi pendapatan, latih model prediksi SVR, dan kelola data retribusi parkir harian.</p>
             </div>
             <div>
                 <span class="badge bg-white text-primary px-3 py-2 fw-semibold shadow-sm" style="font-size: 11px; color: var(--primary-blue) !important;">
@@ -90,23 +90,7 @@
             </div>
         </div>
 
-        <!-- Metric 3: Akurasi SVR-GWO -->
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card h-100 mb-0 dashboard-card-hover bg-white" style="padding: 16px 20px; border-radius: 12px;">
-                <div class="d-flex align-items-center">
-                    <div class="icon-box bg-warning-subtle text-warning me-3">
-                        <i class="bi bi-cpu fs-5"></i>
-                    </div>
-                    <div>
-                        <span class="text-uppercase text-secondary fw-semibold d-block mb-1" style="font-size: 10px; letter-spacing: 0.5px;">Akurasi SVR-GWO</span>
-                        <h4 class="fw-bold text-dark mb-0" style="font-size: 18px;">{{ $metrics['mape_gwo'] }}</h4>
-                        <span class="text-secondary small" style="font-size: 10.5px;">MAPE Grey Wolf Optimizer</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Metric 4: Akurasi SVR-Grid Search -->
+        <!-- Metric 3: Akurasi SVR-Grid Search -->
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="card h-100 mb-0 dashboard-card-hover bg-white" style="padding: 16px 20px; border-radius: 12px;">
                 <div class="d-flex align-items-center">
@@ -121,18 +105,33 @@
                 </div>
             </div>
         </div>
+
+        <!-- Metric 4: Akurasi SVR-GWO -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card h-100 mb-0 dashboard-card-hover bg-white" style="padding: 16px 20px; border-radius: 12px;">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box bg-warning-subtle text-warning me-3">
+                        <i class="bi bi-cpu fs-5"></i>
+                    </div>
+                    <div>
+                        <span class="text-uppercase text-secondary fw-semibold d-block mb-1" style="font-size: 10px; letter-spacing: 0.5px;">Akurasi SVR-GWO</span>
+                        <h4 class="fw-bold text-dark mb-0" style="font-size: 18px;">{{ $metrics['mape_gwo'] }}</h4>
+                        <span class="text-secondary small" style="font-size: 10.5px;">MAPE Grey Wolf Optimizer</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Main Section: 2 Columns -->
-    <div class="row g-4">
-        <!-- Left Column: Chart & Table (8/12) -->
-        <div class="col-12 col-lg-8">
-            <!-- Dynamic Chart Card -->
-            <div class="card mb-4 bg-white" style="border-radius: 12px; padding: 20px 24px;">
+    <!-- Graphs Section: 2 Side-by-Side Charts -->
+    <div class="row g-4 mb-4">
+        <!-- Left Column: Actual vs Model Predictions -->
+        <div class="col-12 col-lg-6">
+            <div class="card bg-white h-100" style="border-radius: 12px; padding: 20px 24px;">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div>
-                        <h5 class="fw-bold mb-0 text-dark" style="font-size: 14px;">Komparasi Prediksi SVR (GWO vs Grid Search)</h5>
-                        <span class="text-secondary small d-block" style="font-size: 11px;">Menampilkan tren fluktuasi realisasi pendapatan dibandingkan dengan hasil prediksi optimasi GWO dan Grid Search</span>
+                        <h5 class="fw-bold mb-0 text-dark" style="font-size: 14px;">Komparasi Prediksi SVR (Grid Search vs GWO)</h5>
+                        <span class="text-secondary small d-block" style="font-size: 11px;">Tren realisasi pendapatan dibandingkan dengan prediksi Grid Search dan GWO</span>
                     </div>
                     <a href="{{ route('operator.prediksi.index') }}" class="btn btn-outline-primary btn-sm rounded-2" style="font-size: 11.5px; padding: 4px 10px;">
                         <i class="bi bi-cpu me-1"></i> Latih SVR
@@ -142,23 +141,47 @@
                     <canvas id="revenueTrendChart"></canvas>
                 </div>
             </div>
+        </div>
 
-            <!-- Model Performance Chart Card -->
-            <div class="card mb-4 bg-white" style="border-radius: 12px; padding: 20px 24px;">
+        <!-- Right Column: Future Prediction (Forecasting) -->
+        <div class="col-12 col-lg-6">
+            <div class="card bg-white h-100" style="border-radius: 12px; padding: 20px 24px;">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div>
-                        <h5 class="fw-bold mb-0 text-dark" style="font-size: 14px;">Grafik Perbandingan Performa Model (MAPE & R²)</h5>
-                        <span class="text-secondary small d-block" style="font-size: 11px;">Perbandingan rata-rata kesalahan perkiraan (MAPE) dan tingkat kecocokan model (R² Score)</span>
+                        <h5 class="fw-bold mb-0 text-dark" style="font-size: 14px;">Prediksi Pendapatan Masa Depan (Forecasting)</h5>
+                        <span class="text-secondary small d-block" style="font-size: 11px;">Estimasi proyeksi pendapatan parkir ke depan</span>
                     </div>
-                    <a href="{{ route('operator.optimasi.index') }}" class="btn btn-outline-primary btn-sm rounded-2" style="font-size: 11.5px; padding: 4px 10px;">
-                        <i class="bi bi-sliders me-1"></i> Kelola Optimasi
-                    </a>
+                    <div class="d-flex align-items-center gap-2">
+                        <select id="forecastPeriod" class="form-select form-select-sm" style="font-size: 11.5px; width: 160px; height: 32px; border-radius: 6px;" onchange="changeForecastPeriod(this.value)">
+                            <option value="7" selected>7 Hari ke Depan</option>
+                            <option value="14">14 Hari ke Depan</option>
+                            <option value="30">30 Hari ke Depan</option>
+                        </select>
+                    </div>
                 </div>
-                <div style="height: 260px; position: relative; width: 100%;">
-                    <canvas id="performanceChart"></canvas>
+                <div id="forecastChartContainer" class="d-none" style="height: 260px; position: relative;">
+                    <canvas id="futureForecastChart"></canvas>
+                </div>
+                <div id="forecastPlaceholder" class="d-flex flex-column align-items-center justify-content-center text-center text-secondary" style="height: 260px;">
+                    <div class="p-3 bg-light rounded-circle mb-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                        <i class="bi bi-bar-chart text-muted fs-3"></i>
+                    </div>
+                    @if($performanceMetrics['mape_gwo'] === null)
+                        <h6 class="fw-bold text-dark mb-1" id="forecastPlaceholderTitle" style="font-size: 13.5px;">Proyeksi Belum Tersedia</h6>
+                        <p class="mb-0 small px-3 text-secondary" id="forecastPlaceholderText" style="max-width: 320px;">Model SVR belum dilatih. Harap lakukan training atau optimasi model terlebih dahulu untuk memproyeksikan estimasi pendapatan mendatang.</p>
+                    @else
+                        <h6 class="fw-bold text-dark mb-1" id="forecastPlaceholderTitle" style="font-size: 13.5px;">Memuat Proyeksi...</h6>
+                        <p class="mb-0 small px-3 text-secondary" id="forecastPlaceholderText" style="max-width: 320px;">Sedang mengambil data proyeksi dari server.</p>
+                    @endif
                 </div>
             </div>
+        </div>
+    </div>
 
+    <!-- Main Section: Table & Sidebar -->
+    <div class="row g-4">
+        <!-- Left Column: Table (8/12) -->
+        <div class="col-12 col-lg-8">
             <!-- Recent Incomes Card -->
             <div class="card bg-white mb-0" style="border-radius: 12px; padding: 20px 24px;">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -313,23 +336,9 @@
                         pointBorderWidth: 1.5,
                         pointRadius: 3.5,
                         pointHoverRadius: 5
-                    },
-                    {
-                        label: 'Prediksi SVR-GWO',
-                        data: @json($chartPredictGwoValues),
-                        borderColor: '#F4C542',
-                        borderWidth: 2.5,
-                        backgroundColor: gradientPredictGwo,
-                        fill: true,
-                        tension: 0.35,
-                        pointBackgroundColor: '#F4C542',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 1.5,
-                        pointRadius: 3.5,
-                        pointHoverRadius: 5,
-                        borderDash: [4, 4]
-                    },
-                    {
+                    }
+                    @if($performanceMetrics['mape_gs'] !== null)
+                    , {
                         label: 'Prediksi SVR-Grid Search',
                         data: @json($chartPredictGsValues),
                         borderColor: '#C55A11',
@@ -344,6 +353,24 @@
                         pointHoverRadius: 5,
                         borderDash: [4, 4]
                     }
+                    @endif
+                    @if($performanceMetrics['mape_gwo'] !== null)
+                    , {
+                        label: 'Prediksi SVR-GWO',
+                        data: @json($chartPredictGwoValues),
+                        borderColor: '#F4C542',
+                        borderWidth: 2.5,
+                        backgroundColor: gradientPredictGwo,
+                        fill: true,
+                        tension: 0.35,
+                        pointBackgroundColor: '#F4C542',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 1.5,
+                        pointRadius: 3.5,
+                        pointHoverRadius: 5,
+                        borderDash: [4, 4]
+                    }
+                    @endif
                 ]
             },
             options: {
@@ -410,74 +437,127 @@
             }
         });
 
-        // --- MODEL PERFORMANCE COMPARISON CHART ---
-        const mapeSvrDefault = @json($performanceMetrics['mape_default'] ?? null);
-        const r2SvrDefault   = @json($performanceMetrics['r2_default']   ?? null);
-        const mapeGridSearch = @json($performanceMetrics['mape_gs']      ?? null);
-        const r2GridSearch   = @json($performanceMetrics['r2_gs']        ?? null);
-        const mapeGwo        = @json($performanceMetrics['mape_gwo']     ?? null);
-        const r2Gwo          = @json($performanceMetrics['r2_gwo']       ?? null);
+        // --- FUTURE FORECAST CHART INITIALIZATION ---
+        let forecastChart = null;
+        const isModelTrained = @json($performanceMetrics['mape_gwo'] !== null);
 
-        const canvasPerfEl = document.getElementById('performanceChart');
-        if (typeof Chart !== 'undefined' && canvasPerfEl) {
-            const ctxPerf = canvasPerfEl.getContext('2d');
-            new Chart(ctxPerf, {
-                type: 'bar',
-                data: {
-                    labels: ['SVR Standar (Default)', 'SVR + Grid Search', 'SVR + GWO (Grey Wolf)'],
-                    datasets: [
-                        {
-                            label: 'MAPE (%) (Semakin Kecil Semakin Baik)',
-                            data: [mapeSvrDefault, mapeGridSearch, mapeGwo],
-                            backgroundColor: [
-                                'rgba(220, 38, 38, 0.75)',
-                                'rgba(245, 158, 11, 0.75)',
-                                'rgba(16, 185, 129, 0.75)'
-                            ],
-                            borderColor: ['rgb(220, 38, 38)', 'rgb(245, 158, 11)', 'rgb(16, 185, 129)'],
-                            borderWidth: 1.5,
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: 'R² Score (Semakin Besar Semakin Baik)',
-                            data: [r2SvrDefault, r2GridSearch, r2Gwo],
-                            backgroundColor: 'rgba(0, 91, 170, 0.15)',
-                            borderColor: '#005BAA',
-                            borderWidth: 1.5,
-                            type: 'line',
-                            tension: 0.2,
-                            pointBackgroundColor: '#005BAA',
-                            pointRadius: 4,
-                            yAxisID: 'y1'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top', labels: { font: { family: 'Inter', size: 11 } } },
-                        tooltip: { padding: 10, backgroundColor: '#1f2937', titleFont: { family: 'Inter', size: 11, weight: 'bold' }, bodyFont: { family: 'Inter', size: 11 } }
-                    },
-                    scales: {
-                        y: {
-                            type: 'linear', display: true, position: 'left',
-                            title: { display: true, text: 'MAPE (%)', font: { family: 'Inter', size: 11, weight: 'bold' } },
-                            grid: { borderDash: [5, 5], color: '#e2e8f0' },
-                            ticks: { callback: v => v + '%', font: { family: 'Inter', size: 10 } }
-                        },
-                        y1: {
-                            type: 'linear', display: true, position: 'right',
-                            title: { display: true, text: 'R² Score', font: { family: 'Inter', size: 11, weight: 'bold' } },
-                            grid: { drawOnChartArea: false },
-                            min: 0, max: 1.0,
-                            ticks: { font: { family: 'Inter', size: 10 } }
-                        },
-                        x: { ticks: { font: { family: 'Inter', size: 11 } } }
-                    }
+        window.changeForecastPeriod = function(days) {
+            const chartContainer = document.getElementById('forecastChartContainer');
+            const placeholder = document.getElementById('forecastPlaceholder');
+            const placeholderTitle = document.getElementById('forecastPlaceholderTitle');
+            const placeholderText = document.getElementById('forecastPlaceholderText');
+
+            if (!isModelTrained) {
+                chartContainer.classList.add('d-none');
+                placeholder.classList.remove('d-none');
+                if (placeholderTitle) placeholderTitle.innerText = "Proyeksi Belum Tersedia";
+                if (placeholderText) {
+                    placeholderText.innerText = "Model SVR belum dilatih. Harap lakukan training atau optimasi model terlebih dahulu untuk memproyeksikan estimasi pendapatan mendatang.";
                 }
-            });
+                return;
+            }
+
+            // Show loading state initially
+            chartContainer.classList.add('d-none');
+            placeholder.classList.remove('d-none');
+            if (placeholderTitle) placeholderTitle.innerText = "Memuat Proyeksi...";
+            if (placeholderText) placeholderText.innerText = "Sedang mengambil data proyeksi dari server.";
+
+            fetch(`{{ route('operator.dashboard.forecast') }}?days=${days}`)
+                .then(async r => {
+                    const data = await r.json().catch(() => ({}));
+                    if (!r.ok) {
+                        throw new Error(data.message || `HTTP error! status: ${r.status}`);
+                    }
+                    return data;
+                })
+                .then(data => {
+                    if (data.success) {
+                        placeholder.classList.add('d-none');
+                        chartContainer.classList.remove('d-none');
+
+                        const canvasForecast = document.getElementById('futureForecastChart');
+                        if (!canvasForecast) return;
+                        
+                        const ctxForecast = canvasForecast.getContext('2d');
+                        
+                        const gradientForecast = ctxForecast.createLinearGradient(0, 0, 0, 260);
+                        gradientForecast.addColorStop(0, 'rgba(16, 185, 129, 0.12)');
+                        gradientForecast.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+                        if (forecastChart) {
+                            forecastChart.destroy();
+                        }
+
+                        forecastChart = new Chart(ctxForecast, {
+                            type: 'line',
+                            data: {
+                                labels: data.labels,
+                                datasets: [{
+                                    label: 'Estimasi Pendapatan Harian',
+                                    data: data.values,
+                                    borderColor: '#10B981',
+                                    borderWidth: 2.5,
+                                    backgroundColor: gradientForecast,
+                                    fill: true,
+                                    tension: 0.35,
+                                    pointBackgroundColor: '#10B981',
+                                    pointBorderColor: '#ffffff',
+                                    pointBorderWidth: 1.5,
+                                    pointRadius: 3.5,
+                                    pointHoverRadius: 5
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { display: false },
+                                    tooltip: {
+                                        padding: 8,
+                                        backgroundColor: '#1f2937',
+                                        titleFont: { family: 'Inter', size: 11, weight: 'bold' },
+                                        bodyFont: { family: 'Inter', size: 11 },
+                                        callbacks: {
+                                            label: function(context) {
+                                                let val = context.raw;
+                                                return ' Estimasi: Rp ' + new Intl.NumberFormat('id-ID').format(val);
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        grid: { borderDash: [5, 5], color: '#e2e8f0' },
+                                        ticks: {
+                                            callback: function(value) {
+                                                return 'Rp ' + new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(value);
+                                            },
+                                            font: { family: 'Inter', size: 10.5 }
+                                        }
+                                    },
+                                    x: {
+                                        grid: { display: false },
+                                        ticks: { font: { family: 'Inter', size: 10 } }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                })
+                .catch(err => {
+                    console.error("Forecasting error:", err);
+                    chartContainer.classList.add('d-none');
+                    placeholder.classList.remove('d-none');
+                    if (placeholderTitle) placeholderTitle.innerText = "Proyeksi Belum Tersedia";
+                    if (placeholderText) {
+                        placeholderText.innerText = err.message || 'Gagal memuat proyeksi pendapatan.';
+                    }
+                });
         }
+
+        // Trigger load initially
+        changeForecastPeriod(7);
     });
 </script>
 @endsection

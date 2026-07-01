@@ -21,7 +21,7 @@ class KepalaDishubOptimasiController extends Controller
             ->where('model_runs.status', 'success')
             ->join('model_metrics', 'model_runs.id', '=', 'model_metrics.model_run_id')
             ->where('model_metrics.dataset_type', 'test')
-            ->orderBy('model_metrics.mape', 'asc')
+            ->orderBy('model_runs.id', 'desc')
             ->select('model_runs.*')
             ->first();
     }

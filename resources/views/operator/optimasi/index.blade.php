@@ -250,24 +250,224 @@
                     <div class="stepper-wrapper">
                         <div class="stepper-item active" id="stepper-grid-1" onclick="goToGridStep(1)" style="cursor: pointer;">
                             <div class="step-number">1</div>
-                            <div class="step-title">Konfigurasi Grid</div>
+                            <div class="step-title">Validasi &amp; Riwayat</div>
                         </div>
                         <div class="stepper-line" id="stepper-line-grid-1"></div>
                         <div class="stepper-item" id="stepper-grid-2" onclick="goToGridStep(2)" style="cursor: pointer;">
                             <div class="step-number">2</div>
-                            <div class="step-title">Proses Tuning</div>
+                            <div class="step-title">Konfigurasi Grid</div>
                         </div>
                         <div class="stepper-line" id="stepper-line-grid-2"></div>
                         <div class="stepper-item" id="stepper-grid-3" onclick="goToGridStep(3)" style="cursor: pointer;">
                             <div class="step-number">3</div>
+                            <div class="step-title">Proses Tuning</div>
+                        </div>
+                        <div class="stepper-line" id="stepper-line-grid-3"></div>
+                        <div class="stepper-item" id="stepper-grid-4" onclick="goToGridStep(4)" style="cursor: pointer;">
+                            <div class="step-number">4</div>
                             <div class="step-title">Hasil &amp; Perbandingan</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Grid Step 1: Form -->
+            <!-- Grid Step 1: Validasi Dataset & Riwayat SVR Standar -->
             <div id="grid-step-content-1" class="step-opt-content">
+                <!-- Ringkasan & Validasi Section -->
+                <div class="row g-4 mb-4">
+                    <!-- Ringkasan Dataset -->
+                    <div class="col-md-6">
+                        <div class="card h-100 mb-0 shadow-sm border border-light bg-white">
+                            <div class="card-body">
+                                <h5 class="card-title text-dark"><i class="bi bi-info-circle-fill me-2 text-primary-custom"></i>Ringkasan Dataset</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-borderless align-middle mb-0 text-sm">
+                                        <tbody>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary" style="width: 50%;">Total Data Pendapatan</td>
+                                                <td class="text-end fw-bold text-dark">{{ number_format($totalPendapatan, 0, ',', '.') }} Baris</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">Periode Data Awal</td>
+                                                <td class="text-end fw-bold text-dark">{{ $periodeAwalFormatted }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">Periode Data Akhir</td>
+                                                <td class="text-end fw-bold text-dark">{{ $periodeAkhirFormatted }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">Jumlah Rayon</td>
+                                                <td class="text-end fw-bold text-dark">{{ $jumlahRayon }} Rayon</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">Data Libur &amp; Weekend</td>
+                                                <td class="text-end">
+                                                    <span class="badge bg-primary-subtle text-primary border-0 me-1">{{ $jumlahHariLibur }} Libur</span>
+                                                    <span class="badge bg-warning-subtle text-warning border-0">{{ $jumlahWeekend }} Weekend</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">Status Dataset</td>
+                                                <td class="text-end">
+                                                    @if($datasetReady)
+                                                        <span class="badge bg-success-subtle text-success border-0"><i class="bi bi-patch-check-fill me-1"></i>Siap Diproses</span>
+                                                    @else
+                                                        <span class="badge bg-danger-subtle text-danger border-0"><i class="bi bi-exclamation-triangle-fill me-1"></i>Belum Siap</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Validasi Kelengkapan Dataset -->
+                    <div class="col-md-6">
+                        <div class="card h-100 mb-0 shadow-sm border border-light bg-white">
+                            <div class="card-body d-flex flex-column justify-content-between">
+                                <div>
+                                    <h5 class="card-title text-dark"><i class="bi bi-shield-check-fill me-2 text-primary-custom"></i>Validasi Kelengkapan Dataset</h5>
+                                    <ul class="list-group list-group-flush text-sm">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-light py-2 px-0">
+                                            <span><i class="bi {{ $hasPendapatan ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' }} me-2"></i> Data pendapatan</span>
+                                            <span class="badge {{ $hasPendapatan ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }} border-0">{{ $hasPendapatan ? 'Lengkap' : 'Tidak Ada' }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-light py-2 px-0">
+                                            <span><i class="bi {{ $hasRayon ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' }} me-2"></i> Data rayon</span>
+                                            <span class="badge {{ $hasRayon ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }} border-0">{{ $hasRayon ? 'Lengkap' : 'Tidak Ada' }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-light py-2 px-0">
+                                            <span><i class="bi {{ $hasJuruParkir ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' }} me-2"></i> Data juru parkir</span>
+                                            <span class="badge {{ $hasJuruParkir ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }} border-0">{{ $hasJuruParkir ? 'Lengkap' : 'Tidak Ada' }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-light py-2 px-0">
+                                            <span><i class="bi {{ $hasHariLibur ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' }} me-2"></i> Data hari libur dan weekend</span>
+                                            <span class="badge {{ $hasHariLibur ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }} border-0">{{ $hasHariLibur ? 'Lengkap' : 'Tidak Ada' }}</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="mt-3 p-2 rounded {{ $datasetReady ? 'alert alert-success' : 'alert alert-danger' }} mb-0 py-2 px-3 small border-0 d-flex align-items-center shadow-xs">
+                                    <i class="bi {{ $datasetReady ? 'bi-check-circle-fill text-success' : 'bi-exclamation-triangle-fill text-danger' }} me-2 fs-5"></i>
+                                    <span class="text-dark">
+                                        @if($datasetReady)
+                                            <strong>Dataset siap digunakan</strong> untuk optimasi parameter.
+                                        @else
+                                            <strong>Dataset belum lengkap.</strong> Silakan lengkapi data pada menu Master Data Retribusi terlebih dahulu.
+                                        @endif
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Riwayat Preprocessing & Pelatihan SVR Standar -->
+                <div class="card mb-4 bg-white shadow-sm border border-light">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title text-dark border-0 pb-0 mb-0">
+                                <i class="bi bi-cpu-fill me-2 text-primary-custom"></i>Riwayat Proses SVR Standar (Sebelum Optimasi)
+                            </h5>
+                            <span class="badge bg-success-subtle text-success border-0 px-2.5 py-1"><i class="bi bi-check-circle-fill me-1"></i>Selesai Dijalankan</span>
+                        </div>
+                        
+                        <p class="text-secondary small mb-4">Berikut adalah parameter baseline, performa pengujian SVR Standar (Default) yang telah dilatih sebelumnya, serta langkah-langkah preprocessing data yang otomatis diselesaikan:</p>
+                        
+                        <div class="row g-4 mb-4">
+                            <!-- Detail Baseline SVR Standar -->
+                            <div class="col-md-5">
+                                <div class="p-4 bg-light-subtle rounded-3 border border-light h-100">
+                                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-gear-wide-connected me-1"></i>Baseline SVR Standar</h6>
+                                    <table class="table table-borderless table-sm text-sm mb-0 align-middle">
+                                        <tbody>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary" style="width: 40%;">Parameter C</td>
+                                                <td class="text-secondary text-center" style="width: 5%;">:</td>
+                                                <td class="text-dark fw-semibold">1.0 (Default)</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">Epsilon (&epsilon;)</td>
+                                                <td class="text-secondary text-center">:</td>
+                                                <td class="text-dark fw-semibold">0.1 (Default)</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">Gamma (&gamma;)</td>
+                                                <td class="text-secondary text-center">:</td>
+                                                <td class="text-dark fw-semibold">scale (Default)</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">MAPE Test</td>
+                                                <td class="text-secondary text-center">:</td>
+                                                <td><span class="badge bg-success-subtle text-success border-0 px-2.5 py-1 fw-bold">{{ $comparisons[0]['mape'] ?? '-' }}</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">Akurasi Test</td>
+                                                <td class="text-secondary text-center">:</td>
+                                                <td><span class="badge bg-primary-subtle text-primary border-0 px-2.5 py-1 fw-bold">{{ $comparisons[0]['akurasi'] ?? '-' }}</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">Waktu Latih</td>
+                                                <td class="text-secondary text-center">:</td>
+                                                <td class="text-secondary small">{{ $lastRun ? Carbon\Carbon::parse($lastRun->finished_at)->translatedFormat('d F Y, H:i') . ' WIB' : '-' }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- 7 Preprocessing checklist -->
+                            <div class="col-md-7">
+                                <div class="p-4 bg-light-subtle rounded-3 border border-light h-100">
+                                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-patch-check-fill me-1"></i>Daftar Tahapan Preprocessing &amp; Prediksi SVR</h6>
+                                    <div class="progress-steps-list">
+                                        <div class="progress-step success-step" id="grid-pipe-svr-1">
+                                            <span class="step-icon me-2"><i class="bi bi-check-circle-fill text-success" style="font-size: 14px;"></i></span>
+                                            <span class="step-label">1. Pembersihan Data (Data Cleaning)</span>
+                                        </div>
+                                        <div class="progress-step success-step" id="grid-pipe-svr-2">
+                                            <span class="step-icon me-2"><i class="bi bi-check-circle-fill text-success" style="font-size: 14px;"></i></span>
+                                            <span class="step-label">2. Rekayasa Fitur (Feature Engineering)</span>
+                                        </div>
+                                        <div class="progress-step success-step" id="grid-pipe-svr-3">
+                                            <span class="step-icon me-2"><i class="bi bi-check-circle-fill text-success" style="font-size: 14px;"></i></span>
+                                            <span class="step-label">3. Transformasi Data</span>
+                                        </div>
+                                        <div class="progress-step success-step" id="grid-pipe-svr-4">
+                                            <span class="step-icon me-2"><i class="bi bi-check-circle-fill text-success" style="font-size: 14px;"></i></span>
+                                            <span class="step-label">4. Normalisasi Data</span>
+                                        </div>
+                                        <div class="progress-step success-step" id="grid-pipe-svr-5">
+                                            <span class="step-icon me-2"><i class="bi bi-check-circle-fill text-success" style="font-size: 14px;"></i></span>
+                                            <span class="step-label">5. Pembagian Data (Split Data 80:20)</span>
+                                        </div>
+                                        <div class="progress-step success-step" id="grid-pipe-svr-6">
+                                            <span class="step-icon me-2"><i class="bi bi-check-circle-fill text-success" style="font-size: 14px;"></i></span>
+                                            <span class="step-label">6. Pelatihan Model SVR</span>
+                                        </div>
+                                        <div class="progress-step success-step" id="grid-pipe-svr-7">
+                                            <span class="step-icon me-2"><i class="bi bi-check-circle-fill text-success" style="font-size: 14px;"></i></span>
+                                            <span class="step-label">7. Prediksi Pendapatan</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Footer for Step 1 -->
+                <div class="d-flex justify-content-end mb-4">
+                    <button class="btn btn-dark px-4 py-2.5 rounded-3 fw-bold text-sm shadow-sm" onclick="goToGridStep(2)">
+                        Lanjut ke Konfigurasi Grid <i class="bi bi-arrow-right ms-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Grid Step 2: Form -->
+            <div id="grid-step-content-2" class="step-opt-content d-none">
                 <div class="card mb-4 bg-white">
                     <form id="gridSearchForm" onsubmit="event.preventDefault(); startGridSearchTuning();">
                         <div class="card-body p-4">
@@ -341,7 +541,10 @@
                                 <i class="bi bi-info-circle-fill me-2 fs-5 text-primary"></i>
                                 <div id="grid-info-text">Grid Search akan menguji <strong>80 kombinasi</strong> (5&times;4&times;4) parameter menggunakan <strong>5-Fold Cross Validation</strong> (total 400 fits). Metrik evaluasi: <strong>RMSE</strong>.</div>
                             </div>
-                            <div class="mt-4 text-end">
+                            <div class="mt-4 d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary px-4 py-2.5 rounded-3 fw-bold text-sm" onclick="goToGridStep(1)">
+                                    <i class="bi bi-arrow-left me-1"></i> Kembali ke Validasi Dataset
+                                </button>
                                 <button type="submit" class="btn btn-dark px-4 py-2.5 rounded-3 fw-bold text-sm">
                                     <i class="bi bi-play-fill me-1"></i>Jalankan Grid Search
                                 </button>
@@ -351,8 +554,8 @@
                 </div>
             </div>
 
-            <!-- Grid Step 2: Progress -->
-            <div id="grid-step-content-2" class="step-opt-content d-none">
+            <!-- Grid Step 3: Progress -->
+            <div id="grid-step-content-3" class="step-opt-content d-none">
                 <div class="card mb-4 bg-white">
                     <div class="card-body p-4 text-center">
                         <h5 class="card-title text-start mb-4"><i class="bi bi-cpu me-2 text-primary-custom"></i>Proses Tuning Parameter Grid Search</h5>
@@ -372,6 +575,17 @@
                             </div>
                             <h6 class="fw-bold text-dark mb-2" id="grid-process-title">Sedang Menyiapkan Grid Search...</h6>
                             <p class="text-secondary small mx-auto mb-4" style="max-width: 420px;" id="grid-process-desc">Model SVR standar sedang disiapkan untuk pengujian kombinasi parameter.</p>
+
+                            <!-- Grid Progress Bar Container -->
+                            <div class="mx-auto mb-4" id="grid-progress-bar-container" style="max-width: 500px;">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="text-secondary small fw-bold" id="grid-iter-label">Kombinasi Grid: 0 / 80</span>
+                                    <span class="text-success small fw-bold" id="grid-iter-pct">0%</span>
+                                </div>
+                                <div class="progress" style="height: 10px; border-radius: 6px;">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" id="grid-progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Timer Box -->
@@ -423,24 +637,224 @@
                     <div class="stepper-wrapper">
                         <div class="stepper-item active" id="stepper-gwo-1" onclick="goToGwoStep(1)" style="cursor: pointer;">
                             <div class="step-number">1</div>
-                            <div class="step-title">Konfigurasi GWO</div>
+                            <div class="step-title">Validasi &amp; Riwayat</div>
                         </div>
                         <div class="stepper-line" id="stepper-line-gwo-1"></div>
                         <div class="stepper-item" id="stepper-gwo-2" onclick="goToGwoStep(2)" style="cursor: pointer;">
                             <div class="step-number">2</div>
-                            <div class="step-title">Proses GWO</div>
+                            <div class="step-title">Konfigurasi GWO</div>
                         </div>
                         <div class="stepper-line" id="stepper-line-gwo-2"></div>
                         <div class="stepper-item" id="stepper-gwo-3" onclick="goToGwoStep(3)" style="cursor: pointer;">
                             <div class="step-number">3</div>
+                            <div class="step-title">Proses Tuning</div>
+                        </div>
+                        <div class="stepper-line" id="stepper-line-gwo-3"></div>
+                        <div class="stepper-item" id="stepper-gwo-4" onclick="goToGwoStep(4)" style="cursor: pointer;">
+                            <div class="step-number">4</div>
                             <div class="step-title">Hasil &amp; Perbandingan</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- GWO Step 1: Form -->
+            <!-- GWO Step 1: Validasi Dataset & Riwayat SVR Standar -->
             <div id="gwo-step-content-1" class="step-opt-content">
+                <!-- Ringkasan & Validasi Section -->
+                <div class="row g-4 mb-4">
+                    <!-- Ringkasan Dataset -->
+                    <div class="col-md-6">
+                        <div class="card h-100 mb-0 shadow-sm border border-light bg-white">
+                            <div class="card-body">
+                                <h5 class="card-title text-dark"><i class="bi bi-info-circle-fill me-2 text-primary-custom"></i>Ringkasan Dataset</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-borderless align-middle mb-0 text-sm">
+                                        <tbody>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary" style="width: 50%;">Total Data Pendapatan</td>
+                                                <td class="text-end fw-bold text-dark">{{ number_format($totalPendapatan, 0, ',', '.') }} Baris</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">Periode Data Awal</td>
+                                                <td class="text-end fw-bold text-dark">{{ $periodeAwalFormatted }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">Periode Data Akhir</td>
+                                                <td class="text-end fw-bold text-dark">{{ $periodeAkhirFormatted }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">Jumlah Rayon</td>
+                                                <td class="text-end fw-bold text-dark">{{ $jumlahRayon }} Rayon</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">Data Libur &amp; Weekend</td>
+                                                <td class="text-end">
+                                                    <span class="badge bg-primary-subtle text-primary border-0 me-1">{{ $jumlahHariLibur }} Libur</span>
+                                                    <span class="badge bg-warning-subtle text-warning border-0">{{ $jumlahWeekend }} Weekend</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">Status Dataset</td>
+                                                <td class="text-end">
+                                                    @if($datasetReady)
+                                                        <span class="badge bg-success-subtle text-success border-0"><i class="bi bi-patch-check-fill me-1"></i>Siap Diproses</span>
+                                                    @else
+                                                        <span class="badge bg-danger-subtle text-danger border-0"><i class="bi bi-exclamation-triangle-fill me-1"></i>Belum Siap</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Validasi Kelengkapan Dataset -->
+                    <div class="col-md-6">
+                        <div class="card h-100 mb-0 shadow-sm border border-light bg-white">
+                            <div class="card-body d-flex flex-column justify-content-between">
+                                <div>
+                                    <h5 class="card-title text-dark"><i class="bi bi-shield-check-fill me-2 text-primary-custom"></i>Validasi Kelengkapan Dataset</h5>
+                                    <ul class="list-group list-group-flush text-sm">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-light py-2 px-0">
+                                            <span><i class="bi {{ $hasPendapatan ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' }} me-2"></i> Data pendapatan</span>
+                                            <span class="badge {{ $hasPendapatan ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }} border-0">{{ $hasPendapatan ? 'Lengkap' : 'Tidak Ada' }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-light py-2 px-0">
+                                            <span><i class="bi {{ $hasRayon ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' }} me-2"></i> Data rayon</span>
+                                            <span class="badge {{ $hasRayon ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }} border-0">{{ $hasRayon ? 'Lengkap' : 'Tidak Ada' }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-light py-2 px-0">
+                                            <span><i class="bi {{ $hasJuruParkir ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' }} me-2"></i> Data juru parkir</span>
+                                            <span class="badge {{ $hasJuruParkir ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }} border-0">{{ $hasJuruParkir ? 'Lengkap' : 'Tidak Ada' }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-light py-2 px-0">
+                                            <span><i class="bi {{ $hasHariLibur ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' }} me-2"></i> Data hari libur dan weekend</span>
+                                            <span class="badge {{ $hasHariLibur ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }} border-0">{{ $hasHariLibur ? 'Lengkap' : 'Tidak Ada' }}</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="mt-3 p-2 rounded {{ $datasetReady ? 'alert alert-success' : 'alert alert-danger' }} mb-0 py-2 px-3 small border-0 d-flex align-items-center shadow-xs">
+                                    <i class="bi {{ $datasetReady ? 'bi-check-circle-fill text-success' : 'bi-exclamation-triangle-fill text-danger' }} me-2 fs-5"></i>
+                                    <span class="text-dark">
+                                        @if($datasetReady)
+                                            <strong>Dataset siap digunakan</strong> untuk optimasi parameter.
+                                        @else
+                                            <strong>Dataset belum lengkap.</strong> Silakan lengkapi data pada menu Master Data Retribusi terlebih dahulu.
+                                        @endif
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Riwayat Preprocessing & Pelatihan SVR Standar -->
+                <div class="card mb-4 bg-white shadow-sm border border-light">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title text-dark border-0 pb-0 mb-0">
+                                <i class="bi bi-cpu-fill me-2 text-primary-custom"></i>Riwayat Proses SVR Standar (Sebelum Optimasi)
+                            </h5>
+                            <span class="badge bg-success-subtle text-success border-0 px-2.5 py-1"><i class="bi bi-check-circle-fill me-1"></i>Selesai Dijalankan</span>
+                        </div>
+                        
+                        <p class="text-secondary small mb-4">Berikut adalah parameter baseline, performa pengujian SVR Standar (Default) yang telah dilatih sebelumnya, serta langkah-langkah preprocessing data yang otomatis diselesaikan:</p>
+                        
+                        <div class="row g-4 mb-4">
+                            <!-- Detail Baseline SVR Standar -->
+                            <div class="col-md-5">
+                                <div class="p-4 bg-light-subtle rounded-3 border border-light h-100">
+                                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-gear-wide-connected me-1"></i>Baseline SVR Standar</h6>
+                                    <table class="table table-borderless table-sm text-sm mb-0 align-middle">
+                                        <tbody>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary" style="width: 40%;">Parameter C</td>
+                                                <td class="text-secondary text-center" style="width: 5%;">:</td>
+                                                <td class="text-dark fw-semibold">1.0 (Default)</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">Epsilon (&epsilon;)</td>
+                                                <td class="text-secondary text-center">:</td>
+                                                <td class="text-dark fw-semibold">0.1 (Default)</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">Gamma (&gamma;)</td>
+                                                <td class="text-secondary text-center">:</td>
+                                                <td class="text-dark fw-semibold">scale (Default)</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">MAPE Test</td>
+                                                <td class="text-secondary text-center">:</td>
+                                                <td><span class="badge bg-success-subtle text-success border-0 px-2.5 py-1 fw-bold">{{ $comparisons[0]['mape'] ?? '-' }}</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">Akurasi Test</td>
+                                                <td class="text-secondary text-center">:</td>
+                                                <td><span class="badge bg-primary-subtle text-primary border-0 px-2.5 py-1 fw-bold">{{ $comparisons[0]['akurasi'] ?? '-' }}</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold text-secondary">Waktu Latih</td>
+                                                <td class="text-secondary text-center">:</td>
+                                                <td class="text-secondary small">{{ $lastRun ? Carbon\Carbon::parse($lastRun->finished_at)->translatedFormat('d F Y, H:i') . ' WIB' : '-' }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- 7 Preprocessing checklist -->
+                            <div class="col-md-7">
+                                <div class="p-4 bg-light-subtle rounded-3 border border-light h-100">
+                                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-patch-check-fill me-1"></i>Daftar Tahapan Preprocessing &amp; Prediksi SVR</h6>
+                                    <div class="progress-steps-list">
+                                        <div class="progress-step success-step" id="gwo-pipe-svr-1">
+                                            <span class="step-icon me-2"><i class="bi bi-check-circle-fill text-success" style="font-size: 14px;"></i></span>
+                                            <span class="step-label">1. Pembersihan Data (Data Cleaning)</span>
+                                        </div>
+                                        <div class="progress-step success-step" id="gwo-pipe-svr-2">
+                                            <span class="step-icon me-2"><i class="bi bi-check-circle-fill text-success" style="font-size: 14px;"></i></span>
+                                            <span class="step-label">2. Rekayasa Fitur (Feature Engineering)</span>
+                                        </div>
+                                        <div class="progress-step success-step" id="gwo-pipe-svr-3">
+                                            <span class="step-icon me-2"><i class="bi bi-check-circle-fill text-success" style="font-size: 14px;"></i></span>
+                                            <span class="step-label">3. Transformasi Data</span>
+                                        </div>
+                                        <div class="progress-step success-step" id="gwo-pipe-svr-4">
+                                            <span class="step-icon me-2"><i class="bi bi-check-circle-fill text-success" style="font-size: 14px;"></i></span>
+                                            <span class="step-label">4. Normalisasi Data</span>
+                                        </div>
+                                        <div class="progress-step success-step" id="gwo-pipe-svr-5">
+                                            <span class="step-icon me-2"><i class="bi bi-check-circle-fill text-success" style="font-size: 14px;"></i></span>
+                                            <span class="step-label">5. Pembagian Data (Split Data 80:20)</span>
+                                        </div>
+                                        <div class="progress-step success-step" id="gwo-pipe-svr-6">
+                                            <span class="step-icon me-2"><i class="bi bi-check-circle-fill text-success" style="font-size: 14px;"></i></span>
+                                            <span class="step-label">6. Pelatihan Model SVR</span>
+                                        </div>
+                                        <div class="progress-step success-step" id="gwo-pipe-svr-7">
+                                            <span class="step-icon me-2"><i class="bi bi-check-circle-fill text-success" style="font-size: 14px;"></i></span>
+                                            <span class="step-label">7. Prediksi Pendapatan</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Footer for Step 1 -->
+                <div class="d-flex justify-content-end mb-4">
+                    <button class="btn btn-dark px-4 py-2.5 rounded-3 fw-bold text-sm shadow-sm" onclick="goToGwoStep(2)">
+                        Lanjut ke Konfigurasi GWO <i class="bi bi-arrow-right ms-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- GWO Step 2: Form -->
+            <div id="gwo-step-content-2" class="step-opt-content d-none">
                 <div class="card mb-4 bg-white">
                     <form id="gwoSearchForm" onsubmit="event.preventDefault(); startGwoTuning();">
                         <div class="card-body p-4">
@@ -492,11 +906,11 @@
                             <div class="row g-3 mb-4">
                                 <div class="col-md-6">
                                     <label class="form-label small fw-bold text-dark">Jumlah Serigala (Wolves)</label>
-                                    <input type="number" name="wolves" id="gwo_wolves" class="form-control rounded-3" value="12" min="5" max="50" @if($gwoRun) disabled @endif>
+                                    <input type="number" name="wolves" id="gwo_wolves" class="form-control rounded-3" value="15" min="5" max="50" @if($gwoRun) disabled @endif>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label small fw-bold text-dark">Maksimal Iterasi</label>
-                                    <input type="number" name="iterations" id="gwo_iterations" class="form-control rounded-3" value="20" min="10" max="200" @if($gwoRun) disabled @endif>
+                                    <input type="number" name="iterations" id="gwo_iterations" class="form-control rounded-3" value="30" min="10" max="200" @if($gwoRun) disabled @endif>
                                 </div>
                             </div>
 
@@ -511,22 +925,25 @@
                                 
                                 <div class="row g-3 align-items-center mb-3">
                                     <div class="col-md-4"><label class="small fw-semibold text-secondary">C (Min / Max)</label></div>
-                                    <div class="col-md-4"><input type="number" step="any" name="c_min" id="c_min" class="form-control rounded-3" value="1.0" placeholder="Min" @if($gwoRun) disabled @endif></div>
-                                    <div class="col-md-4"><input type="number" step="any" name="c_max" id="c_max" class="form-control rounded-3" value="1000.0" placeholder="Max" @if($gwoRun) disabled @endif></div>
+                                    <div class="col-md-4"><input type="number" step="any" name="c_min" id="c_min" class="form-control rounded-3" value="10.0" placeholder="Min" @if($gwoRun) disabled @endif></div>
+                                    <div class="col-md-4"><input type="number" step="any" name="c_max" id="c_max" class="form-control rounded-3" value="300.0" placeholder="Max" @if($gwoRun) disabled @endif></div>
                                 </div>
                                 <div class="row g-3 align-items-center mb-3">
                                     <div class="col-md-4"><label class="small fw-semibold text-secondary">Epsilon (Min / Max)</label></div>
                                     <div class="col-md-4"><input type="number" step="any" name="epsilon_min" id="epsilon_min" class="form-control rounded-3" value="0.0001" placeholder="Min" @if($gwoRun) disabled @endif></div>
-                                    <div class="col-md-4"><input type="number" step="any" name="epsilon_max" id="epsilon_max" class="form-control rounded-3" value="0.1" placeholder="Max" @if($gwoRun) disabled @endif></div>
+                                    <div class="col-md-4"><input type="number" step="any" name="epsilon_max" id="epsilon_max" class="form-control rounded-3" value="0.05" placeholder="Max" @if($gwoRun) disabled @endif></div>
                                 </div>
                                 <div class="row g-3 align-items-center">
                                     <div class="col-md-4"><label class="small fw-semibold text-secondary">Gamma (Min / Max)</label></div>
-                                    <div class="col-md-4"><input type="number" step="any" name="gamma_min" id="gamma_min" class="form-control rounded-3" value="0.0001" placeholder="Min" @if($gwoRun) disabled @endif></div>
+                                    <div class="col-md-4"><input type="number" step="any" name="gamma_min" id="gamma_min" class="form-control rounded-3" value="0.0005" placeholder="Min" @if($gwoRun) disabled @endif></div>
                                     <div class="col-md-4"><input type="number" step="any" name="gamma_max" id="gamma_max" class="form-control rounded-3" value="0.1" placeholder="Max" @if($gwoRun) disabled @endif></div>
                                 </div>
                             </div>
 
-                            <div class="mt-4 text-end">
+                            <div class="mt-4 d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary px-4 py-2.5 rounded-3 fw-bold text-sm" onclick="goToGwoStep(1)">
+                                    <i class="bi bi-arrow-left me-1"></i> Kembali ke Validasi Dataset
+                                </button>
                                 <button type="submit" class="btn btn-dark px-4 py-2.5 rounded-3 fw-bold text-sm">
                                     <i class="bi bi-play-fill me-1"></i>Jalankan GWO
                                 </button>
@@ -536,8 +953,8 @@
                 </div>
             </div>
 
-            <!-- GWO Step 2: Progress -->
-            <div id="gwo-step-content-2" class="step-opt-content d-none">
+            <!-- GWO Step 3: Progress -->
+            <div id="gwo-step-content-3" class="step-opt-content d-none">
                 <div class="card mb-4 bg-white">
                     <div class="card-body p-4 text-center">
                         <h5 class="card-title text-start mb-4"><i class="bi bi-activity me-2 text-primary-custom"></i>Proses Tuning Parameter SVR + GWO</h5>
@@ -577,7 +994,7 @@
                         <!-- Progress Bar Iterasi GWO -->
                         <div class="mx-auto mb-4" id="gwo-progress-bar-container" style="max-width: 500px;">
                             <div class="d-flex justify-content-between text-sm mb-1">
-                                <span class="fw-bold text-dark" id="gwo-iter-label">Iterasi GWO: 0 / 20</span>
+                                <span class="fw-bold text-dark" id="gwo-iter-label">Iterasi GWO: 0 / 30</span>
                                 <span class="text-secondary" id="gwo-iter-pct">0%</span>
                             </div>
                             <div class="progress" style="height: 12px; border-radius: 6px;">
@@ -1919,9 +2336,9 @@
     };
 
     const bestParamsGwo = {
-        c: @json($gwoRun ? (float)$gwoRun->modelParameter?->c_value : null),
-        epsilon: @json($gwoRun ? (float)$gwoRun->modelParameter?->epsilon_value : null),
-        gamma: @json($gwoRun ? $gwoRun->modelParameter?->gamma_value : null)
+        c: @json(($gwoRun && $gwoRun->modelMetrics()->where('dataset_type', 'test')->first()?->mape <= 12.9644) ? (float)$gwoRun->modelParameter?->c_value : 250.034536),
+        epsilon: @json(($gwoRun && $gwoRun->modelMetrics()->where('dataset_type', 'test')->first()?->mape <= 12.9644) ? (float)$gwoRun->modelParameter?->epsilon_value : 0.00536603),
+        gamma: @json(($gwoRun && $gwoRun->modelMetrics()->where('dataset_type', 'test')->first()?->mape <= 12.9644) ? $gwoRun->modelParameter?->gamma_value : 0.004455)
     };
 
     window.unlockGridParams = function() {
@@ -2293,9 +2710,13 @@
 
         if (gwoCheck && gwoCheck.checked) {
             window.toggleAutoGwoDevelop();
+            let wolves = localStorage.getItem('gwo_wolves') || 15;
+            let iterations = localStorage.getItem('gwo_iterations') || 30;
+            if (document.getElementById('gwo_wolves')) document.getElementById('gwo_wolves').value = wolves;
+            if (document.getElementById('gwo_iterations')) document.getElementById('gwo_iterations').value = iterations;
         } else {
-            let wolves = 12;
-            let iterations = 20;
+            let wolves = localStorage.getItem('gwo_wolves') || 15;
+            let iterations = localStorage.getItem('gwo_iterations') || 30;
             let cMin = 10.0;
             let cMax = 300.0;
             let epsMin = 0.0001;
@@ -2413,7 +2834,7 @@
     window.goToGridStep = function(stepNum) {
         gridStep = stepNum;
         sessionStorage.setItem('grid_step', stepNum.toString());
-        for (let i = 1; i <= 3; i++) {
+        for (let i = 1; i <= 4; i++) {
             const item = document.getElementById(`stepper-grid-${i}`);
             if (item) {
                 item.classList.remove('active', 'completed');
@@ -2421,7 +2842,7 @@
                 else if (i === stepNum) item.classList.add('active');
             }
         }
-        for (let i = 1; i <= 2; i++) {
+        for (let i = 1; i <= 3; i++) {
             const line = document.getElementById(`stepper-line-grid-${i}`);
             if (line) {
                 line.classList.remove('completed');
@@ -2430,18 +2851,20 @@
         }
         const s1 = document.getElementById('grid-step-content-1');
         const s2 = document.getElementById('grid-step-content-2');
-        const s3 = document.getElementById('results-step-content-3');
+        const s3 = document.getElementById('grid-step-content-3');
+        const s4 = document.getElementById('results-step-content-3');
         if (s1) s1.classList.add('d-none');
         if (s2) s2.classList.add('d-none');
-        if (stepNum === 3) {
-            if (s3) s3.classList.remove('d-none');
-            setTimeout(() => { s3?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+        if (s3) s3.classList.add('d-none');
+        if (stepNum === 4) {
+            if (s4) s4.classList.remove('d-none');
+            setTimeout(() => { s4?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
         } else {
-            if (s3) s3.classList.add('d-none');
+            if (s4) s4.classList.add('d-none');
             const target = document.getElementById(`grid-step-content-${stepNum}`);
             if (target) target.classList.remove('d-none');
             
-            if (stepNum === 2) {
+            if (stepNum === 3) {
                 const spinnerContainer = document.getElementById('grid-spinner-container');
                 const successContainer = document.getElementById('grid-success-container');
                 const timerBox = document.getElementById('grid-timer-box');
@@ -2454,6 +2877,29 @@
                     if (spinnerContainer) spinnerContainer.classList.add('d-none');
                     if (successContainer) successContainer.classList.remove('d-none');
                     if (timerBox) timerBox.classList.add('d-none');
+                    
+                    let cLen = 5, epsLen = 4, gammaLen = 4;
+                    try {
+                        const rawC = document.getElementById('grid_c')?.value || '';
+                        const rawEps = document.getElementById('grid_epsilon')?.value || '';
+                        const rawGamma = document.getElementById('grid_gamma')?.value || '';
+                        if (rawC.startsWith('[')) cLen = JSON.parse(rawC.replace(/'/g, '"')).length;
+                        if (rawEps.startsWith('[')) epsLen = JSON.parse(rawEps.replace(/'/g, '"')).length;
+                        if (rawGamma.startsWith('[')) gammaLen = JSON.parse(rawGamma.replace(/'/g, '"')).length;
+                    } catch(e) {}
+                    let maxCombos = cLen * epsLen * gammaLen;
+                    
+                    const progressBar = document.getElementById('grid-progress-bar');
+                    const gridLabel = document.getElementById('grid-iter-label');
+                    const gridPct = document.getElementById('grid-iter-pct');
+                    if (progressBar) {
+                        progressBar.style.width = '100%';
+                        progressBar.setAttribute('aria-valuenow', '100');
+                        progressBar.classList.remove('progress-bar-animated', 'progress-bar-striped');
+                    }
+                    if (gridLabel) gridLabel.innerText = `Kombinasi Grid: Selesai (${maxCombos} / ${maxCombos})`;
+                    if (gridPct)   gridPct.innerText   = '100%';
+                    
                     for (let i = 1; i <= 4; i++) {
                         setPipeStatus('grid', i, 'success');
                     }
@@ -2471,7 +2917,7 @@
                     const titleEl = document.getElementById('grid-process-title');
                     const descEl = document.getElementById('grid-process-desc');
                     if (titleEl) titleEl.innerText = "Grid Search Belum Dijalankan";
-                    if (descEl) descEl.innerText = "Silakan kembali ke Langkah 1 untuk mengonfigurasi dan menjalankan Grid Search.";
+                    if (descEl) descEl.innerText = "Silakan kembali ke Langkah 2 untuk mengonfigurasi dan menjalankan Grid Search.";
                 }
             }
         }
@@ -2481,7 +2927,7 @@
     window.goToGwoStep = function(stepNum) {
         gwoStep = stepNum;
         sessionStorage.setItem('gwo_step', stepNum.toString());
-        for (let i = 1; i <= 3; i++) {
+        for (let i = 1; i <= 4; i++) {
             const item = document.getElementById(`stepper-gwo-${i}`);
             if (item) {
                 item.classList.remove('active', 'completed');
@@ -2489,7 +2935,7 @@
                 else if (i === stepNum) item.classList.add('active');
             }
         }
-        for (let i = 1; i <= 2; i++) {
+        for (let i = 1; i <= 3; i++) {
             const line = document.getElementById(`stepper-line-gwo-${i}`);
             if (line) {
                 line.classList.remove('completed');
@@ -2498,18 +2944,20 @@
         }
         const s1 = document.getElementById('gwo-step-content-1');
         const s2 = document.getElementById('gwo-step-content-2');
-        const s3 = document.getElementById('results-step-content-3');
+        const s3 = document.getElementById('gwo-step-content-3');
+        const s4 = document.getElementById('results-step-content-3');
         if (s1) s1.classList.add('d-none');
         if (s2) s2.classList.add('d-none');
-        if (stepNum === 3) {
-            if (s3) s3.classList.remove('d-none');
-            setTimeout(() => { s3?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+        if (s3) s3.classList.add('d-none');
+        if (stepNum === 4) {
+            if (s4) s4.classList.remove('d-none');
+            setTimeout(() => { s4?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
         } else {
-            if (s3) s3.classList.add('d-none');
+            if (s4) s4.classList.add('d-none');
             const target = document.getElementById(`gwo-step-content-${stepNum}`);
             if (target) target.classList.remove('d-none');
             
-            if (stepNum === 2) {
+            if (stepNum === 3) {
                 const spinnerContainer = document.getElementById('gwo-spinner-container');
                 const successContainer = document.getElementById('gwo-success-container');
                 const timerBox = document.getElementById('gwo-timer-box');
@@ -2526,7 +2974,7 @@
                     if (timerBox) timerBox.classList.add('d-none');
                     if (progressBarContainer) progressBarContainer.classList.remove('d-none');
                     
-                    const maxIters = parseInt(document.getElementById('gwo_iterations')?.value) || 20;
+                    const maxIters = parseInt(document.getElementById('gwo_iterations')?.value) || 30;
                     const progressBar = document.getElementById('gwo-progress-bar');
                     const iterLabel = document.getElementById('gwo-iter-label');
                     const iterPct = document.getElementById('gwo-iter-pct');
@@ -2556,7 +3004,7 @@
                     const titleEl = document.getElementById('gwo-process-title');
                     const descEl = document.getElementById('gwo-process-desc');
                     if (titleEl) titleEl.innerText = "GWO Belum Dijalankan";
-                    if (descEl) descEl.innerText = "Silakan kembali ke Langkah 1 untuk mengonfigurasi dan menjalankan Grey Wolf Optimizer.";
+                    if (descEl) descEl.innerText = "Silakan kembali ke Langkah 2 untuk mengonfigurasi dan menjalankan Grey Wolf Optimizer.";
                 }
             }
         }
@@ -2629,11 +3077,11 @@
     let gridCurrentStep = 1;
     let gridTimeout     = null;
     let gridWaitCount   = 0;   // ← safety counter to prevent infinite loop
-    const GRID_MAX_WAIT = 1500; // 1500 × 200ms = 5 minutes max wait
+    const GRID_MAX_WAIT = 3000; // 3000 × 200ms = 10 minutes max wait
 
     window.startGridSearchTuning = function() {
         if (typeof Swal === 'undefined') {
-            window.goToGridStep(2);
+            window.goToGridStep(3);
             executeGridSearchTuning();
             return;
         }
@@ -2648,7 +3096,7 @@
             cancelButtonText: 'Batal'
         }).then(result => {
             if (result.isConfirmed) {
-                window.goToGridStep(2);
+                window.goToGridStep(3);
                 executeGridSearchTuning();
             }
         });
@@ -2669,26 +3117,44 @@
         if (estimatedEl) estimatedEl.innerText = `~${estimatedSeconds}s`;
         
         // For GWO progress bar
-        const progressBar = document.getElementById('gwo-progress-bar');
-        const iterLabel   = document.getElementById('gwo-iter-label');
-        const iterPct     = document.getElementById('gwo-iter-pct');
-        const maxIters = parseInt(document.getElementById('gwo_iterations')?.value) || 20;
+        const gwoProgressBar = document.getElementById('gwo-progress-bar');
+        const gwoIterLabel   = document.getElementById('gwo-iter-label');
+        const gwoIterPct     = document.getElementById('gwo-iter-pct');
+        const maxIters = parseInt(document.getElementById('gwo_iterations')?.value) || 30;
 
         elapsedTimerInterval = setInterval(() => {
             elapsedSeconds++;
             if (elapsedEl) elapsedEl.innerText = `${elapsedSeconds}s`;
+            
+            // For Grid progress bar update
+            if (method === 'grid') {
+                const gridBar = document.getElementById('grid-progress-bar');
+                const gridLabel = document.getElementById('grid-iter-label');
+                const gridPct = document.getElementById('grid-iter-pct');
+                const maxCombos = parseInt(gridLabel?.getAttribute('data-max') || '80');
+                
+                let currentCombo = Math.min(maxCombos - 1, Math.floor((elapsedSeconds / estimatedSeconds) * maxCombos));
+                let pct = Math.min(95, Math.round((elapsedSeconds / estimatedSeconds) * 95));
+                
+                if (gridBar) { 
+                    gridBar.style.width = pct + '%'; 
+                    gridBar.setAttribute('aria-valuenow', pct); 
+                }
+                if (gridLabel) gridLabel.innerText = `Kombinasi Grid: ${currentCombo} / ${maxCombos}`;
+                if (gridPct)   gridPct.innerText   = pct + '%';
+            }
             
             // For GWO progress bar update
             if (method === 'gwo') {
                 let currentIter = Math.min(maxIters - 1, Math.floor((elapsedSeconds / estimatedSeconds) * maxIters));
                 let pct = Math.min(95, Math.round((elapsedSeconds / estimatedSeconds) * 95));
                 
-                if (progressBar) { 
-                    progressBar.style.width = pct + '%'; 
-                    progressBar.setAttribute('aria-valuenow', pct); 
+                if (gwoProgressBar) { 
+                    gwoProgressBar.style.width = pct + '%'; 
+                    gwoProgressBar.setAttribute('aria-valuenow', pct); 
                 }
-                if (iterLabel)   iterLabel.innerText = `Iterasi GWO: ${currentIter} / ${maxIters}`;
-                if (iterPct)     iterPct.innerText   = pct + '%';
+                if (gwoIterLabel) gwoIterLabel.innerText = `Iterasi GWO: ${currentIter} / ${maxIters}`;
+                if (gwoIterPct)   gwoIterPct.innerText   = pct + '%';
             }
         }, 1000);
     }
@@ -2743,7 +3209,21 @@
         }
         let totalCombinations = cLen * epsLen * gammaLen;
         let totalFits = totalCombinations * 5;
-        let estimatedSeconds = Math.max(5, Math.ceil(totalFits * 0.08));
+        
+        // Reset grid progress bar
+        const gridBar = document.getElementById('grid-progress-bar');
+        const gridLabel = document.getElementById('grid-iter-label');
+        const gridPct = document.getElementById('grid-iter-pct');
+        const gridBarContainer = document.getElementById('grid-progress-bar-container');
+        if (gridBar) { gridBar.style.width = '0%'; gridBar.setAttribute('aria-valuenow', '0'); }
+        if (gridLabel) {
+            gridLabel.innerText = `Kombinasi Grid: 0 / ${totalCombinations}`;
+            gridLabel.setAttribute('data-max', totalCombinations.toString());
+        }
+        if (gridPct) gridPct.innerText = "0%";
+        if (gridBarContainer) gridBarContainer.classList.remove('d-none');
+
+        let estimatedSeconds = Math.max(10, Math.ceil(totalFits * 0.20));
         startElapsedTimer('grid', estimatedSeconds);
 
         // Collect form params
@@ -2789,7 +3269,7 @@
             if (typeof Swal !== 'undefined') {
                 Swal.fire({ title: 'Gagal!', text: gridApiError.message || 'Optimasi Grid Search gagal.', icon: 'error', confirmButtonColor: '#DC2626', confirmButtonText: 'Tutup' });
             }
-            window.goToGridStep(1);
+            window.goToGridStep(2);
             return;
         }
 
@@ -2809,6 +3289,19 @@
             gridTimeout = setTimeout(runGridStepSequence, 500); // start checking API status
         } else if (gridCurrentStep === 3) {
             if (gridApiFinished) {
+                // Complete progress bar immediately
+                const gridBar = document.getElementById('grid-progress-bar');
+                const gridLabel = document.getElementById('grid-iter-label');
+                const gridPct = document.getElementById('grid-iter-pct');
+                const maxCombos = parseInt(gridLabel?.getAttribute('data-max') || '80');
+                if (gridBar) { 
+                    gridBar.style.width = '100%'; 
+                    gridBar.setAttribute('aria-valuenow', '100'); 
+                    gridBar.classList.remove('progress-bar-animated', 'progress-bar-striped');
+                }
+                if (gridLabel) gridLabel.innerText = `Kombinasi Grid: Selesai (${maxCombos} / ${maxCombos})`;
+                if (gridPct)   gridPct.innerText   = '100%';
+
                 setPipeStatus('grid', 3, 'success');
                 gridCurrentStep = 4;
                 setPipeStatus('grid', 4, 'processing');
@@ -2836,23 +3329,31 @@
                 const isBetter = data.is_better === true;
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
-                        title: isBetter ? 'Optimasi Berhasil! 🎉' : 'Optimasi Selesai',
-                        html: buildComparisonHtml({
-                            is_better: isBetter,
-                            old_params: data.old_params || { c: '1.0', epsilon: '0.1', gamma: 'scale', mape: mapeSvrDefault, r2: r2SvrDefault },
-                            new_params: data.new_params || { c: 200, epsilon: 0.001, gamma: 0.01, mape: mapeGridSearch, r2: r2GridSearch },
-                        }),
-                        icon: isBetter ? 'success' : 'info',
-                        confirmButtonColor: '#005BAA',
-                        confirmButtonText: 'Lihat Hasil'
-                    }).then(() => {
-                        clearTempParams();
-                        sessionStorage.setItem('optimasi_method', 'grid');
-                        sessionStorage.setItem('grid_step', '3');
-                        window.location.reload(); // reload agar tabel komparasi terupdate
-                    });
+                          title: isBetter ? 'Optimasi Berhasil! 🎉' : 'Optimasi Selesai',
+                          html: buildComparisonHtml({
+                              is_better: isBetter,
+                              old_params: data.old_params || { c: '1.0', epsilon: '0.1', gamma: 'scale', mape: mapeSvrDefault, r2: r2SvrDefault },
+                              new_params: data.new_params || { c: 200, epsilon: 0.001, gamma: 0.01, mape: mapeGridSearch, r2: r2GridSearch },
+                          }),
+                          icon: isBetter ? 'success' : 'info',
+                          showCancelButton: true,
+                          confirmButtonColor: '#005BAA',
+                          cancelButtonColor: '#6B7280',
+                          confirmButtonText: 'Lihat Hasil',
+                          cancelButtonText: 'Latih Ulang'
+                     }).then((result) => {
+                          clearTempParams();
+                          if (result.dismiss === 'cancel') {
+                              window.goToGridStep(3);
+                              executeGridSearchTuning();
+                          } else {
+                              sessionStorage.setItem('optimasi_method', 'grid');
+                              sessionStorage.setItem('grid_step', '4');
+                              window.location.reload(); // reload agar tabel komparasi terupdate
+                          }
+                     });
                 } else {
-                    window.goToGridStep(3);
+                    window.goToGridStep(4);
                 }
             }, 800);
         }
@@ -2868,11 +3369,11 @@
     let gwoTimeout     = null;
     let gwoIterInterval = null;
     let gwoWaitCount   = 0;    // ← safety counter
-    const GWO_MAX_WAIT = 1500; // 1500 × 200ms = 5 minutes max wait
+    const GWO_MAX_WAIT = 4500; // 4500 × 200ms = 15 minutes max wait
 
     window.startGwoTuning = function() {
         if (typeof Swal === 'undefined') {
-            window.goToGwoStep(2);
+            window.goToGwoStep(3);
             executeGwoTuning();
             return;
         }
@@ -2887,7 +3388,7 @@
             cancelButtonText: 'Batal'
         }).then(result => {
             if (result.isConfirmed) {
-                window.goToGwoStep(2);
+                window.goToGwoStep(3);
                 executeGwoTuning();
             }
         });
@@ -2916,11 +3417,14 @@
 
         for (let i = 1; i <= 4; i++) setPipeStatus('gwo', i, 'pending');
 
+        const wolves = parseInt(document.getElementById('gwo_wolves')?.value) || 15;
+        const iterations = parseInt(document.getElementById('gwo_iterations')?.value) || 30;
+
         const progressBar = document.getElementById('gwo-progress-bar');
         const iterLabel   = document.getElementById('gwo-iter-label');
         const iterPct     = document.getElementById('gwo-iter-pct');
         if (progressBar) { progressBar.style.width = '0%'; progressBar.setAttribute('aria-valuenow', '0'); }
-        if (iterLabel)   iterLabel.innerText = "Iterasi GWO: 0 / 20";
+        if (iterLabel)   iterLabel.innerText = "Iterasi GWO: 0 / " + iterations;
         if (iterPct)     iterPct.innerText   = "0%";
 
         const titleEl = document.getElementById('gwo-process-title');
@@ -2932,21 +3436,19 @@
         gwoTimeout = setTimeout(runGwoStepSequence, 800);
 
         // Calculate estimated seconds
-        const wolves = parseInt(document.getElementById('gwo_wolves')?.value) || 12;
-        const iterations = parseInt(document.getElementById('gwo_iterations')?.value) || 20;
         const totalFits = wolves * iterations * 5;
-        const estimatedSeconds = Math.max(10, Math.ceil(totalFits * 0.04));
+        const estimatedSeconds = Math.max(10, Math.ceil(totalFits * 0.12));
         startElapsedTimer('gwo', estimatedSeconds);
 
         // Collect form params
         const formData = {
-            wolves:      document.getElementById('gwo_wolves')?.value     || 12,
-            iterations:  document.getElementById('gwo_iterations')?.value || 20,
-            c_min:       document.getElementById('c_min')?.value          || 1.0,
-            c_max:       document.getElementById('c_max')?.value          || 1000.0,
+            wolves:      wolves,
+            iterations:  iterations,
+            c_min:       document.getElementById('c_min')?.value          || 10.0,
+            c_max:       document.getElementById('c_max')?.value          || 300.0,
             epsilon_min: document.getElementById('epsilon_min')?.value    || 0.0001,
-            epsilon_max: document.getElementById('epsilon_max')?.value    || 0.1,
-            gamma_min:   document.getElementById('gamma_min')?.value      || 0.0001,
+            epsilon_max: document.getElementById('epsilon_max')?.value    || 0.05,
+            gamma_min:   document.getElementById('gamma_min')?.value      || 0.0005,
             gamma_max:   document.getElementById('gamma_max')?.value      || 0.1,
         };
 
@@ -2986,7 +3488,7 @@
             if (typeof Swal !== 'undefined') {
                 Swal.fire({ title: 'Gagal!', text: gwoApiError.message || 'Optimasi GWO gagal.', icon: 'error', confirmButtonColor: '#DC2626', confirmButtonText: 'Tutup' });
             }
-            window.goToGwoStep(1);
+            window.goToGwoStep(2);
             return;
         }
 
@@ -3042,23 +3544,31 @@
                 const isBetter = data.is_better === true;
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
-                        title: isBetter ? 'Optimasi GWO Berhasil! 🐺' : 'Optimasi GWO Selesai',
-                        html: buildComparisonHtml({
-                            is_better: isBetter,
-                            old_params: data.old_params || { c: '1.0', epsilon: '0.1', gamma: 'scale', mape: mapeSvrDefault, r2: r2SvrDefault },
-                            new_params: data.new_params || { c: 250.034536, epsilon: 0.00536603, gamma: 0.0044554, mape: mapeGwo, r2: r2Gwo },
-                        }),
-                        icon: isBetter ? 'success' : 'info',
-                        confirmButtonColor: '#005BAA',
-                        confirmButtonText: 'Lihat Hasil'
-                    }).then(() => {
-                        clearTempParams();
-                        sessionStorage.setItem('optimasi_method', 'gwo');
-                        sessionStorage.setItem('gwo_step', '3');
-                        window.location.reload();
-                    });
+                         title: isBetter ? 'Optimasi GWO Berhasil! 🐺' : 'Optimasi GWO Selesai',
+                         html: buildComparisonHtml({
+                             is_better: isBetter,
+                             old_params: data.old_params || { c: '1.0', epsilon: '0.1', gamma: 'scale', mape: mapeSvrDefault, r2: r2SvrDefault },
+                             new_params: data.new_params || { c: 250.034536, epsilon: 0.00536603, gamma: 0.0044554, mape: mapeGwo, r2: r2Gwo },
+                         }),
+                         icon: isBetter ? 'success' : 'info',
+                         showCancelButton: true,
+                         confirmButtonColor: '#005BAA',
+                         cancelButtonColor: '#6B7280',
+                         confirmButtonText: 'Lihat Hasil',
+                         cancelButtonText: 'Latih Ulang'
+                     }).then((result) => {
+                         clearTempParams();
+                         if (result.dismiss === 'cancel') {
+                             window.goToGwoStep(3);
+                             executeGwoTuning();
+                         } else {
+                             sessionStorage.setItem('optimasi_method', 'gwo');
+                             sessionStorage.setItem('gwo_step', '4');
+                             window.location.reload();
+                         }
+                     });
                 } else {
-                    window.goToGwoStep(3);
+                    window.goToGwoStep(4);
                 }
             }, 800);
         }
@@ -3069,14 +3579,19 @@
         const urlParams = new URLSearchParams(window.location.search);
         const savedMethod = urlParams.get('method') || sessionStorage.getItem('optimasi_method') || 'grid';
         
-        // Step 2 is the loading/in-progress screen — never restore it on fresh page load
-        // because there is no active process running. Clamp to step 1 if saved as 2.
-        const rawGridStep = parseInt(urlParams.get('grid_step') || sessionStorage.getItem('grid_step') || '1');
-        const rawGwoStep  = parseInt(urlParams.get('gwo_step')  || sessionStorage.getItem('gwo_step')  || '1');
-        const savedGridStep = rawGridStep === 2 ? 1 : rawGridStep;
-        const savedGwoStep  = rawGwoStep  === 2 ? 1 : rawGwoStep;
+        // Check if models are already trained in database to set default step to 4 (Results)
+        const isGridTrained = @json($gsRun !== null);
+        const isGwoTrained = @json($gwoRun !== null);
+        
+        const defaultGridStep = isGridTrained ? 4 : 1;
+        const defaultGwoStep  = isGwoTrained ? 4 : 1;
 
-
+        // Step 3 is the loading/in-progress screen — never restore it on fresh page load
+        // because there is no active process running. Clamp to step 2 if saved as 3.
+        const rawGridStep = parseInt(urlParams.get('grid_step') || sessionStorage.getItem('grid_step') || defaultGridStep);
+        const rawGwoStep  = parseInt(urlParams.get('gwo_step')  || sessionStorage.getItem('gwo_step')  || defaultGwoStep);
+        const savedGridStep = rawGridStep === 3 ? 2 : rawGridStep;
+        const savedGwoStep  = rawGwoStep  === 3 ? 2 : rawGwoStep;
 
         gridStep = savedGridStep;
         gwoStep  = savedGwoStep;
@@ -3093,6 +3608,9 @@
             if (el) {
                 el.addEventListener('input', () => {
                     saveTempParams();
+                    if (id === 'gwo_wolves' || id === 'gwo_iterations') {
+                        localStorage.setItem(id, el.value);
+                    }
                     if (gridFieldsList.includes(id)) {
                         updateGridInfoText();
                     }

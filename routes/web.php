@@ -39,8 +39,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 // 1. RUTE KHUSUS OPERATOR UPT PARKIR
 // ==========================================
 Route::prefix('operator')->middleware(['auth', 'role:operator'])->name('operator.')->group(function () {
-    // Dashboard
     Route::get('/dashboard', [OperatorDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/forecast', [OperatorDashboardController::class, 'getForecast'])->name('dashboard.forecast');
 
     // Master Data
     Route::get('/master-data/pendapatan/template', [PendapatanController::class, 'downloadTemplate'])->name('pendapatan.template');

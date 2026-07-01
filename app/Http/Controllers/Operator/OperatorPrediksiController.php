@@ -30,11 +30,9 @@ class OperatorPrediksiController extends Controller
         
         $jumlahRayon = Rayon::count();
         
-        // Count weekend and holidays in dataset years only
-        $minYear = $periodeAwal ? Carbon::parse($periodeAwal)->year : 2023;
-        $maxYear = $periodeAkhir ? Carbon::parse($periodeAkhir)->year : 2025;
-        $startDate = Carbon::create($minYear, 1, 1)->format('Y-m-d');
-        $endDate = Carbon::create($maxYear, 12, 31)->format('Y-m-d');
+        // Count weekend and holidays strictly within the dataset date range
+        $startDate = $periodeAwal ?? '2023-01-31';
+        $endDate = $periodeAkhir ?? '2025-07-20';
 
         $jumlahHariLibur = HariLibur::where('tipe', 'Libur Nasional')
             ->whereBetween('tanggal', [$startDate, $endDate])

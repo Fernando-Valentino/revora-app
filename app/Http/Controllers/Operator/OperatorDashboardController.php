@@ -8,6 +8,10 @@ use App\Models\Rayon;
 use App\Models\ModelPrediksi;
 use App\Models\ModelRun;
 use App\Models\PredictionResult;
+use App\Models\HariLibur;
+use App\Services\FastApiService;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class OperatorDashboardController extends Controller
 {
@@ -133,23 +137,17 @@ class OperatorDashboardController extends Controller
             $dateKey = $data->tanggal;
             
             // GWO prediction
-            if (isset($gwoPredictions[$dateKey])) {
+            if ($latestGwo && isset($gwoPredictions[$dateKey])) {
                 $chartPredictGwoValues[] = (int)$gwoPredictions[$dateKey];
             } else {
-                // fallback approximation
-                $day = (int)date('d', strtotime($data->tanggal));
-                $gwoFactor = 1.0 + (($day % 5) - 2) * 0.02;
-                $chartPredictGwoValues[] = (int)($actual * $gwoFactor);
+                $chartPredictGwoValues[] = null;
             }
             
             // Grid Search prediction
-            if (isset($gsPredictions[$dateKey])) {
+            if ($latestGs && isset($gsPredictions[$dateKey])) {
                 $chartPredictGsValues[] = (int)$gsPredictions[$dateKey];
             } else {
-                // fallback approximation
-                $day = (int)date('d', strtotime($data->tanggal));
-                $gsFactor = 1.0 + (($day % 4) - 1.5) * 0.035;
-                $chartPredictGsValues[] = (int)($actual * $gsFactor);
+                $chartPredictGsValues[] = null;
             }
         }
 
@@ -202,5 +200,82 @@ class OperatorDashboardController extends Controller
         ];
 
         return view('operator.dashboard', compact('metrics', 'incomes', 'chartLabels', 'chartActualValues', 'chartPredictGwoValues', 'chartPredictGsValues', 'rayons', 'performanceMetrics'));
+    }
+
+    public function getForecast(Request $request)
+    {
+        $days = (int) $request->input('days', 7);
+        if (!in_array($days, [7, 14, 30])) {
+            $days = 7;
+        }
+
+        // Check if there is an active trained model (GWO, Grid Search, or Default)
+        $latestModel = ModelRun::where('status', 'success')
+            ->whereIn('model_type', ['svr_gwo', 'svr_grid_search', 'svr_default'])
+            ->orderByRaw("FIELD(model_type, 'svr_gwo', 'svr_grid_search', 'svr_default') ASC")
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if (!$latestModel) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Model SVR belum dilatih. Harap lakukan training atau optimasi model terlebih dahulu untuk memproyeksikan estimasi pendapatan mendatang.'
+            ], 422);
+        }
+
+        $latestDate = Pendapatan::max('tanggal');
+        if (!$latestDate) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Dataset pendapatan masih kosong.'
+            ], 422);
+        }
+
+        $startDate = Carbon::parse($latestDate)->addDay()->format('Y-m-d');
+        $endDate = Carbon::parse($latestDate)->addDays($days)->format('Y-m-d');
+
+        // Fetch national holidays in this range
+        $holidays = HariLibur::where('tipe', 'Libur Nasional')
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->pluck('tanggal')
+            ->map(fn($t) => Carbon::parse($t)->format('Y-m-d'))
+            ->toArray();
+
+        try {
+            $fastApiService = app(FastApiService::class);
+            $response = $fastApiService->post('predict', [
+                'tanggal_mulai' => $startDate,
+                'tanggal_akhir' => $endDate,
+                'daftar_libur_nasional' => $holidays,
+                'rayon_id' => 0
+            ]);
+
+            if ($response === null || !isset($response['detail_harian'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal berkomunikasi dengan Python API atau model belum dilatih di server.'
+                ], 500);
+            }
+
+            $labels = [];
+            $values = [];
+            foreach ($response['detail_harian'] as $item) {
+                $labels[] = date('d M Y', strtotime($item['tanggal']));
+                $values[] = (int) $item['pendapatan'];
+            }
+
+            return response()->json([
+                'success' => true,
+                'labels' => $labels,
+                'values' => $values,
+                'total_forecast' => (int) $response['estimasi_total_pendapatan']
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat memproyeksikan data: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

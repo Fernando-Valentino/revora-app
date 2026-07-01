@@ -58,7 +58,7 @@
                 <i class="bi bi-graph-up-arrow menu-icon"></i> Kelola Model Prediksi
             </a>
 
-            <a href="{{ route('operator.optimasi.index') }}" class="menu-item {{ Str::startsWith($routeName, 'operator.optimasi') ? 'active' : '' }}">
+            <a href="{{ route('operator.optimasi.index') }}" class="menu-item {{ Str::startsWith($routeName, 'operator.optimasi') ? 'active' : '' }}" onclick="sessionStorage.removeItem('grid_step'); sessionStorage.removeItem('gwo_step'); sessionStorage.removeItem('optimasi_method');">
                 <i class="bi bi-sliders menu-icon"></i> Optimasi Parameter
             </a>
 
