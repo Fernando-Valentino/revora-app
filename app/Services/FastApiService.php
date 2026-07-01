@@ -90,7 +90,7 @@ class FastApiService
     {
         try {
             $response = Http::withHeaders($this->getHeaders())
-                            ->timeout(600)
+                            ->timeout(1800)
                             ->post("{$this->baseUrl}/{$endpoint}", $data);
 
             if ($response->successful()) {

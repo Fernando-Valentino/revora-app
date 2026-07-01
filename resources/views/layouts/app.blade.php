@@ -45,6 +45,9 @@
         </div>
     </main>
 
+    <!-- Reusable SweetAlert Component -->
+    @include('components.sweetalert')
+
     <!-- SweetAlert2 Toast Messages -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {

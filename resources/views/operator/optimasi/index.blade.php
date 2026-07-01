@@ -2307,8 +2307,20 @@
                 @endif
             </div>
 
-            <!-- Re-train / Re-optimize Button -->
-            <div class="d-flex justify-content-end mb-4">
+            <!-- Re-train / Re-optimize Button & Reset Button -->
+            <div class="d-flex justify-content-end gap-2 mb-4">
+                <form id="reset-grid-form" action="{{ route('operator.optimasi.reset') }}" method="POST" style="display: none;">
+                    @csrf
+                    <input type="hidden" name="target" value="grid_search">
+                </form>
+                <form id="reset-gwo-form" action="{{ route('operator.optimasi.reset') }}" method="POST" style="display: none;">
+                    @csrf
+                    <input type="hidden" name="target" value="gwo">
+                </form>
+
+                <button type="button" class="btn btn-outline-danger px-4 py-2.5 rounded-3 fw-bold text-sm" onclick="triggerReset()">
+                    <i class="bi bi-trash3 me-1"></i> Reset Optimasi
+                </button>
                 <button type="button" class="btn btn-dark px-4 py-2.5 rounded-3 fw-bold text-sm" onclick="retuneCurrentMethod()">
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Optimasi Ulang
                 </button>
@@ -2336,9 +2348,9 @@
     };
 
     const bestParamsGwo = {
-        c: @json(($gwoRun && $gwoRun->modelMetrics()->where('dataset_type', 'test')->first()?->mape <= 12.9644) ? (float)$gwoRun->modelParameter?->c_value : 250.034536),
-        epsilon: @json(($gwoRun && $gwoRun->modelMetrics()->where('dataset_type', 'test')->first()?->mape <= 12.9644) ? (float)$gwoRun->modelParameter?->epsilon_value : 0.00536603),
-        gamma: @json(($gwoRun && $gwoRun->modelMetrics()->where('dataset_type', 'test')->first()?->mape <= 12.9644) ? $gwoRun->modelParameter?->gamma_value : 0.004455)
+        c: @json($gwoRun ? (($gwoRun->modelMetrics()->where('dataset_type', 'test')->first()?->mape <= 12.9644) ? (float)$gwoRun->modelParameter?->c_value : 250.034536) : null),
+        epsilon: @json($gwoRun ? (($gwoRun->modelMetrics()->where('dataset_type', 'test')->first()?->mape <= 12.9644) ? (float)$gwoRun->modelParameter?->epsilon_value : 0.00536603) : null),
+        gamma: @json($gwoRun ? (($gwoRun->modelMetrics()->where('dataset_type', 'test')->first()?->mape <= 12.9644) ? $gwoRun->modelParameter?->gamma_value : 0.004455) : null)
     };
 
     window.unlockGridParams = function() {
@@ -3077,7 +3089,7 @@
     let gridCurrentStep = 1;
     let gridTimeout     = null;
     let gridWaitCount   = 0;   // ← safety counter to prevent infinite loop
-    const GRID_MAX_WAIT = 3000; // 3000 × 200ms = 10 minutes max wait
+    const GRID_MAX_WAIT = 9000; // 9000 × 200ms = 30 minutes max wait
 
     window.startGridSearchTuning = function() {
         if (typeof Swal === 'undefined') {
@@ -3369,7 +3381,7 @@
     let gwoTimeout     = null;
     let gwoIterInterval = null;
     let gwoWaitCount   = 0;    // ← safety counter
-    const GWO_MAX_WAIT = 4500; // 4500 × 200ms = 15 minutes max wait
+    const GWO_MAX_WAIT = 9000; // 9000 × 200ms = 30 minutes max wait
 
     window.startGwoTuning = function() {
         if (typeof Swal === 'undefined') {
@@ -3897,5 +3909,25 @@
             }
         @endif
     });
+
+    window.triggerReset = function() {
+        const target = currentMethod === 'grid' ? 'grid_search' : 'gwo';
+        window.confirmReset(target);
+    }
+
+    window.confirmReset = function(target) {
+        const modelName = target === 'grid_search' ? 'Grid Search' : 'Grey Wolf Optimizer (GWO)';
+        const formId = target === 'grid_search' ? 'reset-grid-form' : 'reset-gwo-form';
+        
+        SwalConfirm(
+            'Apakah Anda yakin?',
+            `Seluruh hasil training ${modelName} beserta parameter optimalnya akan dihapus secara permanen!`,
+            'Ya, Hapus!',
+            function() {
+                SwalLoading('Memproses Reset...', 'Mohon tunggu sebentar.');
+                document.getElementById(formId).submit();
+            }
+        );
+    }
 </script>
 @endsection

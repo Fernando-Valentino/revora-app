@@ -365,7 +365,7 @@ class OperatorOptimasiController extends Controller
 
     public function runGridSearch(Request $request)
     {
-        set_time_limit(600);
+        set_time_limit(1800);
         $lastRun = ModelRun::where('model_type', 'svr_default')
             ->where('status', 'success')
             ->orderBy('id', 'desc')
@@ -530,7 +530,7 @@ class OperatorOptimasiController extends Controller
 
     public function runGwo(Request $request)
     {
-        set_time_limit(600);
+        set_time_limit(1800);
         $lastRun = ModelRun::where('model_type', 'svr_default')
             ->where('status', 'success')
             ->orderBy('id', 'desc')
@@ -758,5 +758,27 @@ class OperatorOptimasiController extends Controller
         if ($r2 >= 0.67) return 'Model Kuat';
         if ($r2 >= 0.33) return 'Model Moderat';
         return 'Model Lemah';
+    }
+
+    public function resetOptimasi(Request $request)
+    {
+        $target = $request->input('target');
+        if (!in_array($target, ['grid_search', 'gwo'])) {
+            return redirect()->route('operator.optimasi.index')->with('error', 'Target reset tidak valid.');
+        }
+
+        $modelType = $target === 'grid_search' ? 'svr_grid_search' : 'svr_gwo';
+        $modelName = $target === 'grid_search' ? 'Grid Search' : 'Grey Wolf Optimizer (GWO)';
+
+        DB::beginTransaction();
+        try {
+            ModelRun::where('model_type', $modelType)->delete();
+            DB::commit();
+            
+            return redirect()->route('operator.optimasi.index')->with('success', "Model Optimasi {$modelName} berhasil di-reset. Semua riwayat training dan parameter optimal terkait telah dihapus.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('operator.optimasi.index')->with('error', "Gagal melakukan reset model optimasi {$modelName}: " . $e->getMessage());
+        }
     }
 }

@@ -64,4 +64,28 @@ document.addEventListener('DOMContentLoaded', () => {
         updateClock();
         setInterval(updateClock, 1000);
     }
+
+    // Sidebar Toggle for Mobile / Responsive Layout
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    
+    if (sidebarToggle && sidebar) {
+        // Create backdrop if not exists
+        let backdrop = document.querySelector('.sidebar-backdrop');
+        if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.className = 'sidebar-backdrop';
+            document.body.appendChild(backdrop);
+        }
+        
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('show');
+            backdrop.classList.toggle('show');
+        });
+        
+        backdrop.addEventListener('click', () => {
+            sidebar.classList.remove('show');
+            backdrop.classList.remove('show');
+        });
+    }
 });

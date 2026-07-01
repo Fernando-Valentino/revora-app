@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Operator;
 use App\Http\Controllers\Controller;
 use App\Models\Pendapatan;
 use App\Models\Rayon;
-use App\Models\ModelPrediksi;
 use App\Models\ModelRun;
 use App\Models\PredictionResult;
 use App\Models\HariLibur;
@@ -243,7 +242,7 @@ class OperatorDashboardController extends Controller
 
         try {
             $fastApiService = app(FastApiService::class);
-            $response = $fastApiService->post('predict', [
+            $response = $fastApiService->post('api/v1/predict', [
                 'tanggal_mulai' => $startDate,
                 'tanggal_akhir' => $endDate,
                 'daftar_libur_nasional' => $holidays,

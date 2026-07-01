@@ -7,6 +7,7 @@ use App\Models\Pendapatan;
 use App\Models\Rayon;
 use App\Models\ModelRun;
 use App\Models\PredictionResult;
+use Carbon\Carbon;
 
 class KepalaUptDashboardController extends Controller
 {
@@ -58,10 +59,21 @@ class KepalaUptDashboardController extends Controller
             $latestPredictVal = $totalPendapatanHarianVal * 0.985;
         }
 
+        // UPT Specific: Operational metrics
+        $totalJukir = Rayon::sum('jumlah_juru_parkir') ?? 0;
+        $targetAchievement = 100.0;
+        if ($latestPredictVal > 0) {
+            $targetAchievement = ($totalPendapatanHarianVal / $latestPredictVal) * 100;
+        }
+        $avgRevenuePerJukir = $totalJukir > 0 ? $totalPendapatanHarianVal / $totalJukir : 0;
+
         $metrics = [
             'total_pendapatan_harian' => 'Rp ' . number_format($totalPendapatanHarianVal, 0, ',', '.'),
             'hasil_prediksi_terkini' => 'Rp ' . number_format($latestPredictVal, 0, ',', '.'),
             'akurasi_model' => $mapeGwo,
+            'total_jukir' => number_format($totalJukir, 0, ',', '.'),
+            'target_achievement' => number_format($targetAchievement, 1, ',', '.') . '%',
+            'avg_per_jukir' => 'Rp ' . number_format($avgRevenuePerJukir, 0, ',', '.'),
         ];
 
         // 4. Recent Incomes from DB
@@ -112,6 +124,30 @@ class KepalaUptDashboardController extends Controller
             }
         }
 
+        // UPT Specific: Rayon Performance in the last 10 days
+        $latest10Dates = $chartDataRaw->pluck('tanggal')->toArray();
+        $rayonPerformance = Rayon::all()->map(function($rayon) use ($latest10Dates) {
+            $totalRev = Pendapatan::where('rayon_id', $rayon->id)
+                ->whereIn('tanggal', $latest10Dates)
+                ->sum('jumlah') ?? 0;
+            return [
+                'id' => $rayon->id,
+                'nama' => $rayon->nama_rayon,
+                'total' => $totalRev,
+                'jukir' => $rayon->jumlah_juru_parkir,
+            ];
+        });
+        
+        $totalLatest10Days = $rayonPerformance->sum('total');
+        $rayonPerformance = $rayonPerformance->map(function($r) use ($totalLatest10Days) {
+            $r['percentage'] = $totalLatest10Days > 0 ? ($r['total'] / $totalLatest10Days) * 100 : 0;
+            // determine status based on contribution
+            $r['status'] = $r['percentage'] >= 25 ? 'Sangat Tinggi' : ($r['percentage'] >= 15 ? 'Stabil' : 'Rendah/Evaluasi');
+            $r['class'] = $r['percentage'] >= 25 ? 'bg-success-subtle text-success border border-success' : ($r['percentage'] >= 15 ? 'bg-primary-subtle text-primary border border-primary' : 'bg-warning-subtle text-warning border border-warning');
+            $r['badge'] = $r['percentage'] >= 25 ? 'success' : ($r['percentage'] >= 15 ? 'info' : 'warning');
+            return $r;
+        })->sortByDesc('total');
+
         // 6. Generate simple, non-IT friendly analysis for UPT/Dishub decision making
         $totalActual = array_sum($chartActualValues);
         $totalPredict = array_sum($chartPredictGwoValues);
@@ -154,6 +190,6 @@ class KepalaUptDashboardController extends Controller
             'keterangan_akurasi' => $keteranganAkurasi
         ];
 
-        return view('kepala-upt.dashboard', compact('metrics', 'incomes', 'chartLabels', 'chartActualValues', 'chartPredictGwoValues', 'analysis'));
+        return view('kepala-upt.dashboard', compact('metrics', 'incomes', 'chartLabels', 'chartActualValues', 'chartPredictGwoValues', 'analysis', 'rayonPerformance'));
     }
 }

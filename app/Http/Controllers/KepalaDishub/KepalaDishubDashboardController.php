@@ -7,6 +7,7 @@ use App\Models\Pendapatan;
 use App\Models\Rayon;
 use App\Models\ModelRun;
 use App\Models\PredictionResult;
+use Carbon\Carbon;
 
 class KepalaDishubDashboardController extends Controller
 {
@@ -58,10 +59,59 @@ class KepalaDishubDashboardController extends Controller
             $latestPredictVal = $totalPendapatanHarianVal * 0.985;
         }
 
+        // Dishub Specific: Strategic metrics
+        $latestYear = $latestDate ? Carbon::parse($latestDate)->year : Carbon::now()->year;
+        $ytdRevenue = Pendapatan::whereYear('tanggal', $latestYear)->sum('jumlah') ?? 0;
+        
+        $currentMonth = $latestDate ? Carbon::parse($latestDate)->month : Carbon::now()->month;
+        $currentMonthRevenue = Pendapatan::whereYear('tanggal', $latestYear)
+            ->whereMonth('tanggal', $currentMonth)
+            ->sum('jumlah') ?? 0;
+            
+        $prevMonthDate = $latestDate ? Carbon::parse($latestDate)->subMonth() : Carbon::now()->subMonth();
+        $prevMonthRevenue = Pendapatan::whereYear('tanggal', $prevMonthDate->year)
+            ->whereMonth('tanggal', $prevMonthDate->month)
+            ->sum('jumlah') ?? 0;
+            
+        $growthRate = 0.0;
+        if ($prevMonthRevenue > 0) {
+            $growthRate = (($currentMonthRevenue - $prevMonthRevenue) / $prevMonthRevenue) * 100;
+        }
+
+        $last30DaysIncomes = [];
+        if ($latestDate) {
+            $last30DaysIncomes = Pendapatan::where('tanggal', '>=', Carbon::parse($latestDate)->subDays(30)->format('Y-m-d'))->get();
+        }
+        $weekdaySum = 0;
+        $weekendSum = 0;
+        foreach ($last30DaysIncomes as $income) {
+            $dayOfWeek = (int)date('N', strtotime($income->tanggal));
+            if ($dayOfWeek >= 6) { // 6 = Saturday, 7 = Sunday
+                $weekendSum += $income->jumlah;
+            } else {
+                $weekdaySum += $income->jumlah;
+            }
+        }
+        $total30 = $weekdaySum + $weekendSum;
+        $weekdayPercent = $total30 > 0 ? ($weekdaySum / $total30) * 100 : 0;
+        $weekendPercent = $total30 > 0 ? ($weekendSum / $total30) * 100 : 0;
+
         $metrics = [
             'total_pendapatan_harian' => 'Rp ' . number_format($totalPendapatanHarianVal, 0, ',', '.'),
             'hasil_prediksi_terkini' => 'Rp ' . number_format($latestPredictVal, 0, ',', '.'),
             'akurasi_model' => $mapeGwo,
+            'ytd_revenue' => 'Rp ' . number_format($ytdRevenue, 0, ',', '.'),
+            'growth_rate' => ($growthRate >= 0 ? '+' : '') . number_format($growthRate, 1, ',', '.') . '%',
+            'growth_class' => $growthRate >= 0 ? 'text-success' : 'text-danger',
+            'latest_year' => $latestYear,
+        ];
+        
+        $strategicStats = [
+            'weekday_percent' => number_format($weekdayPercent, 1, ',', '.') . '%',
+            'weekend_percent' => number_format($weekendPercent, 1, ',', '.') . '%',
+            'weekday_sum' => 'Rp ' . number_format($weekdaySum, 0, ',', '.'),
+            'weekend_sum' => 'Rp ' . number_format($weekendSum, 0, ',', '.'),
+            'monthly_avg' => 'Rp ' . number_format($currentMonthRevenue, 0, ',', '.'),
         ];
 
         // 4. Recent Incomes from DB
@@ -154,6 +204,6 @@ class KepalaDishubDashboardController extends Controller
             'keterangan_akurasi' => $keteranganAkurasi
         ];
 
-        return view('kepala-dishub.dashboard', compact('metrics', 'incomes', 'chartLabels', 'chartActualValues', 'chartPredictGwoValues', 'analysis'));
+        return view('kepala-dishub.dashboard', compact('metrics', 'incomes', 'chartLabels', 'chartActualValues', 'chartPredictGwoValues', 'analysis', 'strategicStats'));
     }
 }

@@ -28,5 +28,10 @@ class AppServiceProvider extends ServiceProvider
 
         // Gunakan Bootstrap 5 untuk template pagination bawaan Laravel
         Paginator::useBootstrapFive();
+
+        // Paksa skema HTTPS jika diakses lewat Ngrok untuk menghindari Mixed Content (CSS/JS hancur)
+        if (str_contains(request()->url(), 'ngrok-free') || request()->header('X-Forwarded-Proto') === 'https') {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
     }
 }

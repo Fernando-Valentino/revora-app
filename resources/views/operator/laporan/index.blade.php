@@ -87,20 +87,91 @@
         </div>
     </div>
 
-    <!-- Chart card -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5 class="card-title">Grafik Tren Pendapatan dan Prediksi</h5>
-            @if(count($chartActualValues) > 0)
-                <div style="height: 280px; position: relative; width: 100%;">
-                    <canvas id="laporanChart"></canvas>
+    <!-- Chart & Future Prediction Card -->
+    <div class="row g-4 mb-4">
+        <!-- Left Column: Chart -->
+        <div class="col-lg-8">
+            <div class="card h-100 border-0 shadow-sm" style="border-radius: 16px;">
+                <div class="card-body p-4">
+                    <h5 class="card-title border-0 pb-0 mb-4 fw-bold text-dark" style="font-size: 15px;">
+                        <i class="bi bi-graph-up text-primary-custom me-2"></i>Grafik Tren Pendapatan dan Prediksi
+                    </h5>
+                    @if(count($chartActualValues) > 0)
+                        <div style="height: 310px; position: relative; width: 100%;">
+                            <canvas id="laporanChart"></canvas>
+                        </div>
+                    @else
+                        <div class="text-center py-5">
+                            <i class="bi bi-graph-up text-secondary d-block fs-1 mb-2"></i>
+                            <span class="text-muted small d-block">Tidak ada data untuk dirender pada grafik selama periode ini.</span>
+                        </div>
+                    @endif
                 </div>
-            @else
-                <div class="text-center py-5">
-                    <i class="bi bi-graph-up text-secondary d-block fs-1 mb-2"></i>
-                    <span class="text-muted small d-block">Tidak ada data untuk dirender pada grafik selama periode ini.</span>
+            </div>
+        </div>
+
+        <!-- Right Column: Future Prediction Projections -->
+        <div class="col-lg-4">
+            <div class="card h-100 border-0 shadow-sm" style="background: linear-gradient(145deg, #ffffff, #f8fafc); border-radius: 16px;">
+                <div class="card-body p-4 d-flex flex-column h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-uppercase text-secondary fw-bold mb-0" style="font-size: 11px; letter-spacing: 1px;">
+                            <i class="bi bi-graph-up-arrow text-primary-custom me-1"></i> Proyeksi Pendapatan SVR
+                        </h6>
+                        <span class="badge bg-primary-subtle text-primary px-2.5 py-1 rounded-pill" style="font-size: 9px; font-weight: 600;">7 Hari Ke Depan</span>
+                    </div>
+
+                    @if($futureForecast)
+                        <div class="mb-4">
+                            <span class="text-muted small d-block mb-1">Estimasi Total Pendapatan</span>
+                            <h3 class="fw-extrabold text-primary-custom mb-1" style="font-size: 26px;">{{ $futureForecast['total_predicted'] }}</h3>
+                            <span class="text-secondary small">
+                                Rata-rata: <strong>{{ $futureForecast['avg_predicted'] }}</strong> / hari
+                            </span>
+                        </div>
+
+                        <!-- Mini List Harian -->
+                        <div class="mb-4 flex-grow-1">
+                            <span class="text-muted d-block small mb-2 fw-semibold">Proyeksi Harian ({{ $futureForecast['start_date'] }} - {{ $futureForecast['end_date'] }})</span>
+                            <div class="d-flex flex-column gap-2" style="max-height: 200px; overflow-y: auto;">
+                                @foreach($futureForecast['detail_harian'] as $forecastDay)
+                                    @php
+                                        $dayOfWeek = (int) date('N', strtotime($forecastDay['tanggal']));
+                                        $isWeekend = $dayOfWeek >= 6;
+                                        $dayName = $isWeekend ? (date('N', strtotime($forecastDay['tanggal'])) == 6 ? 'Sabtu' : 'Minggu') : (date('N', strtotime($forecastDay['tanggal'])) == 1 ? 'Senin' : (date('N', strtotime($forecastDay['tanggal'])) == 2 ? 'Selasa' : (date('N', strtotime($forecastDay['tanggal'])) == 3 ? 'Rabu' : (date('N', strtotime($forecastDay['tanggal'])) == 4 ? 'Kamis' : 'Jumat'))));
+                                    @endphp
+                                    <div class="d-flex justify-content-between align-items-center p-2 rounded-2" style="background: rgba(241, 245, 249, 0.6); font-size: 11.5px; border: 1px solid #f1f5f9;">
+                                        <span class="text-dark fw-medium">
+                                            {{ $dayName }}, {{ date('d M', strtotime($forecastDay['tanggal'])) }}
+                                            @if($isWeekend)
+                                                <span class="badge bg-warning-subtle text-warning px-1.5 py-0.5 rounded-pill ms-1" style="font-size: 8px;">Weekend</span>
+                                            @endif
+                                        </span>
+                                        <span class="fw-bold text-primary-custom">Rp {{ number_format($forecastDay['pendapatan'], 0, ',', '.') }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <!-- Rekomendasi AI -->
+                        <div class="p-3 rounded-3" style="background: rgba(14, 165, 233, 0.05); border: 1px solid rgba(14, 165, 233, 0.15);">
+                            <h6 class="fw-bold text-info-custom d-flex align-items-center mb-2" style="font-size: 12px;">
+                                <i class="bi bi-lightbulb-fill me-1.5 text-warning animate-pulse"></i> Rekomendasi Sistem (SVR-GWO):
+                            </h6>
+                            <ul class="mb-0 ps-3 text-secondary" style="font-size: 11px; line-height: 1.5;">
+                                @foreach($futureForecast['recommendations'] as $rec)
+                                    <li class="mb-1">{{ $rec }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @else
+                        <div class="text-center py-5 my-auto">
+                            <i class="bi bi-robot text-muted d-block fs-1 mb-2"></i>
+                            <span class="text-muted small d-block">Gagal memuat proyeksi masa depan. Pastikan server FastAPI Python Anda aktif di port 8000.</span>
+                        </div>
+                    @endif
                 </div>
-            @endif
+            </div>
         </div>
     </div>
 

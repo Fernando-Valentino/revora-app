@@ -18,6 +18,9 @@
 
 <header class="topbar">
     <div class="topbar-left">
+        <button class="btn btn-link d-inline-flex d-lg-none text-secondary me-3 p-0" id="sidebar-toggle" style="font-size: 24px; text-decoration: none; border: none; background: none; outline: none; box-shadow: none; align-items: center; height: auto;">
+            <i class="bi bi-list"></i>
+        </button>
         <div class="realtime-clock" id="realtime-clock">
             <i class="bi bi-calendar3 me-2"></i>
             <span class="clock-date" id="clock-date">Memuat tanggal...</span>

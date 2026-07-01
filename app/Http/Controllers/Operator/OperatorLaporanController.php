@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\FastApiService;
 
 class OperatorLaporanController extends Controller
 {
@@ -157,6 +158,8 @@ class OperatorLaporanController extends Controller
             'r2' => $r2
         ];
 
+        $futureForecast = $this->getFutureForecast($latestRun, $rayonId);
+
         return view('operator.laporan.index', compact(
             'summary', 
             'metrics', 
@@ -171,8 +174,74 @@ class OperatorLaporanController extends Controller
             'bestRayon',
             'worstRayon',
             'avgDailyDeviation',
-            'rayonStats'
+            'rayonStats',
+            'futureForecast'
         ));
+    }
+
+    /**
+     * Ambil prediksi masa depan (7 hari ke depan setelah tanggal terakhir di DB)
+     */
+    private function getFutureForecast(?ModelRun $latestRun, int $rayonId): ?array
+    {
+        if (!$latestRun) {
+            return null;
+        }
+
+        $lastKnownDate = Pendapatan::max('tanggal') ?? '2025-07-20';
+        $futureStart = Carbon::parse($lastKnownDate)->addDay()->format('Y-m-d');
+        $futureEnd = Carbon::parse($lastKnownDate)->addDays(7)->format('Y-m-d');
+        
+        try {
+            $fastApiService = app(FastApiService::class);
+            $forecastRes = $fastApiService->post('api/v1/predict', [
+                'tanggal_mulai' => $futureStart,
+                'tanggal_akhir' => $futureEnd,
+                'rayon_id' => $rayonId > 0 ? $rayonId : 0,
+                'daftar_libur_nasional' => []
+            ]);
+            
+            if ($forecastRes && isset($forecastRes['status']) && $forecastRes['status'] === 'Sukses') {
+                $totalPred = $forecastRes['estimasi_total_pendapatan'];
+                $avgDaily = $totalPred / 7;
+                
+                $recommendations = [];
+                
+                $hasWeekendPeak = false;
+                foreach ($forecastRes['detail_harian'] as $day) {
+                    $dayOfWeek = (int) date('N', strtotime($day['tanggal']));
+                    if ($dayOfWeek >= 6 && $day['pendapatan'] > $avgDaily * 1.1) {
+                        $hasWeekendPeak = true;
+                    }
+                }
+                
+                if ($hasWeekendPeak) {
+                    $recommendations[] = "Pola kenaikan pendapatan terdeteksi pada hari akhir pekan. Disarankan untuk menempatkan petugas pengawas parkir ekstra di titik-titik keramaian.";
+                } else {
+                    $recommendations[] = "Pola pendapatan cenderung merata sepanjang minggu kerja. Pastikan kepatuhan jukir dalam menyetor retribusi parkir harian.";
+                }
+
+                if ($rayonId > 0) {
+                    $recommendations[] = "Fokus pemantauan diarahkan khusus pada titik-titik parkir potensial di wilayah Rayon " . $rayonId . ".";
+                } else {
+                    $recommendations[] = "Lakukan pengawasan silang antar-rayon untuk memperkecil risiko kebocoran di rayon dengan volume transaksi tinggi.";
+                }
+
+                $recommendations[] = "Gunakan nilai rata-rata estimasi harian sebesar Rp " . number_format($avgDaily, 0, ',', '.') . " sebagai batas wajar/target penyetoran jukir.";
+
+                return [
+                    'start_date' => Carbon::parse($futureStart)->translatedFormat('d F Y'),
+                    'end_date' => Carbon::parse($futureEnd)->translatedFormat('d F Y'),
+                    'total_predicted' => 'Rp ' . number_format($totalPred, 0, ',', '.'),
+                    'avg_predicted' => 'Rp ' . number_format($avgDaily, 0, ',', '.'),
+                    'detail_harian' => $forecastRes['detail_harian'],
+                    'recommendations' => $recommendations
+                ];
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Failed to fetch future prediction: " . $e->getMessage());
+        }
+        return null;
     }
 
     public function exportPdf(Request $request)

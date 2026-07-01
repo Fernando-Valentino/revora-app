@@ -61,6 +61,7 @@ Route::prefix('operator')->middleware(['auth', 'role:operator'])->name('operator
     Route::get('/optimasi', [OperatorOptimasiController::class, 'index'])->name('optimasi.index');
     Route::post('/optimasi/grid-search', [OperatorOptimasiController::class, 'runGridSearch'])->name('optimasi.grid-search');
     Route::post('/optimasi/gwo', [OperatorOptimasiController::class, 'runGwo'])->name('optimasi.gwo');
+    Route::post('/optimasi/reset', [OperatorOptimasiController::class, 'resetOptimasi'])->name('optimasi.reset');
 
     // Modul Laporan
     Route::get('/laporan', [OperatorLaporanController::class, 'index'])->name('laporan.index');
