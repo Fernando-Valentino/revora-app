@@ -20,18 +20,6 @@
             <!-- Table Header Toolbar -->
             <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom flex-wrap gap-3">
                 <h5 class="card-title mb-0" style="border-bottom: none !important; padding-bottom: 0 !important;">Daftar Data Rayon</h5>
-                <form method="GET" action="{{ route('operator.rayon.index') }}" class="d-flex gap-2 align-items-center m-0">
-                    <div class="input-group" style="max-width: 280px;">
-                        <span class="input-group-text bg-white"><i class="bi bi-search text-secondary"></i></span>
-                        <input type="search" name="search" id="searchInput" value="{{ request('search') }}" placeholder="Cari rayon..." class="form-control" />
-                        <button type="submit" class="btn btn-primary">Cari</button>
-                    </div>
-                    @if(request()->filled('search'))
-                        <a href="{{ route('operator.rayon.index') }}" class="btn btn-border" title="Reset Pencarian">
-                            <i class="bi bi-x-circle me-1"></i> Reset
-                        </a>
-                    @endif
-                </form>
             </div>
             
             <div class="table-responsive">
@@ -48,42 +36,8 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($rayons as $index => $rayon)
-                            <tr>
-                                <td>{{ $index + 1 + ($rayons->currentPage() - 1) * $rayons->perPage() }}</td>
-                                <td style="font-weight: 600;">{{ $rayon->nama_rayon }}</td>
-                                <td>{{ $rayon->kecamatan }}</td>
-                                <td>{{ $rayon->lokasi }}</td>
-                                <td>{{ $rayon->karakteristik_area }}</td>
-                                <td style="text-align: right;">{{ $rayon->jumlah_juru_parkir }}</td>
-                                <td style="text-align: center;">
-                                    <div class="action-btns justify-content-center">
-                                        <button class="btn-action btn-edit" title="Edit" data-id="{{ $rayon->id }}">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </button>
-                                        <button class="btn-action btn-delete" title="Hapus" data-id="{{ $rayon->id }}" data-name="{{ $rayon->nama_rayon }}">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="7" class="text-center text-secondary py-4">Belum ada data rayon.</td>
-                            </tr>
-                        @endforelse
                     </tbody>
                 </table>
-            </div>
-
-            <!-- Pagination -->
-            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-                <div class="text-secondary small">
-                    Menampilkan {{ $rayons->firstItem() ?? 0 }} - {{ $rayons->lastItem() ?? 0 }} dari {{ $rayons->total() }} data
-                </div>
-                <div>
-                    {{ $rayons->links('components.pagination') }}
-                </div>
             </div>
         </div>
     </div>
@@ -188,7 +142,44 @@
         // CSRF Token Setup
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
-
+        // Initialize DataTable
+        const table = $('#rayonTable').DataTable({
+            processing: true,
+            ajax: '{{ route("operator.rayon.data") }}',
+            columns: [
+                { 
+                    data: null, 
+                    render: function (data, type, row, meta) {
+                        return meta.row + 1;
+                    }
+                },
+                { data: 'nama_rayon', className: 'fw-semibold' },
+                { data: 'kecamatan' },
+                { data: 'lokasi' },
+                { data: 'karakteristik_area' },
+                { data: 'jumlah_juru_parkir', className: 'text-end' },
+                {
+                    data: null,
+                    orderable: false,
+                    className: 'text-center',
+                    render: function (data, type, row) {
+                        return `
+                            <div class="action-btns justify-content-center">
+                                <button class="btn-action btn-edit" title="Edit" data-id="${row.id}">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                <button class="btn-action btn-delete" title="Hapus" data-id="${row.id}" data-name="${row.nama_rayon}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+            ],
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/id.json'
+            }
+        });
 
         // Clear validations helper
         function clearValidations(form) {
@@ -239,9 +230,7 @@
                     bootstrap.Modal.getOrCreateInstance(modalEl).hide();
                     addForm.reset();
                     showToast('success', data.message);
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
+                    table.ajax.reload(null, false);
                 }
             })
             .catch(err => {
@@ -251,28 +240,26 @@
             });
         });
 
-        // Load Edit Modal
-        document.querySelectorAll('.btn-edit').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const id = this.getAttribute('data-id');
-                const form = document.getElementById('editRayonForm');
-                clearValidations(form);
+        // Load Edit Modal (delegated)
+        $(document).on('click', '.btn-edit', function() {
+            const id = this.getAttribute('data-id');
+            const form = document.getElementById('editRayonForm');
+            clearValidations(form);
 
-                fetch(`/operator/master-data/rayon/${id}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        document.getElementById('edit_id').value = data.id;
-                        document.getElementById('edit_nama_rayon').value = data.nama_rayon;
-                        document.getElementById('edit_kecamatan').value = data.kecamatan;
-                        document.getElementById('edit_lokasi').value = data.lokasi;
-                        document.getElementById('edit_karakteristik_area').value = data.karakteristik_area;
-                        document.getElementById('edit_jumlah_juru_parkir').value = data.jumlah_juru_parkir;
-                        
-                        const modalEl = document.getElementById('editRayonModal');
-                        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                        modal.show();
-                    });
-            });
+            fetch(`/operator/master-data/rayon/${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('edit_id').value = data.id;
+                    document.getElementById('edit_nama_rayon').value = data.nama_rayon;
+                    document.getElementById('edit_kecamatan').value = data.kecamatan;
+                    document.getElementById('edit_lokasi').value = data.lokasi;
+                    document.getElementById('edit_karakteristik_area').value = data.karakteristik_area;
+                    document.getElementById('edit_jumlah_juru_parkir').value = data.jumlah_juru_parkir;
+                    
+                    const modalEl = document.getElementById('editRayonModal');
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.show();
+                });
         });
 
         // Edit Rayon Form AJAX
@@ -285,7 +272,7 @@
             const formData = new FormData(editForm);
 
             fetch(`/operator/master-data/rayon/${id}`, {
-                method: "POST", // Standard Laravel method spoofing via _method PUT
+                method: "POST",
                 body: formData,
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
@@ -314,9 +301,7 @@
                     const modalEl = document.getElementById('editRayonModal');
                     bootstrap.Modal.getOrCreateInstance(modalEl).hide();
                     showToast('success', data.message);
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
+                    table.ajax.reload(null, false);
                 }
             })
             .catch(err => {
@@ -326,52 +311,48 @@
             });
         });
 
-        // Delete Confirmation
-        document.querySelectorAll('.btn-delete').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const id = this.getAttribute('data-id');
-                const name = this.getAttribute('data-name');
+        // Delete Confirmation (delegated)
+        $(document).on('click', '.btn-delete', function() {
+            const id = this.getAttribute('data-id');
+            const name = this.getAttribute('data-name');
 
-                Swal.fire({
-                    title: 'Apakah Anda yakin?',
-                    text: `Data rayon "${name}" akan dihapus permanen!`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#005BAA',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Ya, Hapus!',
-                    cancelButtonText: 'Batal'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        fetch(`/operator/master-data/rayon/${id}`, {
-                            method: 'DELETE',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Accept': 'application/json',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        })
-                        .then(res => {
-                            if (!res.ok) {
-                                return res.json().then(data => {
-                                    throw new Error(data.message || 'Gagal menghapus data.');
-                                });
-                            }
-                            return res.json();
-                        })
-                        .then(data => {
-                            if (data.success) {
-                                showToast('success', data.message);
-                                setTimeout(() => {
-                                    window.location.reload();
-                                }, 1000);
-                            }
-                        })
-                        .catch(err => {
-                            Swal.fire('Gagal!', err.message, 'error');
-                        });
-                    }
-                });
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: `Data rayon "${name}" akan dihapus permanen!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#005BAA',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/operator/master-data/rayon/${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(res => {
+                        if (!res.ok) {
+                            return res.json().then(data => {
+                                throw new Error(data.message || 'Gagal menghapus data.');
+                            });
+                        }
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            showToast('success', data.message);
+                            table.ajax.reload(null, false);
+                        }
+                    })
+                    .catch(err => {
+                        Swal.fire('Gagal!', err.message, 'error');
+                    });
+                }
             });
         });
     });

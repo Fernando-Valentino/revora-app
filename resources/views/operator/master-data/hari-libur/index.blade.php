@@ -6,52 +6,18 @@
 @section('content')
 <div class="container-fluid p-0">
     <!-- Toolbar (Bootstrap Row / Col) -->
-    <form method="GET" action="{{ route('operator.hari-libur.index') }}" class="mb-4">
-        @if(request()->filled('search'))
-            <input type="hidden" name="search" value="{{ request('search') }}" />
-        @endif
-        <div class="row align-items-center g-3">
-            <!-- Left Side Filters -->
-            <div class="col-12 col-md-7">
-                <div class="row g-2 align-items-center">
-                    <div class="col-sm-5 col-md-4">
-                        <select name="year" id="yearFilter" class="form-select" onchange="this.form.submit()">
-                            <option value="all" {{ request('year', date('Y')) == 'all' ? 'selected' : '' }}>Semua Tahun</option>
-                            @foreach($availableYears as $yr)
-                                <option value="{{ $yr }}" {{ request('year', date('Y')) == $yr ? 'selected' : '' }}>Tahun {{ $yr }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-sm-5 col-md-4">
-                        <select name="tipe" id="typeFilter" class="form-select" onchange="this.form.submit()">
-                            <option value="">Semua Tipe</option>
-                            <option value="Libur Nasional" {{ request('tipe') == 'Libur Nasional' ? 'selected' : '' }}>Libur Nasional</option>
-                            <option value="Weekend" {{ request('tipe') == 'Weekend' ? 'selected' : '' }}>Weekend</option>
-                        </select>
-                    </div>
-                    @if(request()->filled('year') || request()->filled('tipe'))
-                        <div class="col-sm-2 col-md-2">
-                            <a href="{{ route('operator.hari-libur.index', request()->only('search')) }}" class="btn btn-border w-100 justify-content-center" title="Reset Filter">
-                                <i class="bi bi-x-circle me-1"></i> Reset
-                            </a>
-                        </div>
-                    @endif
-                </div>
-            </div>
-            
-            <!-- Right Side Actions -->
-            <div class="col-12 col-md-5 text-md-end">
-                <div class="d-inline-flex gap-2">
-                    <button type="button" class="btn btn-border" data-bs-toggle="modal" data-bs-target="#generateLiburModal">
-                        <i class="bi bi-calendar-check me-1"></i> Generate Otomatis
-                    </button>
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLiburModal">
-                        <i class="bi bi-plus-lg me-1"></i> Tambah Data
-                    </button>
-                </div>
+    <div class="row mb-4">
+        <div class="col text-end">
+            <div class="d-inline-flex gap-2">
+                <button type="button" class="btn btn-border" data-bs-toggle="modal" data-bs-target="#generateLiburModal">
+                    <i class="bi bi-calendar-check me-1"></i> Generate Otomatis
+                </button>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLiburModal">
+                    <i class="bi bi-plus-lg me-1"></i> Tambah Data
+                </button>
             </div>
         </div>
-    </form>
+    </div>
 
     <!-- Table Card -->
     <div class="card">
@@ -59,24 +25,6 @@
             <!-- Table Header Toolbar -->
             <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom flex-wrap gap-3">
                 <h5 class="card-title mb-0" style="border-bottom: none !important; padding-bottom: 0 !important;">Daftar Data Hari Libur & Weekend</h5>
-                <form method="GET" action="{{ route('operator.hari-libur.index') }}" class="d-flex gap-2 align-items-center m-0">
-                    @if(request()->filled('year'))
-                        <input type="hidden" name="year" value="{{ request('year') }}" />
-                    @endif
-                    @if(request()->filled('tipe'))
-                        <input type="hidden" name="tipe" value="{{ request('tipe') }}" />
-                    @endif
-                    <div class="input-group" style="max-width: 280px;">
-                        <span class="input-group-text bg-white"><i class="bi bi-search text-secondary"></i></span>
-                        <input type="search" name="search" id="searchInput" value="{{ request('search') }}" placeholder="Cari keterangan..." class="form-control" />
-                        <button type="submit" class="btn btn-primary">Cari</button>
-                    </div>
-                    @if(request()->filled('search'))
-                        <a href="{{ route('operator.hari-libur.index', request()->except('search')) }}" class="btn btn-border" title="Reset Pencarian">
-                            <i class="bi bi-x-circle me-1"></i> Reset
-                        </a>
-                    @endif
-                </form>
             </div>
             
             <div class="table-responsive">
@@ -92,47 +40,8 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($hariLiburs as $index => $libur)
-                            <tr>
-                                <td>{{ $index + 1 + ($hariLiburs->currentPage() - 1) * $hariLiburs->perPage() }}</td>
-                                <td style="font-weight: 600;">{{ date('d-m-Y', strtotime($libur->tanggal)) }}</td>
-                                <td>{{ $libur->hari }}</td>
-                                <td>{{ $libur->keterangan }}</td>
-                                <td>
-                                    @if($libur->tipe === 'Libur Nasional')
-                                        <span class="badge bg-primary">Libur Nasional</span>
-                                    @else
-                                        <span class="badge bg-secondary text-dark">Weekend</span>
-                                    @endif
-                                </td>
-                                <td style="text-align: center;">
-                                    <div class="action-btns justify-content-center">
-                                        <button class="btn-action btn-edit" title="Edit" data-id="{{ $libur->id }}">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </button>
-                                        <button class="btn-action btn-delete" title="Hapus" data-id="{{ $libur->id }}" data-desc="{{ $libur->keterangan }} ({{ date('d-m-Y', strtotime($libur->tanggal)) }})">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="text-center text-secondary py-4">Belum ada data hari libur.</td>
-                            </tr>
-                        @endforelse
                     </tbody>
                 </table>
-            </div>
-
-            <!-- Pagination -->
-            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-                <div class="text-secondary small">
-                    Menampilkan {{ $hariLiburs->firstItem() ?? 0 }} - {{ $hariLiburs->lastItem() ?? 0 }} dari {{ $hariLiburs->total() }} data
-                </div>
-                <div>
-                    {{ $hariLiburs->links('components.pagination') }}
-                </div>
             </div>
         </div>
     </div>
@@ -284,6 +193,72 @@
             });
         }
 
+        // Initialize DataTable
+        const table = $('#liburTable').DataTable({
+            processing: true,
+            ajax: '{{ route("operator.hari-libur.data") }}',
+            columns: [
+                { 
+                    data: null, 
+                    render: function (data, type, row, meta) {
+                        return meta.row + 1;
+                    }
+                },
+                { 
+                    data: 'tanggal',
+                    render: function (data) {
+                        const dateParts = data.split('-');
+                        return dateParts[2] + '-' + dateParts[1] + '-' + dateParts[0];
+                    }
+                },
+                { data: 'hari' },
+                { data: 'keterangan' },
+                { 
+                    data: 'tipe',
+                    render: function (data) {
+                        if (data === 'Libur Nasional') {
+                            return '<span class="badge bg-primary">Libur Nasional</span>';
+                        } else {
+                            return '<span class="badge bg-secondary text-dark">Weekend</span>';
+                        }
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    className: 'text-center',
+                    render: function (data, type, row) {
+                        const dateParts = row.tanggal.split('-');
+                        const formattedDate = dateParts[2] + '-' + dateParts[1] + '-' + dateParts[0];
+                        const desc = `${row.keterangan} (${formattedDate})`;
+                        return `
+                            <div class="action-btns justify-content-center">
+                                <button class="btn-action btn-edit" title="Edit" data-id="${row.id}">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                <button class="btn-action btn-delete" title="Hapus" data-id="${row.id}" data-desc="${desc}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+            ],
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/id.json'
+            }
+        });
+
+        // Clear validations helper
+        function clearValidations(form) {
+            form.querySelectorAll('.form-control, .form-select').forEach(input => {
+                input.classList.remove('is-invalid');
+            });
+            form.querySelectorAll('.invalid-feedback').forEach(div => {
+                div.textContent = '';
+            });
+        }
+
         // Generate Form AJAX
         const generateForm = document.getElementById('generateLiburForm');
         const btnSubmitGenerate = document.getElementById('btnSubmitGenerate');
@@ -344,9 +319,7 @@
                     bootstrap.Modal.getOrCreateInstance(modalEl).hide();
                     generateForm.reset();
                     showToast('success', data.message);
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
+                    table.ajax.reload();
                 }
             })
             .catch(err => {
@@ -357,17 +330,6 @@
                 }
             });
         });
-
-        // Clear validations helper
-        function clearValidations(form) {
-            form.querySelectorAll('.form-control, .form-select').forEach(input => {
-                input.classList.remove('is-invalid');
-            });
-            form.querySelectorAll('.invalid-feedback').forEach(div => {
-                div.textContent = '';
-                div.style.display = 'none';
-            });
-        }
 
         // Add Form AJAX
         const addForm = document.getElementById('addLiburForm');
@@ -408,9 +370,7 @@
                     bootstrap.Modal.getOrCreateInstance(modalEl).hide();
                     addForm.reset();
                     showToast('success', data.message);
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
+                    table.ajax.reload();
                 }
             })
             .catch(err => {
@@ -420,26 +380,24 @@
             });
         });
 
-        // Load Edit Modal
-        document.querySelectorAll('.btn-edit').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const id = this.getAttribute('data-id');
-                const form = document.getElementById('editLiburForm');
-                clearValidations(form);
+        // Load Edit Modal (delegated)
+        $(document).on('click', '.btn-edit', function() {
+            const id = this.getAttribute('data-id');
+            const form = document.getElementById('editLiburForm');
+            clearValidations(form);
 
-                fetch(`/operator/master-data/hari-libur/${id}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        document.getElementById('edit_id').value = data.id;
-                        document.getElementById('edit_tanggal').value = data.tanggal;
-                        document.getElementById('edit_keterangan').value = data.keterangan;
-                        document.getElementById('edit_tipe').value = data.tipe;
-                        
-                        const modalEl = document.getElementById('editLiburModal');
-                        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                        modal.show();
-                    });
-            });
+            fetch(`/operator/master-data/hari-libur/${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('edit_id').value = data.id;
+                    document.getElementById('edit_tanggal').value = data.tanggal;
+                    document.getElementById('edit_keterangan').value = data.keterangan;
+                    document.getElementById('edit_tipe').value = data.tipe;
+                    
+                    const modalEl = document.getElementById('editLiburModal');
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.show();
+                });
         });
 
         // Edit Form AJAX
@@ -481,9 +439,7 @@
                     const modalEl = document.getElementById('editLiburModal');
                     bootstrap.Modal.getOrCreateInstance(modalEl).hide();
                     showToast('success', data.message);
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
+                    table.ajax.reload();
                 }
             })
             .catch(err => {
@@ -493,52 +449,48 @@
             });
         });
 
-        // Delete Confirmation
-        document.querySelectorAll('.btn-delete').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const id = this.getAttribute('data-id');
-                const desc = this.getAttribute('data-desc');
+        // Delete Confirmation (delegated)
+        $(document).on('click', '.btn-delete', function() {
+            const id = this.getAttribute('data-id');
+            const desc = this.getAttribute('data-desc');
 
-                Swal.fire({
-                    title: 'Apakah Anda yakin?',
-                    text: `Hari libur "${desc}" akan dihapus!`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#005BAA',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Ya, Hapus!',
-                    cancelButtonText: 'Batal'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        fetch(`/operator/master-data/hari-libur/${id}`, {
-                            method: 'DELETE',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Accept': 'application/json',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        })
-                        .then(res => {
-                            if (!res.ok) {
-                                return res.json().then(data => {
-                                    throw new Error(data.message || 'Gagal menghapus data.');
-                                });
-                            }
-                            return res.json();
-                        })
-                        .then(data => {
-                            if (data.success) {
-                                showToast('success', data.message);
-                                setTimeout(() => {
-                                    window.location.reload();
-                                }, 1000);
-                            }
-                        })
-                        .catch(err => {
-                            Swal.fire('Gagal!', err.message, 'error');
-                        });
-                    }
-                });
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: `Hari libur "${desc}" akan dihapus!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#005BAA',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/operator/master-data/hari-libur/${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(res => {
+                        if (!res.ok) {
+                            return res.json().then(data => {
+                                throw new Error(data.message || 'Gagal menghapus data.');
+                            });
+                        }
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            showToast('success', data.message);
+                            table.ajax.reload();
+                        }
+                    })
+                    .catch(err => {
+                        Swal.fire('Gagal!', err.message, 'error');
+                    });
+                }
             });
         });
     });

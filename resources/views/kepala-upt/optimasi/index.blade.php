@@ -64,7 +64,12 @@
     <!-- Comparison Table -->
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title">Tabel Hasil Perbandingan Optimasi</h5>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="card-title mb-0">Tabel Hasil Perbandingan Optimasi</h5>
+                <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#accuracyCriteriaModal" style="border-radius: 8px; font-size: 11.5px; padding: 4px 10px;">
+                    <i class="bi bi-info-circle"></i> Acuan Kriteria Akurasi
+                </button>
+            </div>
             
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">

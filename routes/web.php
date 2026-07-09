@@ -21,8 +21,18 @@ use App\Http\Controllers\KepalaDishub\KepalaDishubPrediksiController;
 use App\Http\Controllers\KepalaDishub\KepalaDishubOptimasiController;
 use App\Http\Controllers\KepalaDishub\KepalaDishubLaporanController;
 
-// Rute Default / Redirect ke Halaman Login
+// Rute Default / Redirect ke Halaman Login atau Dashboard jika sudah login
 Route::get('/', function () {
+    if (auth()->check()) {
+        $user = auth()->user();
+        if ($user->hasRole('operator')) {
+            return redirect()->route('operator.dashboard');
+        } elseif ($user->hasRole('kepala_upt')) {
+            return redirect()->route('kepala-upt.dashboard');
+        } elseif ($user->hasRole('kepala_dishub')) {
+            return redirect()->route('kepala-dishub.dashboard');
+        }
+    }
     return redirect()->route('login');
 });
 
@@ -44,15 +54,22 @@ Route::prefix('operator')->middleware(['auth', 'role:operator'])->name('operator
 
     // Master Data
     Route::get('/master-data/pendapatan/template', [PendapatanController::class, 'downloadTemplate'])->name('pendapatan.template');
+    Route::get('/master-data/pendapatan/data', [PendapatanController::class, 'data'])->name('pendapatan.data');
     Route::resource('/master-data/pendapatan', PendapatanController::class);
     Route::post('/master-data/pendapatan/import', [PendapatanController::class, 'import'])->name('pendapatan.import');
 
+    Route::get('/master-data/rayon/data', [RayonController::class, 'data'])->name('rayon.data');
     Route::resource('/master-data/rayon', RayonController::class);
+    
+    Route::get('/master-data/juru-parkir/data', [JuruParkirController::class, 'data'])->name('juru-parkir.data');
     Route::resource('/master-data/juru-parkir', JuruParkirController::class);
+    
     Route::post('/master-data/hari-libur/generate', [HariLiburController::class, 'generate'])->name('hari-libur.generate');
+    Route::get('/master-data/hari-libur/data', [HariLiburController::class, 'data'])->name('hari-libur.data');
     Route::resource('/master-data/hari-libur', HariLiburController::class);
 
     // Modul Prediksi SVR
+    Route::get('/prediksi/data', [OperatorPrediksiController::class, 'data'])->name('prediksi.data');
     Route::get('/prediksi', [OperatorPrediksiController::class, 'index'])->name('prediksi.index');
     Route::post('/prediksi/jalankan-svr', [OperatorPrediksiController::class, 'runSvr'])->name('prediksi.run-svr');
     Route::post('/prediksi/reset-svr', [OperatorPrediksiController::class, 'resetSvr'])->name('prediksi.reset');
@@ -65,6 +82,7 @@ Route::prefix('operator')->middleware(['auth', 'role:operator'])->name('operator
 
     // Modul Laporan
     Route::get('/laporan', [OperatorLaporanController::class, 'index'])->name('laporan.index');
+    Route::get('/laporan/forecast', [OperatorLaporanController::class, 'getForecastData'])->name('laporan.forecast');
     Route::get('/laporan/export-pdf', [OperatorLaporanController::class, 'exportPdf'])->name('laporan.export-pdf');
     Route::get('/laporan/export-excel', [OperatorLaporanController::class, 'exportExcel'])->name('laporan.export-excel');
 });
@@ -77,11 +95,13 @@ Route::prefix('kepala-upt')->middleware(['auth', 'role:kepala_upt'])->name('kepa
     Route::get('/dashboard', [KepalaUptDashboardController::class, 'index'])->name('dashboard');
 
     // Pemantauan Model Prediksi & Hasil Optimasi
+    Route::get('/prediksi/data', [KepalaUptPrediksiController::class, 'data'])->name('prediksi.data');
     Route::get('/prediksi', [KepalaUptPrediksiController::class, 'index'])->name('prediksi.index');
     Route::get('/optimasi', [KepalaUptOptimasiController::class, 'index'])->name('optimasi.index');
 
     // Laporan Prediksi Pendapatan Retribusi (PDF)
     Route::get('/laporan', [KepalaUptLaporanController::class, 'index'])->name('laporan.index');
+    Route::get('/laporan/forecast', [KepalaUptLaporanController::class, 'getForecastData'])->name('laporan.forecast');
     Route::get('/laporan/export-pdf', [KepalaUptLaporanController::class, 'exportPdf'])->name('laporan.export-pdf');
 });
 
@@ -93,10 +113,12 @@ Route::prefix('kepala-dishub')->middleware(['auth', 'role:kepala_dishub'])->name
     Route::get('/dashboard', [KepalaDishubDashboardController::class, 'index'])->name('dashboard');
 
     // Pemantauan Tren Prediksi & Hasil Optimasi
+    Route::get('/prediksi/data', [KepalaDishubPrediksiController::class, 'data'])->name('prediksi.data');
     Route::get('/prediksi', [KepalaDishubPrediksiController::class, 'index'])->name('prediksi.index');
     Route::get('/optimasi', [KepalaDishubOptimasiController::class, 'index'])->name('optimasi.index');
 
     // Laporan Prediksi Pendapatan Retribusi (PDF)
     Route::get('/laporan', [KepalaDishubLaporanController::class, 'index'])->name('laporan.index');
+    Route::get('/laporan/forecast', [KepalaDishubLaporanController::class, 'getForecastData'])->name('laporan.forecast');
     Route::get('/laporan/export-pdf', [KepalaDishubLaporanController::class, 'exportPdf'])->name('laporan.export-pdf');
 });

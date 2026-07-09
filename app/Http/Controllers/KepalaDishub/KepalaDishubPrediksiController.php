@@ -107,16 +107,32 @@ class KepalaDishubPrediksiController extends Controller
                 $chartPredictValues[] = (int)$data->predicted_value;
             }
                 
-            // Query paginated predictions for table
-            $predictionsQuery = $lastRun->predictionResults()->orderBy('tanggal', 'desc');
-            if ($request->filled('rayon_id') && $request->rayon_id > 0) {
-                $predictionsQuery->where('rayon_id', $request->rayon_id);
-            }
-            $predictions = $predictionsQuery->paginate(10)->withQueryString();
+            $predictions = collect([]);
         }
 
         $rayons = Rayon::all();
 
         return view('kepala-dishub.prediksi.index', compact('best_params', 'metrics', 'predictions', 'chartLabels', 'chartActualValues', 'chartPredictValues', 'rayons', 'lastRun'));
+    }
+
+    public function data(Request $request)
+    {
+        $lastRun = ModelRun::where('model_type', 'svr_default')
+            ->where('status', 'success')
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if (!$lastRun) {
+            return response()->json(['data' => []]);
+        }
+
+        $predictionsQuery = $lastRun->predictionResults()->orderBy('tanggal', 'desc');
+
+        if ($request->filled('rayon_id') && $request->rayon_id > 0) {
+            $predictionsQuery->where('rayon_id', $request->rayon_id);
+        }
+
+        $predictions = $predictionsQuery->get();
+        return response()->json(['data' => $predictions]);
     }
 }

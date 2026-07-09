@@ -431,6 +431,132 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Riwayat Pelatihan SVR Standar -->
+            <div class="col-12">
+                <div class="card bg-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title mb-0"><i class="bi bi-clock-history text-primary-custom me-2"></i>Riwayat Pelatihan SVR Standar</h5>
+                            @if(!$historyRuns->isEmpty())
+                                <button class="btn btn-outline-danger btn-sm rounded-3 fw-semibold text-xs px-3" onclick="confirmResetAll()">
+                                    <i class="bi bi-trash3-fill me-1"></i> Reset Semua Riwayat
+                                </button>
+                            @endif
+                        </div>
+                        
+                        @if($historyRuns->isEmpty())
+                            <div class="text-center py-4 text-secondary">
+                                <i class="bi bi-folder2-open fs-2 text-muted mb-2 d-block"></i>
+                                Belum ada riwayat proses pelatihan model SVR standar.
+                            </div>
+                        @else
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0" style="font-size: 12.5px;">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="ps-3">Waktu Mulai</th>
+                                            <th>Parameter (C, &epsilon;, &gamma;)</th>
+                                            <th>MAE</th>
+                                            <th>RMSE</th>
+                                            <th>MAPE</th>
+                                            <th>R² Score</th>
+                                            <th>Lama Proses</th>
+                                            <th class="text-center">Status</th>
+                                            <th class="text-center" style="width: 100px;">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($historyRuns as $run)
+                                            @php
+                                                $param = $run->modelParameter;
+                                                $metric = $run->modelMetrics()->where('dataset_type', 'test')->first();
+                                                $isActive = ($lastRun && $run->id === $lastRun->id);
+                                                
+                                                $cVal = '-';
+                                                if ($param) {
+                                                    $cVal = $param->c_value;
+                                                    if (is_numeric($cVal)) {
+                                                        $formatted = number_format((float)$cVal, 6, ',', '.');
+                                                        $cVal = strpos($formatted, ',') !== false ? rtrim(rtrim($formatted, '0'), ',') : $formatted;
+                                                    }
+                                                }
+                                                $epsVal = '-';
+                                                if ($param) {
+                                                    $epsVal = $param->epsilon_value;
+                                                    if (is_numeric($epsVal)) {
+                                                        $formatted = number_format((float)$epsVal, 8, ',', '.');
+                                                        $epsVal = strpos($formatted, ',') !== false ? rtrim(rtrim($formatted, '0'), ',') : $formatted;
+                                                    }
+                                                }
+                                                $gamVal = '-';
+                                                if ($param) {
+                                                    $gamVal = $param->gamma_value;
+                                                    if (is_numeric($gamVal)) {
+                                                        $formatted = number_format((float)$gamVal, 6, ',', '.');
+                                                        $gamVal = strpos($formatted, ',') !== false ? rtrim(rtrim($formatted, '0'), ',') : $formatted;
+                                                    }
+                                                }
+                                                
+                                                $maeVal = $metric ? 'Rp ' . number_format($metric->mae, 0, ',', '.') : '-';
+                                                $rmseVal = $metric ? 'Rp ' . number_format($metric->rmse, 0, ',', '.') : '-';
+                                                $mapeVal = $metric ? number_format($metric->mape, 2, ',', '.') . '%' : '-';
+                                                $r2Val = $metric ? number_format($metric->r2_score, 2, ',', '.') : '-';
+                                                
+                                                $start = $run->started_at ? \Carbon\Carbon::parse($run->started_at) : null;
+                                                $end = $run->finished_at ? \Carbon\Carbon::parse($run->finished_at) : null;
+                                                $durasi = '-';
+                                                if ($start && $end) {
+                                                    $diffSecs = $start->diffInSeconds($end);
+                                                    if ($diffSecs >= 60) {
+                                                        $mins = floor($diffSecs / 60);
+                                                        $secs = $diffSecs % 60;
+                                                        $durasi = $mins . ' m ' . $secs . ' s';
+                                                    } elseif ($diffSecs > 0) {
+                                                        $durasi = $diffSecs . ' detik';
+                                                    } else {
+                                                        $diffMs = $start->diffInMilliseconds($end);
+                                                        $durasi = $diffMs . ' ms';
+                                                    }
+                                                }
+                                            @endphp
+                                            <tr>
+                                                <td class="ps-3">{{ \Carbon\Carbon::parse($run->started_at)->timezone('Asia/Jakarta')->translatedFormat('d M Y, H:i') }} WIB</td>
+                                                <td>
+                                                    <span class="badge bg-light text-dark border">C: {{ $cVal }}</span>
+                                                    <span class="badge bg-light text-dark border">&epsilon;: {{ $epsVal }}</span>
+                                                    <span class="badge bg-light text-dark border">&gamma;: {{ $gamVal }}</span>
+                                                </td>
+                                                <td>{{ $maeVal }}</td>
+                                                <td>{{ $rmseVal }}</td>
+                                                <td class="fw-bold text-success">{{ $mapeVal }}</td>
+                                                <td>{{ $r2Val }}</td>
+                                                <td class="fw-semibold text-secondary">{{ $durasi }}</td>
+                                                <td class="text-center">
+                                                    @if($isActive)
+                                                        <span class="badge bg-success text-white rounded-3 px-2 py-1" style="font-size: 11px;">
+                                                            <i class="bi bi-check-circle-fill me-1"></i>Aktif
+                                                        </span>
+                                                    @else
+                                                        <span class="badge bg-secondary text-white rounded-3 px-2 py-1" style="font-size: 11px;">
+                                                            <i class="bi bi-clock-history me-1"></i>Riwayat
+                                                        </span>
+                                                    @endif
+                                                </td>
+                                                <td class="text-center">
+                                                    <button class="btn btn-link text-danger p-0 border-0" onclick="confirmDeleteRun({{ $run->id }}, '{{ \Carbon\Carbon::parse($run->started_at)->timezone('Asia/Jakarta')->translatedFormat('d M Y, H:i') }}')" title="Hapus Riwayat">
+                                                        <i class="bi bi-trash fs-5"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Navigation Footer for Step 2 -->
@@ -614,7 +740,10 @@
                     
                     <!-- Tabs Content -->
                     <div class="tab-content flex-grow-1 col-12 col-md-8 col-lg-9 border p-4 rounded-3" id="v-pills-tabContent" style="background-color: #ffffff;">
-                        
+                                                @php
+                            $rayonRomanMap = [1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V'];
+                        @endphp
+
                         <!-- Tab 1: Pembersihan Data -->
                         <div class="tab-pane fade show active" id="v-pills-cleaning" role="tabpanel" aria-labelledby="v-pills-cleaning-tab">
                             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -640,95 +769,138 @@
                                 </div>
                             </div>
                             
-                            <div class="row g-3">
-                                <!-- Table 1: Raw Snapshot -->
-                                <div class="col-12 mb-3">
-                                    <div class="card border border-light h-100 mb-0 shadow-sm">
-                                        <div class="card-header bg-light py-2">
-                                            <span class="fw-semibold text-secondary text-xs"><i class="bi bi-table me-1"></i>Contoh Struktur Dataset Asli (Raw)</span>
+                            @if($pipelineData && isset($pipelineData['raw_snapshot']) && isset($pipelineData['cleaned_snapshot']))
+                                <div class="card border border-light shadow-sm">
+                                    <div class="card-header bg-light py-1.5 px-3">
+                                        <ul class="nav nav-tabs card-header-tabs border-bottom-0" id="cleaning-snapshot-tabs" role="tablist">
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link active fw-bold text-xs py-1.5 px-3 border-0 bg-transparent text-secondary" id="raw-snapshot-tab" data-bs-toggle="tab" data-bs-target="#raw-snapshot-pane" type="button" role="tab" aria-controls="raw-snapshot-pane" aria-selected="true" style="transition: all 0.2s;">
+                                                    <i class="bi bi-file-earmark-spreadsheet me-1"></i>1. Sebelum Pembersihan (Raw Data)
+                                                </button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link fw-bold text-xs py-1.5 px-3 border-0 bg-transparent text-secondary" id="cleaned-snapshot-tab" data-bs-toggle="tab" data-bs-target="#cleaned-snapshot-pane" type="button" role="tab" aria-controls="cleaned-snapshot-pane" aria-selected="false" style="transition: all 0.2s;">
+                                                    <i class="bi bi-shield-check me-1"></i>2. Setelah Pembersihan (Cleaned Data)
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div class="tab-content" id="cleaning-snapshot-tabsContent">
+                                        <!-- Tab 1.1: Sebelum Pembersihan -->
+                                        <div class="tab-pane fade show active" id="raw-snapshot-pane" role="tabpanel" aria-labelledby="raw-snapshot-tab">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm align-middle mb-0 table-hover table-preview-custom">
+                                                    <thead class="table-light">
+                                                        <tr class="text-secondary text-xs">
+                                                            <th>Tanggal</th>
+                                                            <th>Rayon</th>
+                                                            <th class="text-center">Weekend</th>
+                                                            <th class="text-center">Libur</th>
+                                                            <th class="text-end">Pendapatan Awal</th>
+                                                            <th class="text-end">Jukir</th>
+                                                            <th class="text-center">Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody class="text-xs">
+                                                        @foreach($pipelineData['raw_snapshot'] as $snap)
+                                                            @php
+                                                                $isZero = $snap['Total_Pendapatan'] == 0;
+                                                                $isLibur = $snap['Libur_Nasional'] == 1;
+                                                                $isWeekend = $snap['Weekend'] == 1;
+                                                                $rowBg = '';
+                                                                $statusBadge = '';
+                                                                if ($isZero) {
+                                                                    if ($isLibur) {
+                                                                        $rowBg = 'table-warning-custom bg-warning-subtle text-warning-emphasis';
+                                                                        $statusBadge = '<span class="badge bg-warning text-dark"><i class="bi bi-magic me-1"></i>Akan Diimputasi</span>';
+                                                                    } else {
+                                                                        $rowBg = 'table-danger-custom bg-danger-subtle text-danger-emphasis';
+                                                                        $statusBadge = '<span class="badge bg-danger"><i class="bi bi-trash-fill me-1"></i>Akan Dihapus</span>';
+                                                                    }
+                                                                } else {
+                                                                    $statusBadge = '<span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>Valid</span>';
+                                                                }
+                                                            @endphp
+                                                            <tr class="{{ $rowBg }}">
+                                                                <td><code>{{ $snap['Tanggal'] }}</code></td>
+                                                                <td><span class="badge bg-light text-dark border">Rayon {{ $rayonRomanMap[$snap['Rayon']] ?? $snap['Rayon'] }}</span></td>
+                                                                <td class="text-center">
+                                                                    <span class="badge {{ $isWeekend ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary' }} border-0 py-1 px-2">
+                                                                        {{ $isWeekend ? '1' : '0' }}
+                                                                    </span>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    <span class="badge {{ $isLibur ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary' }} border-0 py-1 px-2">
+                                                                        {{ $isLibur ? '1' : '0' }}
+                                                                    </span>
+                                                                </td>
+                                                                <td class="text-end fw-semibold {{ $isZero ? 'text-danger' : 'text-dark' }}">
+                                                                    Rp {{ number_format($snap['Total_Pendapatan'], 0, ',', '.') }}
+                                                                </td>
+                                                                <td class="text-end text-secondary">{{ $snap['Jumlah Jukir'] ?? ($snap['Jumlah_Jukir'] ?? 80) }} Jukir</td>
+                                                                <td class="text-center">{!! $statusBadge !!}</td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
-                                        <div class="table-responsive">
-                                            <table class="table table-sm align-middle mb-0 table-custom-nowrap table-preview-custom">
-                                                <thead class="table-light">
-                                                    <tr>
-                                                        <th>Tanggal</th>
-                                                        <th>Rayon</th>
-                                                        <th class="text-center">Weekend</th>
-                                                        <th class="text-center">Libur</th>
-                                                        <th class="text-end">Pendapatan Awal</th>
-                                                        <th class="text-end">Jukir</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @forelse($rawSnapshot as $snap)
-                                                        <tr>
-                                                            <td><code>{{ $snap['tanggal'] }}</code></td>
-                                                            <td><span class="badge bg-light text-dark border">{{ $snap['rayon_name'] }}</span></td>
-                                                            <td class="text-center">
-                                                                <span class="badge {{ $snap['weekend'] ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary' }} border-0 py-1 px-2">
-                                                                    {{ $snap['weekend'] }}
-                                                                </span>
-                                                            </td>
-                                                            <td class="text-center">
-                                                                <span class="badge {{ $snap['libur_nasional'] ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary' }} border-0 py-1 px-2">
-                                                                    {{ $snap['libur_nasional'] }}
-                                                                </span>
-                                                            </td>
-                                                            <td class="text-end fw-semibold text-dark">Rp {{ number_format($snap['total_pendapatan'], 0, ',', '.') }}</td>
-                                                            <td class="text-end text-secondary">{{ $snap['jumlah_jukir'] }} Jukir</td>
+                                        <!-- Tab 1.2: Setelah Pembersihan -->
+                                        <div class="tab-pane fade" id="cleaned-snapshot-pane" role="tabpanel" aria-labelledby="cleaned-snapshot-tab">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm align-middle mb-0 table-hover table-preview-custom">
+                                                    <thead class="table-light">
+                                                        <tr class="text-secondary text-xs">
+                                                            <th>Tanggal</th>
+                                                            <th>Rayon</th>
+                                                            <th class="text-center">Weekend</th>
+                                                            <th class="text-center">Libur</th>
+                                                            <th class="text-end">Pendapatan Bersih</th>
+                                                            <th class="text-end">Jukir</th>
+                                                            <th class="text-center">Status</th>
                                                         </tr>
-                                                    @empty
-                                                        <tr>
-                                                            <td colspan="6" class="text-center py-3 text-muted">Snapshot data pendapatan kosong.</td>
-                                                        </tr>
-                                                    @endforelse
-                                                </tbody>
-                                            </table>
+                                                    </thead>
+                                                    <tbody class="text-xs">
+                                                        @foreach($pipelineData['cleaned_snapshot'] as $snap)
+                                                            @php
+                                                                $isLibur = $snap['Libur_Nasional'] == 1;
+                                                                $isWeekend = $snap['Weekend'] == 1;
+                                                            @endphp
+                                                            <tr>
+                                                                <td><code>{{ $snap['Tanggal'] }}</code></td>
+                                                                <td><span class="badge bg-light text-dark border">Rayon {{ $rayonRomanMap[$snap['Rayon']] ?? $snap['Rayon'] }}</span></td>
+                                                                <td class="text-center">
+                                                                    <span class="badge {{ $isWeekend ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary' }} border-0 py-1 px-2">
+                                                                        {{ $isWeekend ? '1' : '0' }}
+                                                                    </span>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    <span class="badge {{ $isLibur ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary' }} border-0 py-1 px-2">
+                                                                        {{ $isLibur ? '1' : '0' }}
+                                                                    </span>
+                                                                </td>
+                                                                <td class="text-end fw-semibold text-success">
+                                                                    Rp {{ number_format($snap['Total_Pendapatan'], 0, ',', '.') }}
+                                                                </td>
+                                                                <td class="text-end text-secondary">{{ $snap['Jumlah Jukir'] ?? ($snap['Jumlah_Jukir'] ?? 80) }} Jukir</td>
+                                                                <td class="text-center">
+                                                                    <span class="badge bg-success-subtle text-success border-0 py-1 px-2.5">
+                                                                        <i class="bi bi-check-circle-fill me-1"></i>Bersih
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <!-- Table 2: Cleaning Simulation -->
-                                <div class="col-12">
-                                    <div class="card border border-light h-100 mb-0 shadow-sm">
-                                        <div class="card-header bg-light py-2">
-                                            <span class="fw-semibold text-secondary text-xs"><i class="bi bi-shield-check me-1"></i>Simulasi Pembersihan Data</span>
-                                        </div>
-                                        <div class="table-responsive">
-                                            <table class="table table-sm align-middle mb-0 table-custom-nowrap table-preview-custom">
-                                                <thead class="table-light">
-                                                    <tr>
-                                                        <th>Kondisi / Kasus</th>
-                                                        <th>Tanggal</th>
-                                                        <th class="text-center">Weekend</th>
-                                                        <th class="text-center">Libur</th>
-                                                        <th class="text-end">Pendapatan</th>
-                                                        <th class="text-center">Aksi Preprocessing</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <tr style="background-color: rgba(220, 38, 38, 0.02);">
-                                                        <td><span class="text-danger fw-semibold">Kerja biasa Rp 0</span></td>
-                                                        <td><code>2024-03-05</code></td>
-                                                        <td class="text-center">0</td>
-                                                        <td class="text-center">0</td>
-                                                        <td class="text-end text-danger fw-semibold">Rp 0</td>
-                                                        <td class="text-center"><span class="badge bg-danger py-1 px-2">BARIS DIHAPUS (DROP)</span></td>
-                                                    </tr>
-                                                    <tr style="background-color: rgba(22, 163, 74, 0.02);">
-                                                        <td><span class="text-success fw-semibold">Hari libur Rp 0</span></td>
-                                                        <td><code>2024-04-10</code></td>
-                                                        <td class="text-center">0</td>
-                                                        <td class="text-center">1</td>
-                                                        <td class="text-end text-danger fw-semibold">Rp 0</td>
-                                                        <td class="text-center"><span class="badge bg-success py-1 px-2">IMPUTASI MEDIAN (FILL)</span></td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
+                            @else
+                                <div class="alert alert-warning py-2 mb-0 mt-3 text-xs border-0">
+                                    <i class="bi bi-info-circle me-1"></i> Detail data snapshot pembersihan tidak ditemukan. Silakan jalankan generate ulang model.
                                 </div>
-                            </div>
+                            @endif
                         </div>
                         
                         <!-- Tab 2: Rekayasa Fitur -->
@@ -739,26 +911,76 @@
                             </div>
                             <p class="text-secondary text-sm">Menambah dimensi fitur masukan agar model SVR mampu menangkap pengaruh tren waktu (temporal), efek hari libur, serta karakteristik spasial (rayon):</p>
                             
-                            <div class="row g-3">
+                            <div class="row g-3 mb-4">
                                 <div class="col-md-4">
-                                    <div class="card h-100 mb-0 border bg-white p-3 shadow-sm">
+                                    <div class="card h-100 mb-0 border bg-white p-3 shadow-sm" style="border-top: 3px solid #0d6efd !important;">
                                         <h6 class="fw-bold text-dark text-sm mb-2"><i class="bi bi-calendar3 text-primary-custom me-1"></i>Fitur Temporal & Siklikal</h6>
                                         <p class="text-muted text-xs mb-0">Ekstraksi hari, bulan, tahun, nomor minggu, serta transformasi sine & cosine pada hari-dalam-minggu dan tanggal-kalender untuk menangkap kontinuitas siklus waktu.</p>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="card h-100 mb-0 border bg-white p-3 shadow-sm">
+                                    <div class="card h-100 mb-0 border bg-white p-3 shadow-sm" style="border-top: 3px solid #0dcaf0 !important;">
                                         <h6 class="fw-bold text-dark text-sm mb-2"><i class="bi bi-clock-history text-primary-custom me-1"></i>Fitur Lag & Rolling Mean</h6>
                                         <p class="text-muted text-xs mb-0">Menyisipkan variabel historis <code>Lag_1</code>, <code>Lag_7</code>, <code>Lag_14</code>, dan <code>Lag_21</code> (pendapatan pada hari-hari sebelumnya) serta rolling mean 7 dan 30 hari untuk mendeteksi tren terkini.</p>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="card h-100 mb-0 border bg-white p-3 shadow-sm">
+                                    <div class="card h-100 mb-0 border bg-white p-3 shadow-sm" style="border-top: 3px solid #212529 !important;">
                                         <h6 class="fw-bold text-dark text-sm mb-2"><i class="bi bi-geo-alt-fill text-primary-custom me-1"></i>Rayon Dummy & Interaksi</h6>
                                         <p class="text-muted text-xs mb-0">One-hot encoding data Rayon menjadi 5 kolom dummy terpisah (Rayon_1 s.d Rayon_5) serta perkalian interaksi <code>Weekend * Rayon_X</code> untuk melihat perbedaan efek libur di tiap rayon.</p>
                                     </div>
                                 </div>
                             </div>
+
+                            @if($pipelineData && isset($pipelineData['fe_snapshot']))
+                                <div class="card border border-light shadow-sm">
+                                    <div class="card-header bg-light py-2">
+                                        <span class="fw-semibold text-secondary text-xs"><i class="bi bi-table me-1"></i>Hasil Ekstraksi & Rekayasa Fitur (Sample Data)</span>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm align-middle mb-0 table-hover table-preview-custom">
+                                            <thead class="table-light">
+                                                <tr class="text-secondary text-xs">
+                                                    <th>Tanggal</th>
+                                                    <th>Rayon</th>
+                                                    <th class="text-center">Wk</th>
+                                                    <th class="text-center">Lb</th>
+                                                    <th class="text-center">Sin Hari</th>
+                                                    <th class="text-center">Cos Hari</th>
+                                                    <th class="text-end">Lag 1</th>
+                                                    <th class="text-end">Lag 7</th>
+                                                    <th class="text-end">Roll Mean 7</th>
+                                                    <th class="text-end">Roll Mean 30</th>
+                                                    <th class="text-center">Dummy R1</th>
+                                                    <th class="text-center">Wk×R1</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="text-xs">
+                                                @foreach($pipelineData['fe_snapshot'] as $snap)
+                                                    <tr>
+                                                        <td><code>{{ $snap['Tanggal'] }}</code></td>
+                                                        <td><span class="badge bg-light text-dark border">Rayon {{ $rayonRomanMap[$snap['Rayon_asli']] ?? $snap['Rayon_asli'] }}</span></td>
+                                                        <td class="text-center">{{ $snap['Weekend'] }}</td>
+                                                        <td class="text-center">{{ $snap['Libur_Nasional'] }}</td>
+                                                        <td class="text-center text-secondary">{{ number_format($snap['Hari_Minggu_sin'], 4, ',', '.') }}</td>
+                                                        <td class="text-center text-secondary">{{ number_format($snap['Hari_Minggu_cos'], 4, ',', '.') }}</td>
+                                                        <td class="text-end fw-semibold">Rp {{ number_format($snap['Lag_1'], 0, ',', '.') }}</td>
+                                                        <td class="text-end text-secondary">Rp {{ number_format($snap['Lag_7'], 0, ',', '.') }}</td>
+                                                        <td class="text-end text-success">Rp {{ number_format($snap['Rolling_Mean_7'], 0, ',', '.') }}</td>
+                                                        <td class="text-end text-success text-secondary">Rp {{ number_format($snap['Rolling_Mean_30'], 0, ',', '.') }}</td>
+                                                        <td class="text-center">{{ $snap['Rayon_1'] }}</td>
+                                                        <td class="text-center text-secondary">{{ $snap['Weekend_Rayon_1'] }}</td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="alert alert-warning py-2 mb-0 text-xs border-0">
+                                    <i class="bi bi-info-circle me-1"></i> Detail data rekayasa fitur tidak ditemukan. Silakan jalankan generate ulang model.
+                                </div>
+                            @endif
                         </div>
                         
                         <!-- Tab 3: Transformasi Data -->
@@ -769,13 +991,53 @@
                             </div>
                             <p class="text-secondary text-sm">Distribusi data retribusi parkir harian memiliki tingkat kemiringan (skewness) tinggi dengan pencilan ekstrem. Dilakukan transformasi target untuk menstabilkan variansi model:</p>
                             
-                            <div class="bg-white p-3 rounded-3 border mb-3 shadow-sm">
+                            <div class="bg-white p-3 rounded-3 border mb-4 shadow-sm" style="border-left: 4px solid #ffc107 !important;">
                                 <h6 class="fw-bold text-dark mb-2 text-sm"><i class="bi bi-calculator me-1"></i>Rumus Transformasi Logaritmik:</h6>
                                 <div class="text-center py-2 bg-light rounded my-2">
                                     <code class="fs-5 text-dark">y_transformed = ln(y + 1)</code>
                                 </div>
                                 <p class="text-secondary text-xs mb-0">Menggunakan fungsi <code>log1p</code> untuk menangani nilai nol dengan aman. Setelah prediksi selesai didapatkan dari model SVR, nilai dikembalikan ke rupiah asli menggunakan fungsi inverse eksponensial <code>expm1</code>: <code>y_original = exp(y_predicted) - 1</code>.</p>
                             </div>
+
+                            @if($pipelineData && isset($pipelineData['transformed_snapshot']))
+                                <div class="card border border-light shadow-sm">
+                                    <div class="card-header bg-light py-2">
+                                        <span class="fw-semibold text-secondary text-xs"><i class="bi bi-table me-1"></i>Hasil Transformasi Target y → ln(y + 1)</span>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm align-middle mb-0 table-hover table-preview-custom">
+                                            <thead class="table-light">
+                                                <tr class="text-secondary text-xs">
+                                                    <th>Tanggal</th>
+                                                    <th>Rayon</th>
+                                                    <th class="text-end">Pendapatan Riil (y)</th>
+                                                    <th class="text-end">Log Transformed (y_transformed)</th>
+                                                    <th class="text-center">Keterangan</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="text-xs">
+                                                @foreach($pipelineData['transformed_snapshot'] as $snap)
+                                                    <tr>
+                                                        <td><code>{{ $snap['Tanggal'] }}</code></td>
+                                                        <td><span class="badge bg-light text-dark border">Rayon {{ $rayonRomanMap[$snap['Rayon_asli']] ?? $snap['Rayon_asli'] }}</span></td>
+                                                        <td class="text-end fw-semibold text-dark">Rp {{ number_format($snap['Total_Pendapatan'], 0, ',', '.') }}</td>
+                                                        <td class="text-end text-primary fw-mono fw-semibold">{{ number_format($snap['Total_Pendapatan_log'], 6, ',', '.') }}</td>
+                                                        <td class="text-center">
+                                                            <span class="badge bg-primary-subtle text-primary border-0 py-1 px-2" style="font-size: 10px;">
+                                                                ln({{ number_format($snap['Total_Pendapatan']) }} + 1)
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="alert alert-warning py-2 mb-0 text-xs border-0">
+                                    <i class="bi bi-info-circle me-1"></i> Detail data transformasi target tidak ditemukan. Silakan jalankan generate ulang model.
+                                </div>
+                            @endif
                         </div>
                         
                         <!-- Tab 4: Normalisasi Data -->
@@ -786,7 +1048,7 @@
                             </div>
                             <p class="text-secondary text-sm">Menyamakan skala nilai seluruh fitur masukan (X) dan target (y) agar fungsi kernel dan batas toleransi kesalahan SVR dapat dikalkulasi secara optimal:</p>
                             
-                            <ul class="list-group list-group-flush mb-0 text-sm bg-white p-3 border rounded shadow-sm">
+                            <ul class="list-group list-group-flush mb-4 text-sm bg-white p-3 border rounded shadow-sm" style="border-left: 4px solid #0dcaf0 !important;">
                                 <li class="list-group-item bg-transparent px-0 py-2.5">
                                     <strong>RobustScaler (pada Fitur Masukan X)</strong>: Menskalakan fitur menggunakan rentang Median dan Interquartile Range (IQR). Sangat direkomendasikan karena kebal terhadap outlier (nilai ekstrem) pendapatan parkir pada hari libur besar.
                                 </li>
@@ -794,6 +1056,48 @@
                                     <strong>MinMaxScaler (pada Target y)</strong>: Menskalakan target logaritmik pendapatan ke rentang <code>[0, 1]</code> untuk menjaga kestabilan nilai gradien bobot penalti SVR.
                                 </li>
                             </ul>
+
+                            @if($pipelineData && isset($pipelineData['normalized_snapshot']))
+                                <div class="card border border-light shadow-sm">
+                                    <div class="card-header bg-light py-2">
+                                        <span class="fw-semibold text-secondary text-xs"><i class="bi bi-table me-1"></i>Sampel Data Normalisasi X & Target y (Robust & MinMaxScaler scaled)</span>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm align-middle mb-0 table-hover table-preview-custom">
+                                            <thead class="table-light">
+                                                <tr class="text-secondary text-xs">
+                                                    <th>Tanggal</th>
+                                                    <th>Rayon</th>
+                                                    <th class="text-end">Pendapatan Riil</th>
+                                                    <th class="text-end">y_log</th>
+                                                    <th class="text-end text-success">y_scaled [0, 1]</th>
+                                                    <th class="text-end text-primary">Scaled Lag 1</th>
+                                                    <th class="text-end text-primary">Scaled Rolling 7</th>
+                                                    <th class="text-end text-primary">Scaled Trend</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="text-xs">
+                                                @foreach($pipelineData['normalized_snapshot'] as $snap)
+                                                    <tr>
+                                                        <td><code>{{ $snap['tanggal'] }}</code></td>
+                                                        <td><span class="badge bg-light text-dark border">Rayon {{ $rayonRomanMap[$snap['rayon']] ?? $snap['rayon'] }}</span></td>
+                                                        <td class="text-end">Rp {{ number_format($snap['y_original'], 0, ',', '.') }}</td>
+                                                        <td class="text-end text-secondary">{{ number_format($snap['y_log'], 4, ',', '.') }}</td>
+                                                        <td class="text-end fw-bold text-success">{{ number_format($snap['y_scaled'], 6, ',', '.') }}</td>
+                                                        <td class="text-end text-primary">{{ number_format($snap['x_scaled_lag1'], 6, ',', '.') }}</td>
+                                                        <td class="text-end text-primary">{{ number_format($snap['x_scaled_rolling7'], 6, ',', '.') }}</td>
+                                                        <td class="text-end text-primary">{{ number_format($snap['x_scaled_trend'], 6, ',', '.') }}</td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="alert alert-warning py-2 mb-0 text-xs border-0">
+                                    <i class="bi bi-info-circle me-1"></i> Detail data normalisasi tidak ditemukan. Silakan jalankan generate ulang model.
+                                </div>
+                            @endif
                         </div>
                         
                         <!-- Tab 5: Pembagian Data -->
@@ -804,10 +1108,77 @@
                             </div>
                             <p class="text-secondary text-sm">Dataset dibagi menjadi data training (80%) untuk melatih model dan data testing (20%) untuk menguji performa prediksi peramalan.</p>
                             
-                            <div class="p-3 bg-white border rounded-3 mb-0 shadow-sm" style="border-left: 4px solid var(--primary-blue) !important;">
+                            <div class="p-3 bg-white border rounded-3 mb-4 shadow-sm" style="border-left: 4px solid #0d6efd !important;">
                                 <h6 class="fw-bold text-dark mb-2 text-sm"><i class="bi bi-clock-fill me-1 text-primary-custom"></i>Aturan Time-Series Split (Kronologis)</h6>
                                 <p class="text-secondary text-xs mb-0">Pembagian data <strong>WAJIB dilakukan secara urut waktu (kronologis)</strong>, bukan secara acak (random train-test split). Hal ini krusial untuk mencegah terjadinya kebocoran data (data leakage) dari masa depan ke masa lalu, sehingga menjamin validitas hasil pengujian peramalan.</p>
                             </div>
+
+                            @if($pipelineData && isset($pipelineData['split_snapshot']))
+                                <h6 class="fw-bold text-secondary text-xs mb-2">Visualisasi Pembagian Dataset (Time Series Split):</h6>
+                                <div class="progress mb-4 border border-light" style="height: 35px; border-radius: 8px;">
+                                    <div class="progress-bar bg-primary fw-bold text-xs d-flex flex-column justify-content-center align-items-center shadow-none" role="progressbar" style="width: 80%" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100">
+                                        <span>Data Training (80%)</span>
+                                        <span class="text-white-50" style="font-size: 9px;">{{ number_format($pipelineData['split_snapshot']['train_count']) }} baris ({{ Carbon\Carbon::parse($pipelineData['split_snapshot']['train_start_date'])->translatedFormat('d M Y') }} - {{ Carbon\Carbon::parse($pipelineData['split_snapshot']['train_end_date'])->translatedFormat('d M Y') }})</span>
+                                    </div>
+                                    <div class="progress-bar bg-warning text-dark fw-bold text-xs d-flex flex-column justify-content-center align-items-center shadow-none" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">
+                                        <span>Data Testing (20%)</span>
+                                        <span class="text-muted" style="font-size: 9px;">{{ number_format($pipelineData['split_snapshot']['test_count']) }} baris ({{ Carbon\Carbon::parse($pipelineData['split_snapshot']['test_start_date'])->translatedFormat('d M Y') }} - {{ Carbon\Carbon::parse($pipelineData['split_snapshot']['test_end_date'])->translatedFormat('d M Y') }})</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="card h-100 border border-light shadow-sm">
+                                            <div class="card-header bg-primary text-white py-2">
+                                                <span class="fw-semibold text-xs"><i class="bi bi-clock-history me-1"></i>Batas Akhir Data Training</span>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <table class="table table-sm table-borderless mb-0 text-xs text-secondary">
+                                                    <tr>
+                                                        <td>Tanggal Akhir</td>
+                                                        <td>: <strong>{{ Carbon\Carbon::parse($pipelineData['split_snapshot']['train_end_date'])->translatedFormat('d F Y') }}</strong></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Ukuran Latih</td>
+                                                        <td>: {{ number_format($pipelineData['split_snapshot']['train_count']) }} baris data</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Persentase</td>
+                                                        <td>: 80% dari total dataset</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card h-100 border border-light shadow-sm">
+                                            <div class="card-header bg-warning text-dark py-2">
+                                                <span class="fw-semibold text-xs"><i class="bi bi-clock me-1"></i>Batas Awal Data Testing</span>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <table class="table table-sm table-borderless mb-0 text-xs text-secondary">
+                                                    <tr>
+                                                        <td>Tanggal Awal</td>
+                                                        <td>: <strong>{{ Carbon\Carbon::parse($pipelineData['split_snapshot']['test_start_date'])->translatedFormat('d F Y') }}</strong></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Ukuran Uji</td>
+                                                        <td>: {{ number_format($pipelineData['split_snapshot']['test_count']) }} baris data</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Persentase</td>
+                                                        <td>: 20% dari total dataset</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="alert alert-warning py-2 mb-0 text-xs border-0">
+                                    <i class="bi bi-info-circle me-1"></i> Detail pembagian data tidak ditemukan. Silakan jalankan generate ulang model.
+                                </div>
+                            @endif
                         </div>
                         
                         <!-- Tab 6: Pelatihan Model SVR -->
@@ -820,9 +1191,9 @@
                             
                             <ul class="list-group list-group-flush text-sm mb-0 bg-white p-3 border rounded shadow-sm">
                                 <li class="list-group-item bg-transparent px-0 py-2"><strong>Tipe Kernel</strong>: Radial Basis Function (RBF) untuk pola non-linear.</li>
-                                <li class="list-group-item bg-transparent px-0 py-2"><strong>Regularisasi (C)</strong>: <code>1.0</code> (Nilai default).</li>
-                                <li class="list-group-item bg-transparent px-0 py-2"><strong>Epsilon Toleransi (&epsilon;)</strong>: <code>0.1</code> (Batas lebar tabung toleransi kesalahan).</li>
-                                <li class="list-group-item bg-transparent px-0 py-2"><strong>Gamma (&gamma;)</strong>: <code>scale</code> (Koefisien default Scikit-Learn).</li>
+                                <li class="list-group-item bg-transparent px-0 py-2"><strong>Regularisasi (C)</strong>: <code>{{ $params->c_value ?? '1.0' }}</code></li>
+                                <li class="list-group-item bg-transparent px-0 py-2"><strong>Epsilon Toleransi (&epsilon;)</strong>: <code>{{ $params->epsilon_value ?? '0.1' }}</code></li>
+                                <li class="list-group-item bg-transparent px-0 py-2"><strong>Gamma (&gamma;)</strong>: <code>{{ $params->gamma_value ?? 'scale' }}</code></li>
                             </ul>
                         </div>
 
@@ -924,6 +1295,17 @@
         @endphp
         <!-- 4. Ringkasan Sukses Eksekusi Terakhir -->
     @if($lastRun)
+        @php
+            $trainPeriodParts = $lastRun->train_period ? explode(' - ', $lastRun->train_period) : [];
+            $trainDays = count($trainPeriodParts) === 2
+                ? \Carbon\Carbon::parse(trim($trainPeriodParts[0]))->diffInDays(\Carbon\Carbon::parse(trim($trainPeriodParts[1]))) + 1
+                : null;
+
+            $testPeriodParts = $lastRun->test_period ? explode(' - ', $lastRun->test_period) : [];
+            $testDays = count($testPeriodParts) === 2
+                ? \Carbon\Carbon::parse(trim($testPeriodParts[0]))->diffInDays(\Carbon\Carbon::parse(trim($testPeriodParts[1]))) + 1
+                : null;
+        @endphp
         <div class="card mb-4 bg-white">
             <div class="card-body">
                 <h5 class="card-title text-success"><i class="bi bi-check-circle-fill me-2"></i>Ringkasan Eksekusi Model SVR Terakhir</h5>
@@ -934,12 +1316,16 @@
                     </div>
                     <div class="col-6 col-md-3 border-end border-light">
                         <span class="text-secondary d-block text-uppercase fw-semibold" style="font-size: 9.5px; letter-spacing: 0.5px;">Data Training (80%)</span>
-                        <strong class="text-dark d-block mb-1">{{ number_format($lastRun->train_rows, 0, ',', '.') }} baris</strong>
+                        <strong class="text-dark d-block mb-1">{{ number_format($lastRun->train_rows, 0, ',', '.') }} baris
+                            @if($trainDays) <span class="fw-normal text-secondary" style="font-size:11px;">({{ number_format($trainDays, 0, ',', '.') }} hari)</span>@endif
+                        </strong>
                         <span class="text-muted" style="font-size: 10px;">Periode: {{ $lastRun->train_period }}</span>
                     </div>
                     <div class="col-6 col-md-3 border-end border-light">
                         <span class="text-secondary d-block text-uppercase fw-semibold" style="font-size: 9.5px; letter-spacing: 0.5px;">Data Testing (20%)</span>
-                        <strong class="text-dark d-block mb-1">{{ number_format($lastRun->test_rows, 0, ',', '.') }} baris</strong>
+                        <strong class="text-dark d-block mb-1">{{ number_format($lastRun->test_rows, 0, ',', '.') }} baris
+                            @if($testDays) <span class="fw-normal text-secondary" style="font-size:11px;">({{ number_format($testDays, 0, ',', '.') }} hari)</span>@endif
+                        </strong>
                         <span class="text-muted" style="font-size: 10px;">Periode: {{ $lastRun->test_period }}</span>
                     </div>
                     <div class="col-6 col-md-3">
@@ -963,7 +1349,12 @@
         </div>
     @else
         <!-- Card Metrik Evaluasi Model SVR -->
-        <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-award-fill me-2 text-primary"></i>Hasil Evaluasi Model SVR</h5>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-award-fill me-2 text-primary"></i>Hasil Evaluasi Model SVR</h5>
+            <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#accuracyCriteriaModal" style="border-radius: 8px; font-size: 12px; padding: 5px 12px;">
+                <i class="bi bi-info-circle"></i> Acuan Kriteria Akurasi
+            </button>
+        </div>
         <div class="row g-3 mb-4">
             <!-- MAE -->
             <div class="col-12 col-md-4 col-lg">
@@ -1053,77 +1444,75 @@
                     $meanActual = $lastRun->predictionResults()->avg('actual_value') ?? 0;
                     $rmsePercentage = $meanActual > 0 ? ($rmse / $meanActual) * 100 : 0;
                     
-                    // 1. Klasifikasi MAPE (Tingkat Kesalahan Perkiraan)
+                    // 1. Klasifikasi MAPE
                     if ($mape < 10) {
-                        $mapeCategory = "Sangat Akurat (Sangat Tepat)";
-                        $mapeDesc = "Rata-rata kesalahan tebakan model sangat kecil, yaitu kurang dari 10%. Hasil perkiraan ini sangat mendekati kenyataan pendapatan di lapangan.";
+                        $mapeCategory = "Sangat Akurat";
+                        $mapeDesc = "Prediksi model sangat mendekati nilai aktual.";
                         $mapeColor = "text-success border-success bg-success-subtle";
                         $mapeAlertClass = "alert-success text-success-emphasis bg-success-subtle border-success-subtle";
                         $mapeIcon = "bi-patch-check-fill text-success";
                     } elseif ($mape <= 20) {
-                        $mapeCategory = "Baik (Layak Digunakan)";
-                        $mapeDesc = "Rata-rata kesalahan tebakan model berkisar antara 10% hingga 20%. Hasil perkiraan ini cukup andal dan layak digunakan untuk perencanaan.";
+                        $mapeCategory = "Baik";
+                        $mapeDesc = "Akurasi prediksi sudah baik dan layak digunakan untuk perencanaan.";
                         $mapeColor = "text-primary border-primary bg-primary-subtle";
                         $mapeAlertClass = "alert-primary text-primary-emphasis bg-primary-subtle border-primary-subtle";
                         $mapeIcon = "bi-check-circle-fill text-primary";
                     } elseif ($mape <= 50) {
-                        $mapeCategory = "Cukup Akurat (Perlu Dipantau)";
-                        $mapeDesc = "Rata-rata kesalahan tebakan model berkisar antara 20% hingga 50%. Hasil perkiraan ini memiliki fluktuasi (naik-turun) sedang.";
+                        $mapeCategory = "Cukup";
+                        $mapeDesc = "Prediksi cukup, namun masih perlu peningkatan untuk hasil yang lebih andal.";
                         $mapeColor = "text-warning border-warning bg-warning-subtle";
                         $mapeAlertClass = "alert-warning text-warning-emphasis bg-warning-subtle border-warning-subtle";
                         $mapeIcon = "bi-exclamation-triangle-fill text-warning";
                     } else {
-                        $mapeCategory = "Kurang Akurat";
-                        $mapeDesc = "Rata-rata kesalahan tebakan model melebihi 50%. Model kurang disarankan untuk perencanaan karena selisih tebakannya cukup besar.";
+                        $mapeCategory = "Buruk";
+                        $mapeDesc = "Error prediksi terlalu besar; model tidak disarankan untuk perencanaan.";
                         $mapeColor = "text-danger border-danger bg-danger-subtle";
                         $mapeAlertClass = "alert-danger text-danger-emphasis bg-danger-subtle border-danger-subtle";
                         $mapeIcon = "bi-x-circle-fill text-danger";
                     }
 
-                    // 2. Klasifikasi R2 Score (Kemampuan Membaca Pola Pendapatan)
+                    // 2. Klasifikasi R2 Score
                     if ($r2 >= 0.67) {
-                        $r2Category = "Sangat Kuat (Sangat Baik)";
-                        $r2Desc = "Model sangat pintar dalam mengikuti pola naik-turunnya transaksi pendapatan harian di lapangan secara tepat.";
+                        $r2Category = "Model Kuat";
+                        $r2Desc = "Model mampu mengikuti pola data dengan baik.";
                         $r2Icon = "bi-graph-up text-success";
                     } elseif ($r2 >= 0.33) {
-                        $r2Category = "Cukup Baik";
-                        $r2Desc = "Model cukup baik dalam mengikuti pola naik-turunnya transaksi, meskipun ada beberapa faktor luar yang tidak terbaca.";
+                        $r2Category = "Model Moderat";
+                        $r2Desc = "Model cukup mengikuti pola, namun ada sebagian variasi data yang belum tertangkap.";
                         $r2Icon = "bi-graph-up text-primary";
                     } else {
-                        $r2Category = "Kurang Baik";
-                        $r2Desc = "Model kesulitan mengenali pola naik-turunnya transaksi pendapatan. Perlu penyesuaian agar lebih peka terhadap perubahan data.";
+                        $r2Category = "Model Lemah";
+                        $r2Desc = "Model kurang mampu mengenali pola data; perlu optimasi parameter.";
                         $r2Icon = "bi-graph-up text-danger";
                     }
                     
-                    // 3. Klasifikasi RMSE (Selisih Nominal Rata-Rata)
+                    // 3. Klasifikasi RMSE
                     if ($rmsePercentage < 10) {
-                        $rmseCategory = "Sangat Kecil (Bagus)";
-                        $rmseDesc = "Rata-rata selisih nominal uang antara hasil tebakan dan kenyataan di lapangan berada di batas aman (di bawah 10% dari rata-rata pendapatan, yaitu sebesar <strong>" . number_format($rmsePercentage, 2, ',', '.') . "%</strong>). Kinerja dikategorikan <strong>Sangat Baik</strong>.";
+                        $rmseCategory = "Sangat Baik";
+                        $rmseDesc = "Selisih prediksi relatif kecil (" . number_format($rmsePercentage, 2, ',', '.') . "% dari rata-rata aktual).";
                         $rmseColor = "text-success";
                         $rmseIcon = "bi-shield-check-fill text-success";
                     } else {
-                        $rmseCategory = "Perlu Perbaikan (Terlalu Lebar)";
-                        $rmseDesc = "Rata-rata selisih nominal uang antara tebakan dan kenyataan di lapangan melampaui batas toleransi 10% (yaitu sebesar <strong>" . number_format($rmsePercentage, 2, ',', '.') . "%</strong> dari rata-rata pendapatan Rp " . number_format($meanActual, 0, ',', '.') . "). Setelan model perlu diperbaiki agar selisih uangnya lebih kecil.";
+                        $rmseCategory = "Perlu Perbaikan";
+                        $rmseDesc = "Selisih prediksi cukup besar (" . number_format($rmsePercentage, 2, ',', '.') . "% dari rata-rata aktual); optimasi parameter diperlukan.";
                         $rmseColor = "text-warning";
                         $rmseIcon = "bi-exclamation-octagon-fill text-warning";
                     }
                     
-                    // 4. Klasifikasi MAE (Selisih Uang Riil Per Hari)
-                    $maeCategory = "Sangat Presisi (Tepat)";
-                    $maeDesc = "Rata-rata selisih mutlak antara hasil perkiraan dengan data riil adalah sebesar <strong>Rp " . number_format($mae, 0, ',', '.') . "</strong> per hari. Angka yang kecil ini membuktikan keakuratan model dalam rupiah.";
+                    // 4. MAE
+                    $maeCategory = "Presisi Tinggi";
+                    $maeDesc = "Kesalahan rata-rata harian sebesar Rp " . number_format($mae, 0, ',', '.') . ".";
                     $maeIcon = "bi-pin-map-fill text-primary";
 
-                    // 5. Rekomendasi berdasarkan kombinasi nilai
+                    // 5. Rekomendasi
                     $recommendations = [];
                     if ($mape < 10 && $r2 >= 0.67) {
-                        $recommendations[] = "<strong>Model Siap Digunakan:</strong> Performa model ini sangat baik dengan tingkat kesalahan yang sangat rendah. Sangat layak digunakan untuk membantu dinas menentukan target retribusi parkir harian.";
-                        $recommendations[] = "<strong>Pertahankan Setelan Saat Ini:</strong> Setelan parameter model saat ini sudah sangat optimal. Anda hanya perlu memantau kinerja model secara berkala.";
+                        $recommendations[] = "<strong>Pertahankan parameter saat ini</strong> — performa model sudah sangat optimal.";
                     } else {
-                        $recommendations[] = "<strong>Lakukan Pengaturan Ulang:</strong> Nilai ketepatan masih bisa ditingkatkan. Jalankan pencarian setelan terbaik (optimasi parameter C, Epsilon, Gamma) menggunakan metode <strong>Grid Search</strong> atau <strong>Grey Wolf Optimizer (GWO)</strong> di menu Optimasi.";
-                        $recommendations[] = "<strong>Tambahkan Data Transaksi:</strong> Jika keakuratan masih kurang, pertimbangkan untuk menambahkan data transaksi pendapatan parkir historis yang lebih lengkap agar model dapat belajar lebih baik.";
+                        $recommendations[] = "<strong>Optimalkan parameter model</strong> menggunakan Grid Search atau GWO di menu Optimasi.";
+                        $recommendations[] = "<strong>Tambahkan data historis terbaru</strong> agar model belajar dari pola yang lebih lengkap.";
                     }
-                    
-                    $recommendations[] = "<strong>Pelatihan Ulang Berkala:</strong> Lakukan pelatihan ulang (Generate Prediksi) secara rutin setiap kali ada penambahan data transaksi pendapatan harian baru agar model tetap mengikuti tren terbaru.";
+                    $recommendations[] = "<strong>Lakukan pelatihan ulang</strong> setiap kali ada penambahan data transaksi baru.";
                 @endphp
 
                 <div class="row g-3">
@@ -1135,8 +1524,8 @@
                             <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
                                 <div class="fs-4"><i class="bi {{ $mapeIcon }}"></i></div>
                                 <div>
-                                    <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">Tingkat Kesalahan Perkiraan (MAPE: {{ number_format($mape, 2, ',', '.') }}%): <span class="{{ explode(' ', $mapeColor)[0] }}">{{ $mapeCategory }}</span></div>
-                                    <div class="text-secondary small" style="line-height: 1.5;">{!! $mapeDesc !!}</div>
+                                    <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">MAPE: {{ number_format($mape, 2, ',', '.') }}% — <span class="{{ explode(' ', $mapeColor)[0] }}">{{ $mapeCategory }}</span></div>
+                                    <div class="text-secondary small">{!! $mapeDesc !!}</div>
                                 </div>
                             </div>
                             
@@ -1144,8 +1533,8 @@
                             <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
                                 <div class="fs-4"><i class="bi {{ $r2Icon }}"></i></div>
                                 <div>
-                                    <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">Kemampuan Membaca Pola Pendapatan (R² Score: {{ number_format($r2, 4, ',', '.') }}): <span class="text-dark">{{ $r2Category }}</span></div>
-                                    <div class="text-secondary small" style="line-height: 1.5;">{!! $r2Desc !!}</div>
+                                    <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">R² Score: {{ number_format($r2, 4, ',', '.') }} — <span class="text-dark">{{ $r2Category }}</span></div>
+                                    <div class="text-secondary small">{!! $r2Desc !!}</div>
                                 </div>
                             </div>
 
@@ -1153,8 +1542,8 @@
                             <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
                                 <div class="fs-4"><i class="bi {{ $rmseIcon }}"></i></div>
                                 <div>
-                                    <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">Selisih Nominal Rata-Rata (RMSE): <span class="{{ $rmseColor }}">{{ $rmseCategory }}</span></div>
-                                    <div class="text-secondary small" style="line-height: 1.5;">{!! $rmseDesc !!}</div>
+                                    <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">RMSE: Rp {{ number_format($rmse, 0, ',', '.') }} — <span class="{{ $rmseColor }}">{{ $rmseCategory }}</span></div>
+                                    <div class="text-secondary small">{!! $rmseDesc !!}</div>
                                 </div>
                             </div>
 
@@ -1162,8 +1551,8 @@
                             <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
                                 <div class="fs-4"><i class="bi {{ $maeIcon }}"></i></div>
                                 <div>
-                                    <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">Selisih Uang Riil Per Hari (MAE): <span class="text-primary-custom">{{ $maeCategory }}</span></div>
-                                    <div class="text-secondary small" style="line-height: 1.5;">{!! $maeDesc !!}</div>
+                                    <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">MAE: Rp {{ number_format($mae, 0, ',', '.') }} — <span class="text-primary-custom">{{ $maeCategory }}</span></div>
+                                    <div class="text-secondary small">{!! $maeDesc !!}</div>
                                 </div>
                             </div>
                         </div>
@@ -1200,41 +1589,23 @@
                         <div style="height: 380px; position: relative; width: 100%;">
                             <canvas id="svrChart"></canvas>
                         </div>
-                        <!-- Detailed Graph Analysis Card -->
+                        <!-- Analisis Singkat Grafik -->
                         <div class="mt-4 p-3 bg-light rounded-3 border-start border-4 border-primary shadow-sm">
-                            <h6 class="fw-bold text-dark mb-2"><i class="bi bi-info-circle-fill text-primary-custom me-1"></i>Analisis Pola & Kesesuaian Tren Grafik</h6>
-                            <div class="row g-3 mt-1 text-sm text-secondary">
-                                <div class="col-md-6 border-end border-light-subtle">
-                                    <div class="mb-2">
-                                        <i class="bi bi-arrow-repeat text-primary-custom me-1"></i>
-                                        <strong>Tingkat Kesesuaian Pola:</strong> 
-                                        @if($totalDiffPercent < 5)
-                                            Sangat Cocok (Selisih Total hanya <strong>{{ number_format($totalDiffPercent, 2, ',', '.') }}%</strong>). Model perkiraan mampu mengikuti naik-turunnya tren pendapatan harian secara sangat tepat.
-                                        @elseif($totalDiffPercent < 15)
-                                            Cocok dengan Baik (Selisih Total <strong>{{ number_format($totalDiffPercent, 2, ',', '.') }}%</strong>). Pola perkiraan mengikuti naik-turunnya data riil dengan baik.
-                                        @else
-                                            Selisih Cukup Lebar (Selisih Total <strong>{{ number_format($totalDiffPercent, 2, ',', '.') }}%</strong>). Model perkiraan perlu penyesuaian setelan parameter agar perkiraannya lebih mendekati kenyataan.
-                                        @endif
-                                    </div>
-                                    <div>
-                                        <i class="bi bi-calendar-check text-primary-custom me-1"></i>
-                                        <strong>Puncak Realisasi (Aktual):</strong> 
-                                        Terjadi pada tanggal <strong>{{ $maxActualDate }}</strong> sebesar <strong>Rp {{ number_format($maxActualVal, 0, ',', '.') }}</strong>, di mana model memperkirakan sebesar <strong>Rp {{ number_format($predictedAtMaxActual, 0, ',', '.') }}</strong> (ketepatan <strong>{{ number_format($maxActualAccuracy, 2, ',', '.') }}%</strong> pada hari puncak).
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-2">
-                                        <i class="bi bi-graph-up-arrow text-warning me-1"></i>
-                                        <strong>Puncak Peramalan (Prediksi SVR):</strong> 
-                                        Diperkirakan pada tanggal <strong>{{ $maxPredictedDate }}</strong> sebesar <strong>Rp {{ number_format($maxPredictedVal, 0, ',', '.') }}</strong> (realisasi riil di lapangan pada hari tersebut: <strong>Rp {{ number_format($actualAtMaxPredicted, 0, ',', '.') }}</strong>).>).
-                                    </div>
-                                    <div>
-                                        <i class="bi bi-lightning-fill text-warning me-1"></i>
-                                        <strong>Sensitivitas Temporal:</strong> 
-                                        Model responsif menangkap pola musiman harian. Selisih total volume transaksi kumulatif aktual vs prediksi selama seluruh periode testing (85 hari data) adalah sebesar <strong>Rp {{ number_format($totalDiff, 0, ',', '.') }}</strong> (hanya <strong>{{ number_format($totalDiffPercent, 2, ',', '.') }}%</strong> dari total realisasi kumulatif sebesar <strong>Rp {{ number_format($totalActualSum, 0, ',', '.') }}</strong>).
-                                    </div>
-                                </div>
-                            </div>
+                            <h6 class="fw-bold text-dark mb-2"><i class="bi bi-info-circle-fill text-primary-custom me-1"></i>Analisis Grafik</h6>
+                            <ul class="mb-0 ps-3 text-secondary small" style="line-height: 1.8;">
+                                <li>
+                                    @if($totalDiffPercent < 5)
+                                        Prediksi sangat sesuai dengan data aktual — selisih kumulatif hanya <strong>{{ number_format($totalDiffPercent, 2, ',', '.') }}%</strong>.
+                                    @elseif($totalDiffPercent < 15)
+                                        Prediksi cukup sesuai dengan data aktual — selisih kumulatif <strong>{{ number_format($totalDiffPercent, 2, ',', '.') }}%</strong>.
+                                    @else
+                                        Terdapat selisih yang cukup signifikan antara prediksi dan aktual (<strong>{{ number_format($totalDiffPercent, 2, ',', '.') }}%</strong>); parameter perlu dioptimalkan.
+                                    @endif
+                                </li>
+                                <li>Puncak aktual terjadi pada <strong>{{ $maxActualDate }}</strong> (Rp {{ number_format($maxActualVal, 0, ',', '.') }}), prediksi pada hari itu: <strong>Rp {{ number_format($predictedAtMaxActual, 0, ',', '.') }}</strong>.</li>
+                                <li>Puncak prediksi jatuh pada <strong>{{ $maxPredictedDate }}</strong> sebesar <strong>Rp {{ number_format($maxPredictedVal, 0, ',', '.') }}</strong>.</li>
+                                <li>Model mampu mengikuti pola fluktuasi harian dengan total selisih kumulatif <strong>Rp {{ number_format($totalDiff, 0, ',', '.') }}</strong> dari total aktual <strong>Rp {{ number_format($totalActualSum, 0, ',', '.') }}</strong>.</li>
+                            </ul>
                         </div>
                     </div>
                 </div>
@@ -1248,21 +1619,20 @@
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h5 class="card-title mb-0 border-0 pb-0"><i class="bi bi-table me-2 text-primary-custom"></i>Tabel Hasil Prediksi (Data Testing)</h5>
                                 
-                                <!-- Rayon Filter Form -->
-                                <form id="filterRayonForm" method="GET" action="{{ route('operator.prediksi.index') }}" class="d-flex align-items-center gap-2">
-                                    <input type="hidden" name="active_step" value="4">
-                                    <label for="rayon_id" class="small fw-semibold text-secondary text-nowrap mb-0" style="font-size: 11.5px;">Filter Rayon:</label>
-                                    <select id="rayon_id" name="rayon_id" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 12px; height: 32px;" onchange="this.form.submit()">
+                                <!-- Rayon Filter -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <label for="filter_rayon_id" class="small fw-semibold text-secondary text-nowrap mb-0" style="font-size: 11.5px;">Filter Rayon:</label>
+                                    <select id="filter_rayon_id" name="rayon_id" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 12px; height: 32px;">
                                         <option value="0">Semua Rayon</option>
                                         @foreach($rayons as $rayon)
-                                            <option value="{{ $rayon->id }}" {{ request('rayon_id') == $rayon->id ? 'selected' : '' }}>{{ $rayon->nama_rayon }}</option>
+                                            <option value="{{ $rayon->id }}">{{ $rayon->nama_rayon }}</option>
                                         @endforeach
                                     </select>
-                                </form>
+                                </div>
                             </div>
                             
                             <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0 table-custom-nowrap" style="font-size: 13px;">
+                                <table class="table table-hover align-middle mb-0 table-custom-nowrap" id="predictionTable" style="font-size: 13px;">
                                     <thead class="table-light">
                                         <tr>
                                             <th>No</th>
@@ -1275,70 +1645,26 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @forelse($predictions as $index => $pred)
-                                            <tr>
-                                                <td>{{ $predictions->firstItem() + $index }}</td>
-                                                <td>{{ Carbon\Carbon::parse($pred->tanggal)->translatedFormat('d F Y') }}</td>
-                                                <td><span class="badge bg-light text-dark border">{{ $pred->rayon_name }}</span></td>
-                                                <td class="text-end fw-semibold">Rp {{ number_format($pred->actual_value, 0, ',', '.') }}</td>
-                                                <td class="text-end fw-bold text-primary-custom">Rp {{ number_format($pred->predicted_value, 0, ',', '.') }}</td>
-                                                <td class="text-end text-danger">Rp {{ number_format($pred->error_value, 0, ',', '.') }}</td>
-                                                <td class="text-end fw-semibold">{{ number_format($pred->percentage_error, 2, ',', '.') }}%</td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="7" class="text-center py-4 text-secondary">Tidak ada data prediksi yang cocok dengan filter.</td>
-                                            </tr>
-                                        @endforelse
                                     </tbody>
                                 </table>
                             </div>
                         </div>
 
-                        <!-- Detailed Rayon Analysis Box -->
+                        <!-- Analisis Ringkas Tabel Per Rayon -->
                         <div class="mt-4 p-3 bg-light rounded-3 border-start border-4 border-success shadow-sm">
-                            <h6 class="fw-bold text-dark mb-2"><i class="bi bi-grid-3x3-gap-fill text-success me-1"></i>Analisis Akurasi Prediksi Per Rayon</h6>
-                            <div class="row g-3 mt-1 text-sm text-secondary">
-                                <div class="col-md-4 border-end border-light-subtle">
-                                    <span class="text-xs text-uppercase fw-semibold d-block text-secondary mb-1">Rayon Paling Presisi (Lowest Error)</span>
-                                    @if($bestRayon)
-                                        <div class="fw-bold text-success fs-6 mb-1">{{ $bestRayon->rayon_name }}</div>
-                                        <span class="d-block small">Rata-rata MAPE: <strong>{{ number_format($bestRayon->avg_mape, 2, ',', '.') }}%</strong></span>
-                                        <span class="d-block text-xs text-muted">Akurasi peramalan di wilayah ini dinilai sangat andal.</span>
-                                    @else
-                                        <span class="text-muted small">Data tidak tersedia</span>
-                                    @endif
-                                </div>
-                                <div class="col-md-4 border-end border-light-subtle">
-                                    <span class="text-xs text-uppercase fw-semibold d-block text-secondary mb-1">Rayon dengan Deviasi Terbesar</span>
-                                    @if($worstRayon)
-                                        <div class="fw-bold text-danger fs-6 mb-1">{{ $worstRayon->rayon_name }}</div>
-                                        <span class="d-block small">Rata-rata MAPE: <strong>{{ number_format($worstRayon->avg_mape, 2, ',', '.') }}%</strong></span>
-                                        <span class="d-block text-xs text-muted">Deviasi dipengaruhi fluktuasi transaksi harian yang kurang stabil.</span>
-                                    @else
-                                        <span class="text-muted small">Data tidak tersedia</span>
-                                    @endif
-                                </div>
-                                <div class="col-md-4">
-                                    <span class="text-xs text-uppercase fw-semibold d-block text-secondary mb-1">Rata-Rata Selisih Uang (Deviasi Nominal Harian)</span>
-                                    <div class="fw-bold text-dark fs-6 mb-1">Rp {{ number_format(abs($avgDailyDeviation), 0, ',', '.') }} / hari</div>
-                                    <span class="d-block small">Rata-rata selisih perkiraan dalam rupiah per hari.</span>
-                                    <span class="d-block text-xs text-muted">Digunakan sebagai acuan batas wajar selisih setoran juru parkir di lapangan.</span>
-                                </div>
-                            </div>
+                            <h6 class="fw-bold text-dark mb-2"><i class="bi bi-grid-3x3-gap-fill text-success me-1"></i>Kesimpulan Hasil Prediksi Per Rayon</h6>
+                            <ul class="mb-0 ps-3 text-secondary small" style="line-height: 1.8;">
+                                @if($bestRayon)
+                                    <li>Rayon paling akurat: <strong class="text-success">{{ $bestRayon->rayon_name }}</strong> dengan MAPE <strong>{{ number_format($bestRayon->avg_mape, 2, ',', '.') }}%</strong>.</li>
+                                @endif
+                                @if($worstRayon)
+                                    <li>Rayon dengan error terbesar: <strong class="text-danger">{{ $worstRayon->rayon_name }}</strong> dengan MAPE <strong>{{ number_format($worstRayon->avg_mape, 2, ',', '.') }}%</strong>.</li>
+                                @endif
+                                <li>Rata-rata selisih prediksi harian: <strong>Rp {{ number_format(abs($avgDailyDeviation), 0, ',', '.') }}</strong> per hari.</li>
+                            </ul>
                         </div>
 
-                        <!-- Pagination container -->
-                        @if($predictions->hasPages())
-                            <div class="pagination-container mt-4 d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-                                <div class="text-secondary small">
-                                    Menampilkan {{ $predictions->firstItem() ?? 0 }} - {{ $predictions->lastItem() ?? 0 }} dari {{ $predictions->total() }} data
-                                </div>
-                                <div>
-                                    {!! $predictions->links('components.pagination') !!}
-                                </div>
-                            </div>
-                        @endif
+
                     </div>
                 </div>
             </div>
@@ -1352,12 +1678,9 @@
                 </button>
                 <a href="{{ route('operator.prediksi.index') }}" class="btn btn-border"><i class="bi bi-arrow-clockwise"></i> Refresh Hasil</a>
                 
-                <button class="btn btn-outline-danger px-4 py-2 rounded-3 fw-semibold text-sm ms-2" onclick="confirmReset()">
-                    <i class="bi bi-trash-fill me-1"></i> Reset Model
-                </button>
-                
                 <form id="resetModelForm" method="POST" action="{{ route('operator.prediksi.reset') }}" class="d-none">
                     @csrf
+                    <input type="hidden" name="id" id="reset_run_id" value="">
                 </form>
             </div>
         </div>
@@ -1372,18 +1695,37 @@
     const hasLastRun = @json(isset($lastRun) && $lastRun->status == 'success');
     let activeStep = 1;
 
-    window.confirmReset = function() {
+    window.confirmDeleteRun = function(runId, startedAt) {
         Swal.fire({
-            title: 'Apakah Anda yakin?',
-            text: "Semua riwayat pelatihan model dan hasil prediksi SVR akan dihapus secara permanen dari database!",
+            title: 'Hapus Riwayat Pelatihan?',
+            text: "Riwayat pelatihan tanggal " + startedAt + " beserta hasil prediksinya akan dihapus secara permanen!",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#DC2626',
             cancelButtonColor: '#6B7280',
-            confirmButtonText: 'Ya, Reset Model!',
+            confirmButtonText: 'Ya, Hapus!',
             cancelButtonText: 'Batal'
         }).then((result) => {
             if (result.isConfirmed) {
+                document.getElementById('reset_run_id').value = runId;
+                document.getElementById('resetModelForm').submit();
+            }
+        });
+    };
+
+    window.confirmResetAll = function() {
+        Swal.fire({
+            title: 'Reset Semua Riwayat?',
+            text: "Seluruh riwayat pelatihan model dan hasil prediksi SVR akan dihapus secara permanen dari database!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#DC2626',
+            cancelButtonColor: '#6B7280',
+            confirmButtonText: 'Ya, Reset Semua!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('reset_run_id').value = '';
                 document.getElementById('resetModelForm').submit();
             }
         });
@@ -1446,6 +1788,74 @@
     };
 
     document.addEventListener('DOMContentLoaded', function () {
+        // Initialize Prediction DataTable
+        const predTable = $('#predictionTable').DataTable({
+            processing: true,
+            ajax: {
+                url: '{{ route("operator.prediksi.data") }}',
+                data: function (d) {
+                    d.rayon_id = $('#filter_rayon_id').val();
+                }
+            },
+            columns: [
+                { 
+                    data: null, 
+                    render: function (data, type, row, meta) {
+                        return meta.row + 1;
+                    }
+                },
+                { 
+                    data: 'tanggal',
+                    render: function (data) {
+                        const date = new Date(data);
+                        return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                    }
+                },
+                { 
+                    data: 'rayon_name',
+                    render: function (data) {
+                        return `<span class="badge bg-light text-dark border">${data}</span>`;
+                    }
+                },
+                { 
+                    data: 'actual_value', 
+                    className: 'text-end fw-semibold',
+                    render: function (data) {
+                        return 'Rp ' + parseInt(data).toLocaleString('id-ID');
+                    }
+                },
+                { 
+                    data: 'predicted_value', 
+                    className: 'text-end fw-bold text-primary-custom',
+                    render: function (data) {
+                        return 'Rp ' + parseInt(data).toLocaleString('id-ID');
+                    }
+                },
+                { 
+                    data: 'error_value', 
+                    className: 'text-end text-danger',
+                    render: function (data) {
+                        return 'Rp ' + parseInt(data).toLocaleString('id-ID');
+                    }
+                },
+                { 
+                    data: 'percentage_error', 
+                    className: 'text-end fw-semibold',
+                    render: function (data) {
+                        return parseFloat(data).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+                    }
+                }
+            ],
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/id.json'
+            }
+        });
+
+        // Trigger AJAX reload on rayon filter change
+        $('#filter_rayon_id').on('change', function() {
+            predTable.ajax.reload();
+        });
+
         // Initialize step from URL parameter
         const urlParams = new URLSearchParams(window.location.search);
         const activeStepParam = parseInt(urlParams.get('active_step'));

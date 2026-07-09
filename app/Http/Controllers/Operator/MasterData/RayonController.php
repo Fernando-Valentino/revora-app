@@ -11,15 +11,13 @@ class RayonController extends Controller
 {
     public function index(Request $request)
     {
-        $rayons = Rayon::when($request->filled('search'), function($query) use ($request) {
-            $search = $request->search;
-            $query->where('nama_rayon', 'like', "%{$search}%")
-                  ->orWhere('kecamatan', 'like', "%{$search}%")
-                  ->orWhere('lokasi', 'like', "%{$search}%")
-                  ->orWhere('karakteristik_area', 'like', "%{$search}%");
-        })->paginate(10)->onEachSide(1)->withQueryString();
+        return view('operator.master-data.rayon.index');
+    }
 
-        return view('operator.master-data.rayon.index', compact('rayons'));
+    public function data()
+    {
+        $rayons = Rayon::all();
+        return response()->json(['data' => $rayons]);
     }
 
     public function create()

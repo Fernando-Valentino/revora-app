@@ -142,9 +142,54 @@ class KepalaUptLaporanController extends Controller
             'pct_error' => number_format($avgPctError, 2, ',', '.') . '%'
         ];
 
-        $futureForecast = $this->getFutureForecast($latestRun, $rayonId);
+        $futureForecast = null;
 
         return view('kepala-upt.laporan.index', compact('summary', 'reports', 'total_period', 'rayons', 'startDate', 'endDate', 'rayonId', 'chartLabels', 'chartActualValues', 'chartPredictValues', 'analysis', 'futureForecast'));
+    }
+
+    /**
+     * Get future forecast data via AJAX with 10 minutes cache.
+     */
+    public function getForecastData(Request $request)
+    {
+        $rayonId = (int)$request->input('rayon_id', 0);
+
+        $latestRun = ModelRun::where('model_type', 'svr_gwo')
+            ->where('status', 'success')
+            ->orderBy('id', 'desc')
+            ->first();
+            
+        if (!$latestRun) {
+            $latestRun = ModelRun::where('model_type', 'svr_default')
+                ->where('status', 'success')
+                ->orderBy('id', 'desc')
+                ->first();
+        }
+
+        if (!$latestRun) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Model SVR belum dilatih di server.'
+            ]);
+        }
+
+        // Cache the result for 10 minutes (600 seconds)
+        $cacheKey = "laporan_forecast_rayon_{$rayonId}_run_{$latestRun->id}";
+        $data = \Illuminate\Support\Facades\Cache::remember($cacheKey, 600, function () use ($latestRun, $rayonId) {
+            return $this->getFutureForecast($latestRun, $rayonId);
+        });
+
+        if (!$data) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal berkomunikasi dengan Python API atau model belum dilatih di server.'
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ]);
     }
 
     /**

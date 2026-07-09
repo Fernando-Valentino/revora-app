@@ -267,6 +267,18 @@ class OperatorOptimasiController extends Controller
         ];
 
         // Ambil riwayat komplit untuk tabel riwayat
+        // Ambil riwayat komplit Grid Search
+        $historyGsRuns = ModelRun::where('model_type', 'svr_grid_search')
+            ->where('status', 'success')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        // Ambil riwayat komplit GWO
+        $historyGwoRuns = ModelRun::where('model_type', 'svr_gwo')
+            ->where('status', 'success')
+            ->orderBy('id', 'desc')
+            ->get();
+
         $historyRuns = ModelRun::whereIn('model_type', ['svr_grid_search', 'svr_gwo'])
             ->where('status', 'success')
             ->orderBy('id', 'desc')
@@ -334,6 +346,8 @@ class OperatorOptimasiController extends Controller
             'lastRun', 
             'chartMetrics', 
             'historyRuns', 
+            'historyGsRuns', 
+            'historyGwoRuns', 
             'bestGsId', 
             'bestGwoId',
             'gsRun',

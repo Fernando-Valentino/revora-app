@@ -277,9 +277,6 @@
                     @forelse($rayons as $rayon)
                         <div class="d-flex align-items-center justify-content-between">
                             <div class="d-flex align-items-center">
-                                <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 28px; height: 28px; font-size: 11px; font-weight: 600;">
-                                    {{ substr($rayon->nama_rayon, -1) }}
-                                </div>
                                 <div>
                                     <strong class="d-block text-dark small" style="font-size: 12.5px;">{{ $rayon->nama_rayon }}</strong>
                                     <span class="text-secondary d-block" style="font-size: 10.5px; line-height: 1.2;">{{ $rayon->kecamatan }}</span>

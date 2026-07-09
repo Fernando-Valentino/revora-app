@@ -12,18 +12,6 @@ class JuruParkirController extends Controller
 {
     public function index(Request $request)
     {
-        $query = JuruParkir::with('rayon');
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->whereHas('rayon', function($q) use ($search) {
-                $q->where('nama_rayon', 'like', "%{$search}%")
-                  ->orWhere('kecamatan', 'like', "%{$search}%");
-            });
-        }
-
-        $juruParkirs = $query->paginate(10)->onEachSide(1)->withQueryString();
-        
         // Find rayons that do not have a juru parkir record yet, for the Add Modal dropdown
         $assignedRayonIds = JuruParkir::pluck('rayon_id')->toArray();
         $availableRayons = Rayon::whereNotIn('id', $assignedRayonIds)->get();
@@ -31,7 +19,13 @@ class JuruParkirController extends Controller
         // Also fetch all rayons for the Edit dropdown/options
         $allRayons = Rayon::all();
 
-        return view('operator.master-data.juru-parkir.index', compact('juruParkirs', 'availableRayons', 'allRayons'));
+        return view('operator.master-data.juru-parkir.index', compact('availableRayons', 'allRayons'));
+    }
+
+    public function data()
+    {
+        $juruParkirs = JuruParkir::with('rayon')->get();
+        return response()->json(['data' => $juruParkirs]);
     }
 
     public function create()

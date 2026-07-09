@@ -26,18 +26,6 @@
             <!-- Table Header Toolbar -->
             <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom flex-wrap gap-3">
                 <h5 class="card-title mb-0" style="border-bottom: none !important; padding-bottom: 0 !important;">Daftar Data Juru Parkir</h5>
-                <form method="GET" action="{{ route('operator.juru-parkir.index') }}" class="d-flex gap-2 align-items-center m-0">
-                    <div class="input-group" style="max-width: 280px;">
-                        <span class="input-group-text bg-white"><i class="bi bi-search text-secondary"></i></span>
-                        <input type="search" name="search" id="searchInput" value="{{ request('search') }}" placeholder="Cari rayon..." class="form-control" />
-                        <button type="submit" class="btn btn-primary">Cari</button>
-                    </div>
-                    @if(request()->filled('search'))
-                        <a href="{{ route('operator.juru-parkir.index') }}" class="btn btn-border" title="Reset Pencarian">
-                            <i class="bi bi-x-circle me-1"></i> Reset
-                        </a>
-                    @endif
-                </form>
             </div>
             
             <div class="table-responsive">
@@ -51,41 +39,8 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($juruParkirs as $index => $jukir)
-                            <tr>
-                                <td>{{ $index + 1 + ($juruParkirs->currentPage() - 1) * $juruParkirs->perPage() }}</td>
-                                <td style="font-weight: 600;">{{ $jukir->rayon->nama_rayon ?? 'Tidak Diketahui' }}</td>
-                                <td style="text-align: right; font-weight: 600; color: var(--primary-blue);">
-                                    {{ $jukir->jumlah_juru_parkir }} Orang
-                                </td>
-                                <td style="text-align: center;">
-                                    <div class="action-btns justify-content-center">
-                                        <button class="btn-action btn-edit" title="Edit" data-id="{{ $jukir->id }}">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </button>
-                                        <button class="btn-action btn-delete" title="Hapus" data-id="{{ $jukir->id }}" data-rayon="{{ $jukir->rayon->nama_rayon ?? '' }}">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="4" class="text-center text-secondary py-4">Belum ada data juru parkir.</td>
-                            </tr>
-                        @endforelse
                     </tbody>
                 </table>
-            </div>
-
-            <!-- Pagination -->
-            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-                <div class="text-secondary small">
-                    Menampilkan {{ $juruParkirs->firstItem() ?? 0 }} - {{ $juruParkirs->lastItem() ?? 0 }} dari {{ $juruParkirs->total() }} data
-                </div>
-                <div>
-                    {{ $juruParkirs->links('components.pagination') }}
-                </div>
             </div>
         </div>
     </div>
@@ -162,7 +117,52 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-
+        // Initialize DataTable
+        const table = $('#jukirTable').DataTable({
+            processing: true,
+            ajax: '{{ route("operator.juru-parkir.data") }}',
+            columns: [
+                { 
+                    data: null, 
+                    render: function (data, type, row, meta) {
+                        return meta.row + 1;
+                    }
+                },
+                { 
+                    data: 'rayon.nama_rayon', 
+                    className: 'fw-semibold',
+                    defaultContent: 'Tidak Diketahui'
+                },
+                { 
+                    data: 'jumlah_juru_parkir', 
+                    className: 'text-end fw-semibold',
+                    render: function (data) {
+                        return `${data} Orang`;
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    className: 'text-center',
+                    render: function (data, type, row) {
+                        const rayonName = row.rayon ? row.rayon.nama_rayon : '';
+                        return `
+                            <div class="action-btns justify-content-center">
+                                <button class="btn-action btn-edit" title="Edit" data-id="${row.id}">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                <button class="btn-action btn-delete" title="Hapus" data-id="${row.id}" data-rayon="${rayonName}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+            ],
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/id.json'
+            }
+        });
 
         // Clear validations helper
         function clearValidations(form) {
@@ -225,26 +225,24 @@
             });
         });
 
-        // Load Edit Modal
-        document.querySelectorAll('.btn-edit').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const id = this.getAttribute('data-id');
-                const form = document.getElementById('editJukirForm');
-                clearValidations(form);
+        // Load Edit Modal (delegated)
+        $(document).on('click', '.btn-edit', function() {
+            const id = this.getAttribute('data-id');
+            const form = document.getElementById('editJukirForm');
+            clearValidations(form);
 
-                fetch(`/operator/master-data/juru-parkir/${id}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        document.getElementById('edit_id').value = data.id;
-                        document.getElementById('edit_rayon_id').value = data.rayon_id;
-                        document.getElementById('edit_rayon_display').value = data.rayon ? data.rayon.nama_rayon : 'Tidak Diketahui';
-                        document.getElementById('edit_jumlah_juru_parkir').value = data.jumlah_juru_parkir;
-                        
-                        const modalEl = document.getElementById('editJukirModal');
-                        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                        modal.show();
-                    });
-            });
+            fetch(`/operator/master-data/juru-parkir/${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('edit_id').value = data.id;
+                    document.getElementById('edit_rayon_id').value = data.rayon_id;
+                    document.getElementById('edit_rayon_display').value = data.rayon ? data.rayon.nama_rayon : 'Tidak Diketahui';
+                    document.getElementById('edit_jumlah_juru_parkir').value = data.jumlah_juru_parkir;
+                    
+                    const modalEl = document.getElementById('editJukirModal');
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.show();
+                });
         });
 
         // Edit Form AJAX
@@ -298,52 +296,50 @@
             });
         });
 
-        // Delete Confirmation
-        document.querySelectorAll('.btn-delete').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const id = this.getAttribute('data-id');
-                const rayon = this.getAttribute('data-rayon');
+        // Delete Confirmation (delegated)
+        $(document).on('click', '.btn-delete', function() {
+            const id = this.getAttribute('data-id');
+            const rayon = this.getAttribute('data-rayon');
 
-                Swal.fire({
-                    title: 'Apakah Anda yakin?',
-                    text: `Data juru parkir untuk "${rayon}" akan dihapus!`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#005BAA',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Ya, Hapus!',
-                    cancelButtonText: 'Batal'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        fetch(`/operator/master-data/juru-parkir/${id}`, {
-                            method: 'DELETE',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Accept': 'application/json',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        })
-                        .then(res => {
-                            if (!res.ok) {
-                                return res.json().then(data => {
-                                    throw new Error(data.message || 'Gagal menghapus data.');
-                                });
-                            }
-                            return res.json();
-                        })
-                        .then(data => {
-                            if (data.success) {
-                                showToast('success', data.message);
-                                setTimeout(() => {
-                                    window.location.reload();
-                                }, 1000);
-                            }
-                        })
-                        .catch(err => {
-                            Swal.fire('Gagal!', err.message, 'error');
-                        });
-                    }
-                });
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: `Data juru parkir untuk "${rayon}" akan dihapus!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#005BAA',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/operator/master-data/juru-parkir/${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(res => {
+                        if (!res.ok) {
+                            return res.json().then(data => {
+                                throw new Error(data.message || 'Gagal menghapus data.');
+                            });
+                        }
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            showToast('success', data.message);
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
+                        }
+                    })
+                    .catch(err => {
+                        Swal.fire('Gagal!', err.message, 'error');
+                    });
+                }
             });
         });
     });

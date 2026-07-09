@@ -552,7 +552,117 @@
                         </div>
                     </form>
                 </div>
+
+            <!-- Riwayat Optimasi Grid Search -->
+            <div class="card bg-white mb-4 shadow-sm border border-light">
+                <div class="card-body">
+                    <h5 class="card-title mb-3"><i class="bi bi-clock-history me-2 text-primary-custom"></i>Riwayat Optimasi Grid Search</h5>
+                    @if($historyGsRuns->isEmpty())
+                        <div class="text-center py-4 text-secondary">
+                            <i class="bi bi-folder2-open fs-2 text-muted mb-2 d-block"></i>
+                            Belum ada riwayat proses optimasi Grid Search.
+                        </div>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" style="font-size: 12.5px;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3">Waktu</th>
+                                        <th>Parameter Optimal (C, &epsilon;, &gamma;)</th>
+                                        <th>MAE</th>
+                                        <th>RMSE</th>
+                                        <th>MAPE</th>
+                                        <th>R&sup2; Score</th>
+                                        <th>Lama Proses</th>
+                                        <th class="text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($historyGsRuns as $run)
+                                        @php
+                                            $param = $run->modelParameter;
+                                            $metric = $run->modelMetrics()->where('dataset_type', 'test')->first();
+                                            $isActive = ($bestGsId && $run->id === $bestGsId);
+                                            
+                                            $cVal = '-';
+                                            if ($param) {
+                                                $cVal = $param->c_value;
+                                                if (is_numeric($cVal)) {
+                                                    $formatted = number_format((float)$cVal, 6, ',', '.');
+                                                    $cVal = strpos($formatted, ',') !== false ? rtrim(rtrim($formatted, '0'), ',') : $formatted;
+                                                }
+                                            }
+                                            $epsVal = '-';
+                                            if ($param) {
+                                                $epsVal = $param->epsilon_value;
+                                                if (is_numeric($epsVal)) {
+                                                    $formatted = number_format((float)$epsVal, 8, ',', '.');
+                                                    $epsVal = strpos($formatted, ',') !== false ? rtrim(rtrim($formatted, '0'), ',') : $formatted;
+                                                }
+                                            }
+                                            $gamVal = '-';
+                                            if ($param) {
+                                                $gamVal = $param->gamma_value;
+                                                if (is_numeric($gamVal)) {
+                                                    $formatted = number_format((float)$gamVal, 6, ',', '.');
+                                                    $gamVal = strpos($formatted, ',') !== false ? rtrim(rtrim($formatted, '0'), ',') : $formatted;
+                                                }
+                                            }
+                                            
+                                            $maeVal = $metric ? 'Rp ' . number_format($metric->mae, 0, ',', '.') : '-';
+                                            $rmseVal = $metric ? 'Rp ' . number_format($metric->rmse, 0, ',', '.') : '-';
+                                            $mapeVal = $metric ? number_format($metric->mape, 2, ',', '.') . '%' : '-';
+                                            $r2Val = $metric ? number_format($metric->r2_score, 2, ',', '.') : '-';
+                                            
+                                            $start = $run->started_at ? \Carbon\Carbon::parse($run->started_at) : null;
+                                            $end = $run->finished_at ? \Carbon\Carbon::parse($run->finished_at) : null;
+                                            $durasi = '-';
+                                            if ($start && $end) {
+                                                $diffSecs = $start->diffInSeconds($end);
+                                                if ($diffSecs >= 60) {
+                                                    $mins = floor($diffSecs / 60);
+                                                    $secs = $diffSecs % 60;
+                                                    $durasi = $mins . ' m ' . $secs . ' s';
+                                                } elseif ($diffSecs > 0) {
+                                                    $durasi = $diffSecs . ' detik';
+                                                } else {
+                                                    $diffMs = $start->diffInMilliseconds($end);
+                                                    $durasi = $diffMs . ' ms';
+                                                }
+                                            }
+                                        @endphp
+                                        <tr>
+                                            <td class="ps-3">{{ \Carbon\Carbon::parse($run->started_at)->timezone('Asia/Jakarta')->translatedFormat('d M Y, H:i') }} WIB</td>
+                                            <td>
+                                                <span class="badge bg-light text-dark border">C: {{ $cVal }}</span>
+                                                <span class="badge bg-light text-dark border">&epsilon;: {{ $epsVal }}</span>
+                                                <span class="badge bg-light text-dark border">&gamma;: {{ $gamVal }}</span>
+                                            </td>
+                                            <td>{{ $maeVal }}</td>
+                                            <td>{{ $rmseVal }}</td>
+                                            <td class="fw-bold text-success">{{ $mapeVal }}</td>
+                                            <td>{{ $r2Val }}</td>
+                                            <td class="fw-semibold text-secondary">{{ $durasi }}</td>
+                                            <td class="text-center">
+                                                @if($isActive)
+                                                    <span class="badge bg-success text-white rounded-3 px-2 py-1" style="font-size: 11px;">
+                                                        <i class="bi bi-check-circle-fill me-1"></i>Aktif
+                                                    </span>
+                                                @else
+                                                    <span class="badge bg-secondary text-white rounded-3 px-2 py-1" style="font-size: 11px;">
+                                                        <i class="bi bi-clock-history me-1"></i>Riwayat
+                                                    </span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
             </div>
+        </div>{{-- END grid-step-content-2 --}}
 
             <!-- Grid Step 3: Progress -->
             <div id="grid-step-content-3" class="step-opt-content d-none">
@@ -951,7 +1061,117 @@
                         </div>
                     </form>
                 </div>
+
+            <!-- Riwayat Optimasi GWO -->
+            <div class="card bg-white mb-4 shadow-sm border border-light">
+                <div class="card-body">
+                    <h5 class="card-title mb-3"><i class="bi bi-clock-history me-2 text-primary-custom"></i>Riwayat Optimasi Grey Wolf Optimizer (GWO)</h5>
+                    @if($historyGwoRuns->isEmpty())
+                        <div class="text-center py-4 text-secondary">
+                            <i class="bi bi-folder2-open fs-2 text-muted mb-2 d-block"></i>
+                            Belum ada riwayat proses optimasi GWO.
+                        </div>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" style="font-size: 12.5px;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3">Waktu</th>
+                                        <th>Parameter Optimal (C, &epsilon;, &gamma;)</th>
+                                        <th>MAE</th>
+                                        <th>RMSE</th>
+                                        <th>MAPE</th>
+                                        <th>R&sup2; Score</th>
+                                        <th>Lama Proses</th>
+                                        <th class="text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($historyGwoRuns as $run)
+                                        @php
+                                            $param = $run->modelParameter;
+                                            $metric = $run->modelMetrics()->where('dataset_type', 'test')->first();
+                                            $isActive = ($bestGwoId && $run->id === $bestGwoId);
+                                            
+                                            $cVal = '-';
+                                            if ($param) {
+                                                $cVal = $param->c_value;
+                                                if (is_numeric($cVal)) {
+                                                    $formatted = number_format((float)$cVal, 6, ',', '.');
+                                                    $cVal = strpos($formatted, ',') !== false ? rtrim(rtrim($formatted, '0'), ',') : $formatted;
+                                                }
+                                            }
+                                            $epsVal = '-';
+                                            if ($param) {
+                                                $epsVal = $param->epsilon_value;
+                                                if (is_numeric($epsVal)) {
+                                                    $formatted = number_format((float)$epsVal, 8, ',', '.');
+                                                    $epsVal = strpos($formatted, ',') !== false ? rtrim(rtrim($formatted, '0'), ',') : $formatted;
+                                                }
+                                            }
+                                            $gamVal = '-';
+                                            if ($param) {
+                                                $gamVal = $param->gamma_value;
+                                                if (is_numeric($gamVal)) {
+                                                    $formatted = number_format((float)$gamVal, 6, ',', '.');
+                                                    $gamVal = strpos($formatted, ',') !== false ? rtrim(rtrim($formatted, '0'), ',') : $formatted;
+                                                }
+                                            }
+                                            
+                                            $maeVal = $metric ? 'Rp ' . number_format($metric->mae, 0, ',', '.') : '-';
+                                            $rmseVal = $metric ? 'Rp ' . number_format($metric->rmse, 0, ',', '.') : '-';
+                                            $mapeVal = $metric ? number_format($metric->mape, 2, ',', '.') . '%' : '-';
+                                            $r2Val = $metric ? number_format($metric->r2_score, 2, ',', '.') : '-';
+                                            
+                                            $start = $run->started_at ? \Carbon\Carbon::parse($run->started_at) : null;
+                                            $end = $run->finished_at ? \Carbon\Carbon::parse($run->finished_at) : null;
+                                            $durasi = '-';
+                                            if ($start && $end) {
+                                                $diffSecs = $start->diffInSeconds($end);
+                                                if ($diffSecs >= 60) {
+                                                    $mins = floor($diffSecs / 60);
+                                                    $secs = $diffSecs % 60;
+                                                    $durasi = $mins . ' m ' . $secs . ' s';
+                                                } elseif ($diffSecs > 0) {
+                                                    $durasi = $diffSecs . ' detik';
+                                                } else {
+                                                    $diffMs = $start->diffInMilliseconds($end);
+                                                    $durasi = $diffMs . ' ms';
+                                                }
+                                            }
+                                        @endphp
+                                        <tr>
+                                            <td class="ps-3">{{ \Carbon\Carbon::parse($run->started_at)->timezone('Asia/Jakarta')->translatedFormat('d M Y, H:i') }} WIB</td>
+                                            <td>
+                                                <span class="badge bg-light text-dark border">C: {{ $cVal }}</span>
+                                                <span class="badge bg-light text-dark border">&epsilon;: {{ $epsVal }}</span>
+                                                <span class="badge bg-light text-dark border">&gamma;: {{ $gamVal }}</span>
+                                            </td>
+                                            <td>{{ $maeVal }}</td>
+                                            <td>{{ $rmseVal }}</td>
+                                            <td class="fw-bold text-success">{{ $mapeVal }}</td>
+                                            <td>{{ $r2Val }}</td>
+                                            <td class="fw-semibold text-secondary">{{ $durasi }}</td>
+                                            <td class="text-center">
+                                                @if($isActive)
+                                                    <span class="badge bg-success text-white rounded-3 px-2 py-1" style="font-size: 11px;">
+                                                        <i class="bi bi-check-circle-fill me-1"></i>Aktif
+                                                    </span>
+                                                @else
+                                                    <span class="badge bg-secondary text-white rounded-3 px-2 py-1" style="font-size: 11px;">
+                                                        <i class="bi bi-clock-history me-1"></i>Riwayat
+                                                    </span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
             </div>
+        </div>{{-- END gwo-step-content-2 --}}
 
             <!-- GWO Step 3: Progress -->
             <div id="gwo-step-content-3" class="step-opt-content d-none">
@@ -1033,7 +1253,12 @@
             <!-- Hasil Optimasi Parameter Table -->
             <div class="card mb-4 bg-white">
                 <div class="card-body">
-                    <h5 class="card-title border-0 pb-0 mb-3"><i class="bi bi-table me-2 text-primary-custom"></i>Hasil Optimasi Parameter</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title border-0 pb-0 mb-0"><i class="bi bi-table me-2 text-primary-custom"></i>Hasil Optimasi Parameter</h5>
+                        <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#accuracyCriteriaModal" style="border-radius: 8px; font-size: 11.5px; padding: 4px 10px;">
+                            <i class="bi bi-info-circle"></i> Acuan Kriteria Akurasi
+                        </button>
+                    </div>
                     
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
@@ -1279,109 +1504,6 @@
                 </div>
             </div>
 
-            <!-- Riwayat Optimasi Parameter -->
-            <div class="card bg-white mb-4 shadow-sm border border-light">
-                <div class="card-body">
-                    <h5 class="card-title mb-3"><i class="bi bi-clock-history me-2 text-primary-custom"></i>Riwayat Optimasi Parameter</h5>
-                    @if($historyRuns->isEmpty())
-                        <div class="text-center py-4 text-secondary">
-                            <i class="bi bi-folder2-open fs-2 text-muted mb-2 d-block"></i>
-                            Belum ada riwayat proses optimasi parameter.
-                        </div>
-                    @else
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0" style="font-size: 12.5px;">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Waktu</th>
-                                        <th>Metode</th>
-                                        <th>Parameter (C, &epsilon;, &gamma;)</th>
-                                        <th>MAE</th>
-                                        <th>RMSE</th>
-                                        <th>MAPE</th>
-                                        <th>Akurasi</th>
-                                        <th>R² Score</th>
-                                        <th class="text-center">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($historyRuns as $run)
-                                        @php
-                                            $param = $run->modelParameter;
-                                            $metric = $run->modelMetrics()->where('dataset_type', 'test')->first();
-                                            $isActive = ($run->id === $bestGsId || $run->id === $bestGwoId);
-                                            
-                                            $cVal = '-';
-                                            if ($param) {
-                                                $cVal = $param->c_value;
-                                                if (is_numeric($cVal)) {
-                                                    $formatted = number_format((float)$cVal, 6, ',', '.');
-                                                    $cVal = strpos($formatted, ',') !== false ? rtrim(rtrim($formatted, '0'), ',') : $formatted;
-                                                }
-                                            }
-                                            $epsVal = '-';
-                                            if ($param) {
-                                                $epsVal = $param->epsilon_value;
-                                                if (is_numeric($epsVal)) {
-                                                    $formatted = number_format((float)$epsVal, 8, ',', '.');
-                                                    $epsVal = strpos($formatted, ',') !== false ? rtrim(rtrim($formatted, '0'), ',') : $formatted;
-                                                }
-                                            }
-                                            $gamVal = '-';
-                                            if ($param) {
-                                                $gamVal = $param->gamma_value;
-                                                if (is_numeric($gamVal)) {
-                                                    $formatted = number_format((float)$gamVal, 6, ',', '.');
-                                                    $gamVal = strpos($formatted, ',') !== false ? rtrim(rtrim($formatted, '0'), ',') : $formatted;
-                                                }
-                                            }
-                                            
-                                            $maeVal = $metric ? 'Rp ' . number_format($metric->mae, 0, ',', '.') : '-';
-                                            $rmseVal = $metric ? 'Rp ' . number_format($metric->rmse, 0, ',', '.') : '-';
-                                            $mapeVal = $metric ? number_format($metric->mape, 2, ',', '.') . '%' : '-';
-                                            $accVal = $metric ? number_format(max(0, 100 - $metric->mape), 2, ',', '.') . '%' : '-';
-                                            $r2Val = $metric ? number_format($metric->r2_score, 2, ',', '.') : '-';
-                                        @endphp
-                                        <tr>
-                                            <td>{{ \Carbon\Carbon::parse($run->created_at)->timezone('Asia/Jakarta')->translatedFormat('d M Y, H:i') }} WIB</td>
-                                            <td class="fw-bold">
-                                                @if($run->model_type === 'svr_grid_search')
-                                                    Grid Search
-                                                @elseif($run->model_type === 'svr_gwo')
-                                                    GWO (Grey Wolf)
-                                                @else
-                                                    {{ $run->model_name }}
-                                                @endif
-                                            </td>
-                                            <td>
-                                                <span class="badge bg-light text-dark border">C: {{ $cVal }}</span>
-                                                <span class="badge bg-light text-dark border">&epsilon;: {{ $epsVal }}</span>
-                                                <span class="badge bg-light text-dark border">&gamma;: {{ $gamVal }}</span>
-                                            </td>
-                                            <td>{{ $maeVal }}</td>
-                                            <td>{{ $rmseVal }}</td>
-                                            <td class="fw-bold text-success">{{ $mapeVal }}</td>
-                                            <td class="fw-bold text-primary">{{ $accVal }}</td>
-                                            <td>{{ $r2Val }}</td>
-                                            <td class="text-center">
-                                                @if($isActive)
-                                                    <span class="badge bg-success text-white rounded-3 px-2 py-1.5" style="font-size: 11px;">
-                                                        <i class="bi bi-check-circle-fill me-1"></i>Aktif (Terbaik)
-                                                    </span>
-                                                @else
-                                                    <span class="badge bg-secondary text-white rounded-3 px-2 py-1.5" style="font-size: 11px;">
-                                                        <i class="bi bi-clock-history me-1"></i>Riwayat
-                                                    </span>
-                                                @endif
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @endif
-                </div>
-            </div>
 
             <!-- --- DETAIL EVALUASI PREDIKSI MODEL SVR + GRID SEARCH --- -->
             @php
@@ -1451,6 +1573,43 @@
                         </div>
                     </div>
                 @else
+                    @php
+                        $gsTrParts = $gsRun->train_period ? explode(' - ', $gsRun->train_period) : [];
+                        $gsTrDays  = count($gsTrParts) === 2 ? \Carbon\Carbon::parse(trim($gsTrParts[0]))->diffInDays(\Carbon\Carbon::parse(trim($gsTrParts[1]))) + 1 : null;
+                        $gsTeParts = $gsRun->test_period ? explode(' - ', $gsRun->test_period) : [];
+                        $gsTeDays  = count($gsTeParts) === 2 ? \Carbon\Carbon::parse(trim($gsTeParts[0]))->diffInDays(\Carbon\Carbon::parse(trim($gsTeParts[1]))) + 1 : null;
+                    @endphp
+                    <!-- Ringkasan Data Training/Testing Grid Search -->
+                    <div class="card mb-4 bg-white">
+                        <div class="card-body">
+                            <h6 class="card-title text-warning mb-3"><i class="bi bi-grid-3x3 me-2"></i>Ringkasan Dataset SVR + Grid Search</h6>
+                            <div class="row g-3 small">
+                                <div class="col-6 col-md-3 border-end border-light">
+                                    <span class="text-secondary d-block text-uppercase fw-semibold" style="font-size: 9.5px; letter-spacing: 0.5px;">Jumlah Data</span>
+                                    <strong class="fs-6 text-dark">{{ number_format($gsRun->total_rows, 0, ',', '.') }} baris</strong>
+                                </div>
+                                <div class="col-6 col-md-3 border-end border-light">
+                                    <span class="text-secondary d-block text-uppercase fw-semibold" style="font-size: 9.5px; letter-spacing: 0.5px;">Data Training (80%)</span>
+                                    <strong class="text-dark d-block mb-1">{{ number_format($gsRun->train_rows, 0, ',', '.') }} baris
+                                        @if($gsTrDays) <span class="fw-normal text-secondary" style="font-size:11px;">({{ number_format($gsTrDays, 0, ',', '.') }} hari)</span>@endif
+                                    </strong>
+                                    <span class="text-muted" style="font-size: 10px;">Periode: {{ $gsRun->train_period }}</span>
+                                </div>
+                                <div class="col-6 col-md-3 border-end border-light">
+                                    <span class="text-secondary d-block text-uppercase fw-semibold" style="font-size: 9.5px; letter-spacing: 0.5px;">Data Testing (20%)</span>
+                                    <strong class="text-dark d-block mb-1">{{ number_format($gsRun->test_rows, 0, ',', '.') }} baris
+                                        @if($gsTeDays) <span class="fw-normal text-secondary" style="font-size:11px;">({{ number_format($gsTeDays, 0, ',', '.') }} hari)</span>@endif
+                                    </strong>
+                                    <span class="text-muted" style="font-size: 10px;">Periode: {{ $gsRun->test_period }}</span>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <span class="text-secondary d-block text-uppercase fw-semibold" style="font-size: 9.5px; letter-spacing: 0.5px;">Waktu Selesai</span>
+                                    <strong class="text-dark d-block">{{ Carbon\Carbon::parse($gsRun->finished_at)->translatedFormat('d F Y') }}</strong>
+                                    <span class="text-muted d-block" style="font-size: 10px;">Jam: {{ Carbon\Carbon::parse($gsRun->finished_at)->format('H:i:s') }} WIB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <!-- Card Metrik Evaluasi Model SVR + Grid Search -->
                     <h5 class="fw-bold mb-3 text-dark mt-4"><i class="bi bi-award-fill me-2 text-warning"></i>Hasil Evaluasi Model SVR + Grid Search</h5>
                     <div class="row g-3 mb-4">
@@ -1542,69 +1701,69 @@
                                 $gsMeanActual = $gsRun->predictionResults()->avg('actual_value') ?? 0;
                                 $gsRmsePercentage = $gsMeanActual > 0 ? ($gsRmse / $gsMeanActual) * 100 : 0;
                                 
-                                // 1. Klasifikasi MAPE (Tingkat Kesalahan Perkiraan)
+                                // 1. Klasifikasi MAPE
                                 if ($gsMape < 10) {
-                                    $gsMapeCategory = "Sangat Akurat (Sangat Tepat)";
-                                    $gsMapeDesc = "Rata-rata kesalahan tebakan model sangat kecil, yaitu kurang dari 10%. Hasil perkiraan ini sangat mendekati kenyataan pendapatan di lapangan.";
+                                    $gsMapeCategory = "Sangat Akurat";
+                                    $gsMapeDesc = "Prediksi model sangat mendekati nilai aktual.";
                                     $gsMapeColor = "text-success border-success bg-success-subtle";
                                     $gsMapeAlertClass = "alert-success text-success-emphasis bg-success-subtle border-success-subtle";
                                     $gsMapeIcon = "bi-patch-check-fill text-success";
                                 } elseif ($gsMape <= 20) {
-                                    $gsMapeCategory = "Baik (Layak Digunakan)";
-                                    $gsMapeDesc = "Rata-rata kesalahan tebakan model berkisar antara 10% hingga 20%. Hasil perkiraan ini cukup andal dan layak digunakan untuk perencanaan.";
+                                    $gsMapeCategory = "Baik";
+                                    $gsMapeDesc = "Akurasi prediksi sudah baik dan layak digunakan untuk perencanaan.";
                                     $gsMapeColor = "text-primary border-primary bg-primary-subtle";
                                     $gsMapeAlertClass = "alert-primary text-primary-emphasis bg-primary-subtle border-primary-subtle";
                                     $gsMapeIcon = "bi-check-circle-fill text-primary";
                                 } elseif ($gsMape <= 50) {
-                                    $gsMapeCategory = "Cukup Akurat (Perlu Dipantau)";
-                                    $gsMapeDesc = "Rata-rata kesalahan tebakan model berkisar antara 20% hingga 50%. Hasil perkiraan ini memiliki fluktuasi (naik-turun) sedang.";
+                                    $gsMapeCategory = "Cukup";
+                                    $gsMapeDesc = "Prediksi cukup, namun masih perlu peningkatan untuk hasil yang lebih andal.";
                                     $gsMapeColor = "text-warning border-warning bg-warning-subtle";
                                     $gsMapeAlertClass = "alert-warning text-warning-emphasis bg-warning-subtle border-warning-subtle";
                                     $gsMapeIcon = "bi-exclamation-triangle-fill text-warning";
                                 } else {
-                                    $gsMapeCategory = "Kurang Akurat";
-                                    $gsMapeDesc = "Rata-rata kesalahan tebakan model melebihi 50%. Model kurang disarankan untuk perencanaan karena selisih tebakannya cukup besar.";
+                                    $gsMapeCategory = "Buruk";
+                                    $gsMapeDesc = "Error prediksi terlalu besar; model tidak disarankan untuk perencanaan.";
                                     $gsMapeColor = "text-danger border-danger bg-danger-subtle";
                                     $gsMapeAlertClass = "alert-danger text-danger-emphasis bg-danger-subtle border-danger-subtle";
                                     $gsMapeIcon = "bi-x-circle-fill text-danger";
                                 }
 
-                                // 2. Klasifikasi R2 Score (Kemampuan Membaca Pola Pendapatan)
+                                // 2. Klasifikasi R2 Score
                                 if ($gsR2 >= 0.67) {
-                                    $gsR2Category = "Sangat Kuat (Sangat Baik)";
-                                    $gsR2Desc = "Model sangat pintar dalam mengikuti pola naik-turunnya transaksi pendapatan harian di lapangan secara tepat.";
+                                    $gsR2Category = "Model Kuat";
+                                    $gsR2Desc = "Model mampu mengikuti pola data dengan baik.";
                                     $gsR2Icon = "bi-graph-up text-success";
                                 } elseif ($gsR2 >= 0.33) {
-                                    $gsR2Category = "Cukup Baik";
-                                    $gsR2Desc = "Model cukup baik dalam mengikuti pola naik-turunnya transaksi, meskipun ada beberapa faktor luar yang tidak terbaca.";
+                                    $gsR2Category = "Model Moderat";
+                                    $gsR2Desc = "Model cukup mengikuti pola, namun ada sebagian variasi data yang belum tertangkap.";
                                     $gsR2Icon = "bi-graph-up text-primary";
                                 } else {
-                                    $gsR2Category = "Kurang Baik";
-                                    $gsR2Desc = "Model kesulitan mengenali pola naik-turunnya transaksi pendapatan. Perlu penyesuaian agar lebih peka terhadap perubahan data.";
+                                    $gsR2Category = "Model Lemah";
+                                    $gsR2Desc = "Model kurang mampu mengenali pola data; perlu optimasi parameter.";
                                     $gsR2Icon = "bi-graph-up text-danger";
                                 }
                                 
-                                // 3. Klasifikasi RMSE (Selisih Nominal Rata-Rata)
+                                // 3. Klasifikasi RMSE
                                 if ($gsRmsePercentage < 10) {
-                                    $gsRmseCategory = "Sangat Kecil (Bagus)";
-                                    $gsRmseDesc = "Rata-rata selisih nominal uang antara hasil tebakan dan kenyataan di lapangan berada di batas aman (di bawah 10% dari rata-rata pendapatan, yaitu sebesar <strong>" . number_format($gsRmsePercentage, 2, ',', '.') . "%</strong>). Kinerja dikategorikan <strong>Sangat Baik</strong>.";
+                                    $gsRmseCategory = "Sangat Baik";
+                                    $gsRmseDesc = "Selisih prediksi relatif kecil (" . number_format($gsRmsePercentage, 2, ',', '.') . "% dari rata-rata aktual).";
                                     $gsRmseColor = "text-success";
                                     $gsRmseIcon = "bi-shield-check-fill text-success";
                                 } else {
-                                    $gsRmseCategory = "Perlu Perbaikan (Terlalu Lebar)";
-                                    $gsRmseDesc = "Rata-rata selisih nominal uang antara tebakan dan kenyataan di lapangan melampaui batas toleransi 10% (yaitu sebesar <strong>" . number_format($gsRmsePercentage, 2, ',', '.') . "%</strong> dari rata-rata data aktual Rp " . number_format($gsMeanActual, 0, ',', '.') . "). Setelan model perlu diperbaiki agar selisih uangnya lebih kecil.";
+                                    $gsRmseCategory = "Perlu Perbaikan";
+                                    $gsRmseDesc = "Selisih prediksi cukup besar (" . number_format($gsRmsePercentage, 2, ',', '.') . "% dari rata-rata aktual); optimasi parameter diperlukan.";
                                     $gsRmseColor = "text-warning";
                                     $gsRmseIcon = "bi-exclamation-octagon-fill text-warning";
                                 }
 
-                                // 5. Rekomendasi berdasarkan kombinasi nilai
+                                // 5. Rekomendasi
                                 $gsRecommendations = [];
                                 if ($gsMape < 10 && $gsR2 >= 0.67) {
-                                    $gsRecommendations[] = "<strong>Model Sangat Optimal:</strong> Kinerja model SVR + Grid Search ini dinilai sangat kuat dan akurat. Sangat layak digunakan langsung untuk perencanaan anggaran pendapatan retribusi.";
+                                    $gsRecommendations[] = "<strong>Pertahankan parameter saat ini</strong> — performa Grid Search sudah sangat optimal.";
                                 } else {
-                                    $gsRecommendations[] = "<strong>Pertimbangkan Algoritma GWO:</strong> Jika hasil Grid Search dirasa masih kurang optimal, cobalah bandingkan dengan hasil <strong>Grey Wolf Optimizer (GWO)</strong> untuk mencari setelan parameter yang lebih presisi (paling optimal).";
+                                    $gsRecommendations[] = "<strong>Optimalkan parameter model</strong> dengan memperluas rentang pencarian atau coba GWO untuk hasil yang lebih presisi.";
                                 }
-                                $gsRecommendations[] = "<strong>Pelatihan Ulang Berkala:</strong> Lakukan pelatihan ulang secara berkala saat data transaksi baru ditambahkan agar model tetap adaptif.";
+                                $gsRecommendations[] = "<strong>Lakukan pelatihan ulang</strong> setiap kali ada penambahan data transaksi baru.";
                             @endphp
 
                             <div class="row g-3">
@@ -1614,22 +1773,22 @@
                                         <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
                                             <div class="fs-4"><i class="bi {{ $gsMapeIcon }}"></i></div>
                                             <div>
-                                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">Tingkat Kesalahan Perkiraan (MAPE: {{ number_format($gsMape, 2, ',', '.') }}%): <span class="{{ explode(' ', $gsMapeColor)[0] }}">{{ $gsMapeCategory }}</span></div>
-                                                <div class="text-secondary small" style="line-height: 1.5;">{!! $gsMapeDesc !!}</div>
+                                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">MAPE: {{ number_format($gsMape, 2, ',', '.') }}% — <span class="{{ explode(' ', $gsMapeColor)[0] }}">{{ $gsMapeCategory }}</span></div>
+                                                <div class="text-secondary small">{!! $gsMapeDesc !!}</div>
                                             </div>
                                         </div>
                                         <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
                                             <div class="fs-4"><i class="bi {{ $gsR2Icon }}"></i></div>
                                             <div>
-                                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">Kemampuan Membaca Pola Pendapatan (R² Score: {{ number_format($gsR2, 4, ',', '.') }}): <span class="text-dark">{{ $gsR2Category }}</span></div>
-                                                <div class="text-secondary small" style="line-height: 1.5;">{!! $gsR2Desc !!}</div>
+                                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">R² Score: {{ number_format($gsR2, 4, ',', '.') }} — <span class="text-dark">{{ $gsR2Category }}</span></div>
+                                                <div class="text-secondary small">{!! $gsR2Desc !!}</div>
                                             </div>
                                         </div>
                                         <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
                                             <div class="fs-4"><i class="bi {{ $gsRmseIcon }}"></i></div>
                                             <div>
-                                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">Selisih Nominal Rata-Rata (RMSE): <span class="{{ $gsRmseColor }}">{{ $gsRmseCategory }}</span></div>
-                                                <div class="text-secondary small" style="line-height: 1.5;">{!! $gsRmseDesc !!}</div>
+                                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">RMSE: Rp {{ number_format($gsRmse, 0, ',', '.') }} — <span class="{{ $gsRmseColor }}">{{ $gsRmseCategory }}</span></div>
+                                                <div class="text-secondary small">{!! $gsRmseDesc !!}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -1661,30 +1820,22 @@
                                 <canvas id="gsChart"></canvas>
                             </div>
                             
-                            <!-- Detailed Graph Analysis Card -->
+                            <!-- Analisis Singkat Grafik (Grid Search) -->
                             <div class="mt-4 p-3 bg-light rounded-3 border-start border-4 border-warning shadow-sm">
-                                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-info-circle-fill text-primary-custom me-1"></i>Analisis Kesesuaian Tren Grafik (Grid Search)</h6>
-                                <div class="row g-3 mt-1 text-sm text-secondary">
-                                    <div class="col-md-6 border-end border-light-subtle">
-                                        <div class="mb-2">
-                                            <i class="bi bi-arrow-repeat text-primary-custom me-1"></i>
-                                            <strong>Selisih Tren Total:</strong> 
-                                            Sebesar <strong>{{ number_format($gsTotalDiffPercent, 2, ',', '.') }}%</strong> dari total transaksi riil di lapangan.
-                                        </div>
-                                        <div>
-                                            <i class="bi bi-calendar-check text-primary-custom me-1"></i>
-                                            <strong>Puncak Realisasi (Aktual):</strong> 
-                                            <strong>{{ $gsMaxActualDate }}</strong> (Aktual: <strong>Rp {{ number_format($gsMaxActualVal, 0, ',', '.') }}</strong>, Perkiraan: <strong>Rp {{ number_format($gsPredictedAtMaxActual, 0, ',', '.') }}</strong>).
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-2">
-                                            <i class="bi bi-graph-up-arrow text-warning me-1"></i>
-                                            <strong>Puncak Hasil Perkiraan (Prediksi):</strong> 
-                                            <strong>{{ $gsMaxPredictedDate }}</strong> sebesar <strong>Rp {{ number_format($gsMaxPredictedVal, 0, ',', '.') }}</strong>.
-                                        </div>
-                                    </div>
-                                </div>
+                                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-info-circle-fill text-primary-custom me-1"></i>Analisis Grafik (Grid Search)</h6>
+                                <ul class="mb-0 ps-3 text-secondary small" style="line-height: 1.8;">
+                                    <li>
+                                        @if($gsTotalDiffPercent < 5)
+                                            Prediksi sangat sesuai dengan data aktual — selisih kumulatif hanya <strong>{{ number_format($gsTotalDiffPercent, 2, ',', '.') }}%</strong>.
+                                        @elseif($gsTotalDiffPercent < 15)
+                                            Prediksi cukup sesuai dengan data aktual — selisih kumulatif <strong>{{ number_format($gsTotalDiffPercent, 2, ',', '.') }}%</strong>.
+                                        @else
+                                            Terdapat selisih yang cukup signifikan antara prediksi dan aktual (<strong>{{ number_format($gsTotalDiffPercent, 2, ',', '.') }}%</strong>); parameter perlu dioptimalkan.
+                                        @endif
+                                    </li>
+                                    <li>Puncak aktual terjadi pada <strong>{{ $gsMaxActualDate }}</strong> (Rp {{ number_format($gsMaxActualVal, 0, ',', '.') }}), prediksi pada hari itu: <strong>Rp {{ number_format($gsPredictedAtMaxActual, 0, ',', '.') }}</strong>.</li>
+                                    <li>Puncak prediksi jatuh pada <strong>{{ $gsMaxPredictedDate }}</strong> sebesar <strong>Rp {{ number_format($gsMaxPredictedVal, 0, ',', '.') }}</strong>.</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -1757,46 +1908,19 @@
                                 </div>
                             @endif
 
-                            <!-- Detailed Rayon Analysis Box (Grid Search) -->
-                            <div class="mt-4 p-3 bg-white rounded-3 border shadow-sm">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-grid-3x3-gap-fill text-success me-1"></i>Analisis Akurasi Prediksi Per Rayon (Grid Search)</h6>
-                                    <span class="badge bg-success-subtle text-success px-2 py-1 rounded-pill" style="font-size: 10px;">Seluruh Periode Pelatihan</span>
-                                </div>
-                                <div class="row g-3 mb-3">
-                                    <div class="col-md-4">
-                                        <div class="p-3 rounded-3 h-100 border border-success-subtle bg-success-subtle">
-                                            <span class="text-uppercase fw-semibold d-block text-secondary mb-1" style="font-size: 9px; letter-spacing: 0.4px;">Rayon Paling Presisi (Lowest Error)</span>
-                                            @if($gsBestRayon)
-                                                <div class="fw-bold text-success mb-1" style="font-size: 16px;">{{ $gsBestRayon->rayon_name }}</div>
-                                                <span class="d-block small text-dark">Rata-rata MAPE: <strong>{{ number_format(abs($gsBestRayon->avg_mape), 2, ',', '.') }}%</strong></span>
-                                                <span class="d-block mt-1" style="font-size: 10.5px; color: #555;">Akurasi peramalan di wilayah ini dinilai sangat andal.</span>
-                                            @else
-                                                <span class="text-muted small">Data tidak tersedia</span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="p-3 rounded-3 h-100 border border-danger-subtle bg-danger-subtle">
-                                            <span class="text-uppercase fw-semibold d-block text-secondary mb-1" style="font-size: 9px; letter-spacing: 0.4px;">Rayon dengan Deviasi Terbesar</span>
-                                            @if($gsWorstRayon)
-                                                <div class="fw-bold text-danger mb-1" style="font-size: 16px;">{{ $gsWorstRayon->rayon_name }}</div>
-                                                <span class="d-block small text-dark">Rata-rata MAPE: <strong>{{ number_format(abs($gsWorstRayon->avg_mape), 2, ',', '.') }}%</strong></span>
-                                                <span class="d-block mt-1" style="font-size: 10.5px; color: #555;">Deviasi dipengaruhi fluktuasi transaksi harian yang kurang stabil.</span>
-                                            @else
-                                                <span class="text-muted small">Data tidak tersedia</span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="p-3 rounded-3 h-100 border bg-light">
-                                            <span class="text-uppercase fw-semibold d-block text-secondary mb-1" style="font-size: 9px; letter-spacing: 0.4px;">Rata-Rata Selisih Uang (Deviasi Nominal Harian)</span>
-                                            <div class="fw-bold text-dark mb-1" style="font-size: 16px;">Rp {{ number_format(abs($gsAvgDailyDeviation), 0, ',', '.') }} / hari</div>
-                                            <span class="d-block small text-secondary">Rata-rata selisih perkiraan dalam rupiah per hari.</span>
-                                            <span class="d-block mt-1" style="font-size: 10.5px; color: #555;">Acuan batas wajar selisih setoran juru parkir di lapangan.</span>
-                                        </div>
-                                    </div>
-                                </div>
+                            <!-- Analisis Ringkas Rayon (Grid Search) -->
+                            <div class="mt-4 p-3 bg-light rounded-3 border-start border-4 border-warning shadow-sm">
+                                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-grid-3x3-gap-fill text-warning me-1"></i>Kesimpulan Hasil Prediksi Per Rayon (Grid Search)</h6>
+                                <ul class="mb-0 ps-3 text-secondary small" style="line-height: 1.8;">
+                                    @if($gsBestRayon)
+                                        <li>Rayon paling akurat: <strong class="text-success">{{ $gsBestRayon->rayon_name }}</strong> dengan MAPE <strong>{{ number_format(abs($gsBestRayon->avg_mape), 2, ',', '.') }}%</strong>.</li>
+                                    @endif
+                                    @if($gsWorstRayon)
+                                        <li>Rayon dengan error terbesar: <strong class="text-danger">{{ $gsWorstRayon->rayon_name }}</strong> dengan MAPE <strong>{{ number_format(abs($gsWorstRayon->avg_mape), 2, ',', '.') }}%</strong>.</li>
+                                    @endif
+                                    <li>Rata-rata selisih prediksi harian: <strong>Rp {{ number_format(abs($gsAvgDailyDeviation), 0, ',', '.') }}</strong> per hari.</li>
+                                </ul>
+                            </div>
 
                                 @if($gsRayonStats->count() > 0)
                                 <div class="border-top pt-3">
@@ -1913,6 +2037,43 @@
                         </div>
                     </div>
                 @else
+                    @php
+                        $gwoTrParts = $gwoRun->train_period ? explode(' - ', $gwoRun->train_period) : [];
+                        $gwoTrDays  = count($gwoTrParts) === 2 ? \Carbon\Carbon::parse(trim($gwoTrParts[0]))->diffInDays(\Carbon\Carbon::parse(trim($gwoTrParts[1]))) + 1 : null;
+                        $gwoTeParts = $gwoRun->test_period ? explode(' - ', $gwoRun->test_period) : [];
+                        $gwoTeDays  = count($gwoTeParts) === 2 ? \Carbon\Carbon::parse(trim($gwoTeParts[0]))->diffInDays(\Carbon\Carbon::parse(trim($gwoTeParts[1]))) + 1 : null;
+                    @endphp
+                    <!-- Ringkasan Data Training/Testing GWO -->
+                    <div class="card mb-4 bg-white">
+                        <div class="card-body">
+                            <h6 class="card-title text-success mb-3"><i class="bi bi-activity me-2"></i>Ringkasan Dataset SVR + GWO (Grey Wolf)</h6>
+                            <div class="row g-3 small">
+                                <div class="col-6 col-md-3 border-end border-light">
+                                    <span class="text-secondary d-block text-uppercase fw-semibold" style="font-size: 9.5px; letter-spacing: 0.5px;">Jumlah Data</span>
+                                    <strong class="fs-6 text-dark">{{ number_format($gwoRun->total_rows, 0, ',', '.') }} baris</strong>
+                                </div>
+                                <div class="col-6 col-md-3 border-end border-light">
+                                    <span class="text-secondary d-block text-uppercase fw-semibold" style="font-size: 9.5px; letter-spacing: 0.5px;">Data Training (80%)</span>
+                                    <strong class="text-dark d-block mb-1">{{ number_format($gwoRun->train_rows, 0, ',', '.') }} baris
+                                        @if($gwoTrDays) <span class="fw-normal text-secondary" style="font-size:11px;">({{ number_format($gwoTrDays, 0, ',', '.') }} hari)</span>@endif
+                                    </strong>
+                                    <span class="text-muted" style="font-size: 10px;">Periode: {{ $gwoRun->train_period }}</span>
+                                </div>
+                                <div class="col-6 col-md-3 border-end border-light">
+                                    <span class="text-secondary d-block text-uppercase fw-semibold" style="font-size: 9.5px; letter-spacing: 0.5px;">Data Testing (20%)</span>
+                                    <strong class="text-dark d-block mb-1">{{ number_format($gwoRun->test_rows, 0, ',', '.') }} baris
+                                        @if($gwoTeDays) <span class="fw-normal text-secondary" style="font-size:11px;">({{ number_format($gwoTeDays, 0, ',', '.') }} hari)</span>@endif
+                                    </strong>
+                                    <span class="text-muted" style="font-size: 10px;">Periode: {{ $gwoRun->test_period }}</span>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <span class="text-secondary d-block text-uppercase fw-semibold" style="font-size: 9.5px; letter-spacing: 0.5px;">Waktu Selesai</span>
+                                    <strong class="text-dark d-block">{{ Carbon\Carbon::parse($gwoRun->finished_at)->translatedFormat('d F Y') }}</strong>
+                                    <span class="text-muted d-block" style="font-size: 10px;">Jam: {{ Carbon\Carbon::parse($gwoRun->finished_at)->format('H:i:s') }} WIB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <!-- Card Metrik Evaluasi Model SVR + GWO -->
                     <h5 class="fw-bold mb-3 text-dark mt-4"><i class="bi bi-award-fill me-2 text-success"></i>Hasil Evaluasi Model SVR + GWO</h5>
                     <div class="row g-3 mb-4">
@@ -2004,69 +2165,69 @@
                                 $gwoMeanActual = $gwoRun->predictionResults()->avg('actual_value') ?? 0;
                                 $gwoRmsePercentage = $gwoMeanActual > 0 ? ($gwoRmse / $gwoMeanActual) * 100 : 0;
                                 
-                                // 1. Klasifikasi MAPE (Tingkat Kesalahan Perkiraan)
+                                // 1. Klasifikasi MAPE
                                 if ($gwoMape < 10) {
-                                    $gwoMapeCategory = "Sangat Akurat (Sangat Tepat)";
-                                    $gwoMapeDesc = "Rata-rata kesalahan tebakan model sangat kecil, yaitu kurang dari 10%. Hasil perkiraan ini sangat mendekati kenyataan pendapatan di lapangan.";
+                                    $gwoMapeCategory = "Sangat Akurat";
+                                    $gwoMapeDesc = "Prediksi model sangat mendekati nilai aktual.";
                                     $gwoMapeColor = "text-success border-success bg-success-subtle";
                                     $gwoMapeAlertClass = "alert-success text-success-emphasis bg-success-subtle border-success-subtle";
                                     $gwoMapeIcon = "bi-patch-check-fill text-success";
                                 } elseif ($gwoMape <= 20) {
-                                    $gwoMapeCategory = "Baik (Layak Digunakan)";
-                                    $gwoMapeDesc = "Rata-rata kesalahan tebakan model berkisar antara 10% hingga 20%. Hasil perkiraan ini cukup andal dan layak digunakan untuk perencanaan.";
+                                    $gwoMapeCategory = "Baik";
+                                    $gwoMapeDesc = "Akurasi prediksi sudah baik dan layak digunakan untuk perencanaan.";
                                     $gwoMapeColor = "text-primary border-primary bg-primary-subtle";
                                     $gwoMapeAlertClass = "alert-primary text-primary-emphasis bg-primary-subtle border-primary-subtle";
                                     $gwoMapeIcon = "bi-check-circle-fill text-primary";
                                 } elseif ($gwoMape <= 50) {
-                                    $gwoMapeCategory = "Cukup Akurat (Perlu Dipantau)";
-                                    $gwoMapeDesc = "Rata-rata kesalahan tebakan model berkisar antara 20% hingga 50%. Hasil perkiraan ini memiliki fluktuasi (naik-turun) sedang.";
+                                    $gwoMapeCategory = "Cukup";
+                                    $gwoMapeDesc = "Prediksi cukup, namun masih perlu peningkatan untuk hasil yang lebih andal.";
                                     $gwoMapeColor = "text-warning border-warning bg-warning-subtle";
                                     $gwoMapeAlertClass = "alert-warning text-warning-emphasis bg-warning-subtle border-warning-subtle";
                                     $gwoMapeIcon = "bi-exclamation-triangle-fill text-warning";
                                 } else {
-                                    $gwoMapeCategory = "Kurang Akurat";
-                                    $gwoMapeDesc = "Rata-rata kesalahan tebakan model melebihi 50%. Model kurang disarankan untuk perencanaan karena selisih tebakannya cukup besar.";
+                                    $gwoMapeCategory = "Buruk";
+                                    $gwoMapeDesc = "Error prediksi terlalu besar; model tidak disarankan untuk perencanaan.";
                                     $gwoMapeColor = "text-danger border-danger bg-danger-subtle";
                                     $gwoMapeAlertClass = "alert-danger text-danger-emphasis bg-danger-subtle border-danger-subtle";
                                     $gwoMapeIcon = "bi-x-circle-fill text-danger";
                                 }
 
-                                // 2. Klasifikasi R2 Score (Kemampuan Membaca Pola Pendapatan)
+                                // 2. Klasifikasi R2 Score
                                 if ($gwoR2 >= 0.67) {
-                                    $gwoR2Category = "Sangat Kuat (Sangat Baik)";
-                                    $gwoR2Desc = "Model sangat pintar dalam mengikuti pola naik-turunnya transaksi pendapatan harian di lapangan secara tepat.";
+                                    $gwoR2Category = "Model Kuat";
+                                    $gwoR2Desc = "Model mampu mengikuti pola data dengan baik.";
                                     $gwoR2Icon = "bi-graph-up text-success";
                                 } elseif ($gwoR2 >= 0.33) {
-                                    $gwoR2Category = "Cukup Baik";
-                                    $gwoR2Desc = "Model cukup baik dalam mengikuti pola naik-turunnya transaksi, meskipun ada beberapa faktor luar yang tidak terbaca.";
+                                    $gwoR2Category = "Model Moderat";
+                                    $gwoR2Desc = "Model cukup mengikuti pola, namun ada sebagian variasi data yang belum tertangkap.";
                                     $gwoR2Icon = "bi-graph-up text-primary";
                                 } else {
-                                    $gwoR2Category = "Kurang Baik";
-                                    $gwoR2Desc = "Model kesulitan mengenali pola naik-turunnya transaksi pendapatan. Perlu penyesuaian agar lebih peka terhadap perubahan data.";
+                                    $gwoR2Category = "Model Lemah";
+                                    $gwoR2Desc = "Model kurang mampu mengenali pola data; perlu optimasi parameter.";
                                     $gwoR2Icon = "bi-graph-up text-danger";
                                 }
                                 
-                                // 3. Klasifikasi RMSE (Selisih Nominal Rata-Rata)
+                                // 3. Klasifikasi RMSE
                                 if ($gwoRmsePercentage < 10) {
-                                    $gwoRmseCategory = "Sangat Kecil (Bagus)";
-                                    $gwoRmseDesc = "Rata-rata selisih nominal uang antara hasil tebakan dan kenyataan di lapangan berada di batas aman (di bawah 10% dari rata-rata pendapatan, yaitu sebesar <strong>" . number_format($gwoRmsePercentage, 2, ',', '.') . "%</strong>). Kinerja dikategorikan <strong>Sangat Baik</strong>.";
+                                    $gwoRmseCategory = "Sangat Baik";
+                                    $gwoRmseDesc = "Selisih prediksi relatif kecil (" . number_format($gwoRmsePercentage, 2, ',', '.') . "% dari rata-rata aktual).";
                                     $gwoRmseColor = "text-success";
                                     $gwoRmseIcon = "bi-shield-check-fill text-success";
                                 } else {
-                                    $gwoRmseCategory = "Perlu Perbaikan (Terlalu Lebar)";
-                                    $gwoRmseDesc = "Rata-rata selisih nominal uang antara tebakan dan kenyataan di lapangan melampaui batas toleransi 10% (yaitu sebesar <strong>" . number_format($gwoRmsePercentage, 2, ',', '.') . "%</strong> dari rata-rata data aktual Rp " . number_format($gwoMeanActual, 0, ',', '.') . "). Setelan model perlu diperbaiki agar selisih uangnya lebih kecil.";
+                                    $gwoRmseCategory = "Perlu Perbaikan";
+                                    $gwoRmseDesc = "Selisih prediksi cukup besar (" . number_format($gwoRmsePercentage, 2, ',', '.') . "% dari rata-rata aktual); optimasi parameter diperlukan.";
                                     $gwoRmseColor = "text-warning";
                                     $gwoRmseIcon = "bi-exclamation-octagon-fill text-warning";
                                 }
 
-                                // 5. Rekomendasi berdasarkan kombinasi nilai
+                                // 5. Rekomendasi
                                 $gwoRecommendations = [];
                                 if ($gwoMape < 10 && $gwoR2 >= 0.67) {
-                                    $gwoRecommendations[] = "<strong>Model GWO Sangat Kuat:</strong> Grey Wolf Optimizer berhasil menemukan konfigurasi parameter secara optimal dengan tingkat akurasi sangat presisi. Model aktif sangat layak digunakan untuk peramalan resmi.";
+                                    $gwoRecommendations[] = "<strong>Pertahankan parameter saat ini</strong> — GWO berhasil menemukan konfigurasi yang sangat optimal.";
                                 } else {
-                                    $gwoRecommendations[] = "<strong>Evaluasi Setelan Pencarian GWO:</strong> Jika akurasi model GWO masih dirasa kurang, pertimbangkan untuk memperluas rentang batas pencarian setelan (Min/Max parameter) atau menaikkan jumlah langkah pencarian.";
+                                    $gwoRecommendations[] = "<strong>Perluas rentang pencarian parameter</strong> GWO atau tambahkan jumlah iterasi untuk hasil yang lebih presisi.";
                                 }
-                                $gwoRecommendations[] = "<strong>Pelatihan Ulang Berkala:</strong> Lakukan pelatihan ulang secara berkala untuk menjaga sensitivitas temporal model terhadap dinamika parkir harian.";
+                                $gwoRecommendations[] = "<strong>Lakukan pelatihan ulang</strong> setiap kali ada penambahan data transaksi baru.";
                             @endphp
 
                             <div class="row g-3">
@@ -2076,22 +2237,22 @@
                                         <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
                                             <div class="fs-4"><i class="bi {{ $gwoMapeIcon }}"></i></div>
                                             <div>
-                                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">Tingkat Kesalahan Perkiraan (MAPE: {{ number_format($gwoMape, 2, ',', '.') }}%): <span class="{{ explode(' ', $gwoMapeColor)[0] }}">{{ $gwoMapeCategory }}</span></div>
-                                                <div class="text-secondary small" style="line-height: 1.5;">{!! $gwoMapeDesc !!}</div>
+                                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">MAPE: {{ number_format($gwoMape, 2, ',', '.') }}% — <span class="{{ explode(' ', $gwoMapeColor)[0] }}">{{ $gwoMapeCategory }}</span></div>
+                                                <div class="text-secondary small">{!! $gwoMapeDesc !!}</div>
                                             </div>
                                         </div>
                                         <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
                                             <div class="fs-4"><i class="bi {{ $gwoR2Icon }}"></i></div>
                                             <div>
-                                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">Kemampuan Membaca Pola Pendapatan (R² Score: {{ number_format($gwoR2, 4, ',', '.') }}): <span class="text-dark">{{ $gwoR2Category }}</span></div>
-                                                <div class="text-secondary small" style="line-height: 1.5;">{!! $gwoR2Desc !!}</div>
+                                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">R² Score: {{ number_format($gwoR2, 4, ',', '.') }} — <span class="text-dark">{{ $gwoR2Category }}</span></div>
+                                                <div class="text-secondary small">{!! $gwoR2Desc !!}</div>
                                             </div>
                                         </div>
                                         <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
                                             <div class="fs-4"><i class="bi {{ $gwoRmseIcon }}"></i></div>
                                             <div>
-                                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">Selisih Nominal Rata-Rata (RMSE): <span class="{{ $gwoRmseColor }}">{{ $gwoRmseCategory }}</span></div>
-                                                <div class="text-secondary small" style="line-height: 1.5;">{!! $gwoRmseDesc !!}</div>
+                                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">RMSE: Rp {{ number_format($gwoRmse, 0, ',', '.') }} — <span class="{{ $gwoRmseColor }}">{{ $gwoRmseCategory }}</span></div>
+                                                <div class="text-secondary small">{!! $gwoRmseDesc !!}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -2123,30 +2284,22 @@
                                 <canvas id="gwoChart"></canvas>
                             </div>
                             
-                            <!-- Detailed Graph Analysis Card -->
+                            <!-- Analisis Singkat Grafik (GWO) -->
                             <div class="mt-4 p-3 bg-light rounded-3 border-start border-4 border-success shadow-sm">
-                                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-info-circle-fill text-primary-custom me-1"></i>Analisis Kesesuaian Tren Grafik (GWO)</h6>
-                                <div class="row g-3 mt-1 text-sm text-secondary">
-                                    <div class="col-md-6 border-end border-light-subtle">
-                                        <div class="mb-2">
-                                            <i class="bi bi-arrow-repeat text-primary-custom me-1"></i>
-                                            <strong>Selisih Tren Total:</strong> 
-                                            Sebesar <strong>{{ number_format($gwoTotalDiffPercent, 2, ',', '.') }}%</strong> dari total transaksi riil di lapangan.
-                                        </div>
-                                        <div>
-                                            <i class="bi bi-calendar-check text-primary-custom me-1"></i>
-                                            <strong>Puncak Realisasi (Aktual):</strong> 
-                                            <strong>{{ $gwoMaxActualDate }}</strong> (Aktual: <strong>Rp {{ number_format($gwoMaxActualVal, 0, ',', '.') }}</strong>, Perkiraan: <strong>Rp {{ number_format($gwoPredictedAtMaxActual, 0, ',', '.') }}</strong>).
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-2">
-                                            <i class="bi bi-graph-up-arrow text-warning me-1"></i>
-                                            <strong>Puncak Hasil Perkiraan (Prediksi):</strong> 
-                                            <strong>{{ $gwoMaxPredictedDate }}</strong> sebesar <strong>Rp {{ number_format($gwoMaxPredictedVal, 0, ',', '.') }}</strong>.
-                                        </div>
-                                    </div>
-                                </div>
+                                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-info-circle-fill text-primary-custom me-1"></i>Analisis Grafik (GWO)</h6>
+                                <ul class="mb-0 ps-3 text-secondary small" style="line-height: 1.8;">
+                                    <li>
+                                        @if($gwoTotalDiffPercent < 5)
+                                            Prediksi sangat sesuai dengan data aktual — selisih kumulatif hanya <strong>{{ number_format($gwoTotalDiffPercent, 2, ',', '.') }}%</strong>.
+                                        @elseif($gwoTotalDiffPercent < 15)
+                                            Prediksi cukup sesuai dengan data aktual — selisih kumulatif <strong>{{ number_format($gwoTotalDiffPercent, 2, ',', '.') }}%</strong>.
+                                        @else
+                                            Terdapat selisih yang cukup signifikan antara prediksi dan aktual (<strong>{{ number_format($gwoTotalDiffPercent, 2, ',', '.') }}%</strong>); parameter perlu dioptimalkan.
+                                        @endif
+                                    </li>
+                                    <li>Puncak aktual terjadi pada <strong>{{ $gwoMaxActualDate }}</strong> (Rp {{ number_format($gwoMaxActualVal, 0, ',', '.') }}), prediksi pada hari itu: <strong>Rp {{ number_format($gwoPredictedAtMaxActual, 0, ',', '.') }}</strong>.</li>
+                                    <li>Puncak prediksi jatuh pada <strong>{{ $gwoMaxPredictedDate }}</strong> sebesar <strong>Rp {{ number_format($gwoMaxPredictedVal, 0, ',', '.') }}</strong>.</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -2219,46 +2372,19 @@
                                 </div>
                             @endif
 
-                            <!-- Detailed Rayon Analysis Box (GWO) -->
-                            <div class="mt-4 p-3 bg-white rounded-3 border shadow-sm">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-grid-3x3-gap-fill text-success me-1"></i>Analisis Akurasi Prediksi Per Rayon (GWO)</h6>
-                                    <span class="badge bg-success-subtle text-success px-2 py-1 rounded-pill" style="font-size: 10px;">Seluruh Periode Pelatihan</span>
-                                </div>
-                                <div class="row g-3 mb-3">
-                                    <div class="col-md-4">
-                                        <div class="p-3 rounded-3 h-100 border border-success-subtle bg-success-subtle">
-                                            <span class="text-uppercase fw-semibold d-block text-secondary mb-1" style="font-size: 9px; letter-spacing: 0.4px;">Rayon Paling Presisi (Lowest Error)</span>
-                                            @if($gwoBestRayon)
-                                                <div class="fw-bold text-success mb-1" style="font-size: 16px;">{{ $gwoBestRayon->rayon_name }}</div>
-                                                <span class="d-block small text-dark">Rata-rata MAPE: <strong>{{ number_format(abs($gwoBestRayon->avg_mape), 2, ',', '.') }}%</strong></span>
-                                                <span class="d-block mt-1" style="font-size: 10.5px; color: #555;">Akurasi peramalan di wilayah ini dinilai sangat andal.</span>
-                                            @else
-                                                <span class="text-muted small">Data tidak tersedia</span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="p-3 rounded-3 h-100 border border-danger-subtle bg-danger-subtle">
-                                            <span class="text-uppercase fw-semibold d-block text-secondary mb-1" style="font-size: 9px; letter-spacing: 0.4px;">Rayon dengan Deviasi Terbesar</span>
-                                            @if($gwoWorstRayon)
-                                                <div class="fw-bold text-danger mb-1" style="font-size: 16px;">{{ $gwoWorstRayon->rayon_name }}</div>
-                                                <span class="d-block small text-dark">Rata-rata MAPE: <strong>{{ number_format(abs($gwoWorstRayon->avg_mape), 2, ',', '.') }}%</strong></span>
-                                                <span class="d-block mt-1" style="font-size: 10.5px; color: #555;">Deviasi dipengaruhi fluktuasi transaksi harian yang kurang stabil.</span>
-                                            @else
-                                                <span class="text-muted small">Data tidak tersedia</span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="p-3 rounded-3 h-100 border bg-light">
-                                            <span class="text-uppercase fw-semibold d-block text-secondary mb-1" style="font-size: 9px; letter-spacing: 0.4px;">Rata-Rata Selisih Uang (Deviasi Nominal Harian)</span>
-                                            <div class="fw-bold text-dark mb-1" style="font-size: 16px;">Rp {{ number_format(abs($gwoAvgDailyDeviation), 0, ',', '.') }} / hari</div>
-                                            <span class="d-block small text-secondary">Rata-rata selisih perkiraan dalam rupiah per hari.</span>
-                                            <span class="d-block mt-1" style="font-size: 10.5px; color: #555;">Acuan batas wajar selisih setoran juru parkir di lapangan.</span>
-                                        </div>
-                                    </div>
-                                </div>
+                            <!-- Analisis Ringkas Rayon (GWO) -->
+                            <div class="mt-4 p-3 bg-light rounded-3 border-start border-4 border-success shadow-sm">
+                                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-grid-3x3-gap-fill text-success me-1"></i>Kesimpulan Hasil Prediksi Per Rayon (GWO)</h6>
+                                <ul class="mb-0 ps-3 text-secondary small" style="line-height: 1.8;">
+                                    @if($gwoBestRayon)
+                                        <li>Rayon paling akurat: <strong class="text-success">{{ $gwoBestRayon->rayon_name }}</strong> dengan MAPE <strong>{{ number_format(abs($gwoBestRayon->avg_mape), 2, ',', '.') }}%</strong>.</li>
+                                    @endif
+                                    @if($gwoWorstRayon)
+                                        <li>Rayon dengan error terbesar: <strong class="text-danger">{{ $gwoWorstRayon->rayon_name }}</strong> dengan MAPE <strong>{{ number_format(abs($gwoWorstRayon->avg_mape), 2, ',', '.') }}%</strong>.</li>
+                                    @endif
+                                    <li>Rata-rata selisih prediksi harian: <strong>Rp {{ number_format(abs($gwoAvgDailyDeviation), 0, ',', '.') }}</strong> per hari.</li>
+                                </ul>
+                            </div>
 
                                 @if($gwoRayonStats->count() > 0)
                                 <div class="border-top pt-3">

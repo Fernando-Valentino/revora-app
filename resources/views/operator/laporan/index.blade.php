@@ -356,7 +356,7 @@
         <!-- Right Column: Future Prediction Projections -->
         <div class="col-lg-4">
             <div class="card border-0 h-100 future-proj-card p-4">
-                <div class="card-body p-0 d-flex flex-column h-100">
+                <div class="card-body p-0 d-flex flex-column h-100" id="future-forecast-card-body" data-rayon-id="{{ $rayonId }}" data-forecast-url="{{ route('operator.laporan.forecast') }}">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h6 class="text-uppercase text-secondary fw-bold mb-0" style="font-size: 11px; letter-spacing: 0.5px;">
                             <i class="bi bi-cpu text-primary me-1"></i> Prediksi 7 Hari Ke Depan
@@ -364,35 +364,29 @@
                         <span class="badge bg-primary-subtle text-primary px-2.5 py-1 rounded-pill" style="font-size: 9px; font-weight: 600;">AI Proyeksi</span>
                     </div>
 
-                    @if($futureForecast)
+                    <!-- Loading State -->
+                    <div class="text-center py-5 my-auto" id="forecast-loading-state">
+                        <div class="spinner-border text-primary spinner-border-sm mb-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span class="text-muted small d-block">Menghitung proyeksi AI...</span>
+                    </div>
+
+                    <!-- Content State (hidden by default) -->
+                    <div id="forecast-content-state" style="display: none !important;" class="d-flex flex-column h-100 flex-grow-1">
                         <div class="mb-3.5">
                             <span class="text-secondary small d-block mb-1">Estimasi Total Pendapatan</span>
-                            <h3 class="fw-bold mb-1" style="font-size: 24px; color: #005BAA; font-variant-numeric: tabular-nums;">{{ $futureForecast['total_predicted'] }}</h3>
+                            <h3 class="fw-bold mb-1" id="forecast-total-predicted" style="font-size: 24px; color: #005BAA; font-variant-numeric: tabular-nums;">-</h3>
                             <span class="text-muted small">
-                                Rerata: <strong class="text-dark">{{ $futureForecast['avg_predicted'] }}</strong> / hari
+                                Rerata: <strong class="text-dark" id="forecast-avg-predicted">-</strong> / hari
                             </span>
                         </div>
 
                         <!-- Mini list harian -->
                         <div class="mb-4 flex-grow-1">
                             <span class="text-secondary d-block small mb-2 fw-semibold">Detail Harian</span>
-                            <div class="d-flex flex-column gap-2" style="max-height: 185px; overflow-y: auto; padding-right: 2px;">
-                                @foreach($futureForecast['detail_harian'] as $forecastDay)
-                                    @php
-                                        $dayOfWeek = (int) date('N', strtotime($forecastDay['tanggal']));
-                                        $isWeekend = $dayOfWeek >= 6;
-                                        $dayName = $isWeekend ? (date('N', strtotime($forecastDay['tanggal'])) == 6 ? 'Sabtu' : 'Minggu') : (date('N', strtotime($forecastDay['tanggal'])) == 1 ? 'Senin' : (date('N', strtotime($forecastDay['tanggal'])) == 2 ? 'Selasa' : (date('N', strtotime($forecastDay['tanggal'])) == 3 ? 'Rabu' : (date('N', strtotime($forecastDay['tanggal'])) == 4 ? 'Kamis' : 'Jumat'))));
-                                    @endphp
-                                    <div class="d-flex justify-content-between align-items-center list-proj-item">
-                                        <span class="text-dark fw-medium" style="font-size: 11.5px;">
-                                            {{ $dayName }}, {{ date('d M', strtotime($forecastDay['tanggal'])) }}
-                                            @if($isWeekend)
-                                                <span class="badge bg-warning-subtle text-warning px-1.5 py-0.5 rounded-pill ms-1" style="font-size: 8px;">Weekend</span>
-                                            @endif
-                                        </span>
-                                        <span class="fw-bold text-dark" style="font-variant-numeric: tabular-nums;">Rp {{ number_format($forecastDay['pendapatan'], 0, ',', '.') }}</span>
-                                    </div>
-                                @endforeach
+                            <div class="d-flex flex-column gap-2" id="forecast-daily-list" style="max-height: 185px; overflow-y: auto; padding-right: 2px;">
+                                <!-- Will be filled dynamically -->
                             </div>
                         </div>
 
@@ -401,18 +395,17 @@
                             <h6 class="fw-bold text-info d-flex align-items-center mb-2" style="font-size: 11.5px;">
                                 <i class="bi bi-lightbulb-fill text-warning me-1.5 animate-pulse"></i> Rekomendasi AI (SVR-GWO):
                             </h6>
-                            <ul class="mb-0 ps-3 text-secondary" style="font-size: 11px; line-height: 1.5; padding-left: 1.2rem !important;">
-                                @foreach($futureForecast['recommendations'] as $rec)
-                                    <li class="mb-1">{{ $rec }}</li>
-                                @endforeach
+                            <ul class="mb-0 ps-3 text-secondary" id="forecast-recommendations" style="font-size: 11px; line-height: 1.5; padding-left: 1.2rem !important;">
+                                <!-- Will be filled dynamically -->
                             </ul>
                         </div>
-                    @else
-                        <div class="text-center py-5 my-auto">
-                            <i class="bi bi-robot text-muted d-block fs-2 mb-2"></i>
-                            <span class="text-muted small d-block">Gagal memuat proyeksi masa depan. Pastikan server FastAPI ML aktif di port 8000.</span>
-                        </div>
-                    @endif
+                    </div>
+
+                    <!-- Error State (hidden by default) -->
+                    <div class="text-center py-5 my-auto" id="forecast-error-state" style="display: none !important;">
+                        <i class="bi bi-robot text-muted d-block fs-2 mb-2"></i>
+                        <span class="text-muted small d-block" id="forecast-error-msg">Gagal memuat proyeksi masa depan.</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -571,6 +564,12 @@
     @endif
 
     <!-- Evaluasi Model Cards (MAE, RMSE, MAPE, R2) -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0 text-dark" style="font-size: 14px;"><i class="bi bi-award-fill me-2 text-primary"></i>Metrik Evaluasi Akurasi Model</h5>
+        <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#accuracyCriteriaModal" style="border-radius: 8px; font-size: 11.5px; padding: 4px 10px;">
+            <i class="bi bi-info-circle"></i> Acuan Kriteria Akurasi
+        </button>
+    </div>
     <div class="row g-3">
         <div class="col-md-3">
             <div class="card border-0 report-card-summary text-center">
@@ -610,6 +609,83 @@
 @endsection
 
 @section('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const forecastCard = document.getElementById('future-forecast-card-body');
+        if (forecastCard) {
+            const rayonId = forecastCard.getAttribute('data-rayon-id') || 0;
+            const forecastUrl = forecastCard.getAttribute('data-forecast-url');
+            
+            const loadingState = document.getElementById('forecast-loading-state');
+            const contentState = document.getElementById('forecast-content-state');
+            const errorState = document.getElementById('forecast-error-state');
+            const errorMsg = document.getElementById('forecast-error-msg');
+            
+            fetch(`${forecastUrl}?rayon_id=${rayonId}`)
+                .then(response => response.json())
+                .then(res => {
+                    if (res.success && res.data) {
+                        const data = res.data;
+                        
+                        document.getElementById('forecast-total-predicted').innerText = data.total_predicted;
+                        document.getElementById('forecast-avg-predicted').innerText = data.avg_predicted;
+                        
+                        const dailyList = document.getElementById('forecast-daily-list');
+                        dailyList.innerHTML = '';
+                        
+                        if (data.detail_harian && data.detail_harian.length > 0) {
+                            data.detail_harian.forEach(day => {
+                                const dateObj = new Date(day.tanggal);
+                                const dayNum = dateObj.getDay();
+                                const isWeekend = dayNum === 0 || dayNum === 6;
+                                
+                                const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                                const dayName = dayNames[dayNum];
+                                
+                                const options = { day: 'numeric', month: 'short' };
+                                const formattedDate = dateObj.toLocaleDateString('id-ID', options);
+                                
+                                const formattedVal = new Intl.NumberFormat('id-ID').format(day.pendapatan);
+                                const weekendBadge = isWeekend ? `<span class="badge bg-warning-subtle text-warning px-1.5 py-0.5 rounded-pill ms-1" style="font-size: 8px;">Weekend</span>` : '';
+                                
+                                const dayHtml = `
+                                    <div class="d-flex justify-content-between align-items-center list-proj-item">
+                                        <span class="text-dark fw-medium" style="font-size: 11.5px;">
+                                            ${dayName}, ${formattedDate}
+                                            ${weekendBadge}
+                                        </span>
+                                        <span class="fw-bold text-dark" style="font-variant-numeric: tabular-nums;">Rp ${formattedVal}</span>
+                                    </div>
+                                `;
+                                dailyList.insertAdjacentHTML('beforeend', dayHtml);
+                            });
+                        }
+                        
+                        const recsList = document.getElementById('forecast-recommendations');
+                        recsList.innerHTML = '';
+                        if (data.recommendations && data.recommendations.length > 0) {
+                            data.recommendations.forEach(rec => {
+                                recsList.insertAdjacentHTML('beforeend', `<li class="mb-1">${rec}</li>`);
+                            });
+                        } else {
+                            recsList.insertAdjacentHTML('beforeend', `<li class="mb-1 text-muted">Tidak ada rekomendasi spesifik.</li>`);
+                        }
+                        
+                        loadingState.style.setProperty('display', 'none', 'important');
+                        contentState.style.setProperty('display', 'flex', 'important');
+                    } else {
+                        throw new Error(res.message || 'Gagal mengambil data proyeksi.');
+                    }
+                })
+                .catch(err => {
+                    loadingState.style.setProperty('display', 'none', 'important');
+                    if (errorMsg) errorMsg.innerText = err.message || 'Gagal memuat proyeksi masa depan. Pastikan server FastAPI ML aktif di port 8000.';
+                    errorState.style.setProperty('display', 'block', 'important');
+                });
+        }
+    });
+</script>
+
 @if(count($chartActualValues) > 0)
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>

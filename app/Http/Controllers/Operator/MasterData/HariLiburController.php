@@ -13,26 +13,20 @@ class HariLiburController extends Controller
 {
     public function index(Request $request)
     {
-        $query = HariLibur::orderBy('tanggal', 'desc');
+        // Fetch distinct years dynamically in a DB-agnostic way, always including current year
+        $availableYears = HariLibur::orderBy('tanggal', 'desc')->pluck('tanggal')
+            ->map(fn($date) => Carbon::parse($date)->format('Y'))
+            ->push(date('Y'))
+            ->unique()
+            ->values()
+            ->sortDesc();
 
-        if ($request->filled('search')) {
-            $query->where('keterangan', 'like', "%{$request->search}%");
-        }
+        return view('operator.master-data.hari-libur.index', compact('availableYears'));
+    }
 
-        $year = $request->get('year');
-        if ($year === null) {
-            $year = date('Y');
-        }
-
-        if ($year !== 'all' && $year !== '') {
-            $query->whereYear('tanggal', $year);
-        }
-
-        if ($request->filled('tipe')) {
-            $query->where('tipe', $request->tipe);
-        }
-
-        $hariLiburs = $query->paginate(10)->onEachSide(1)->withQueryString();
+    public function data()
+    {
+        $hariLiburs = HariLibur::orderBy('tanggal', 'desc')->get();
         
         // Map day names to Indonesian
         $dayMapping = [
@@ -50,15 +44,7 @@ class HariLiburController extends Controller
             $libur->hari = $dayMapping[$englishDay] ?? $englishDay;
         }
 
-        // Fetch distinct years dynamically in a DB-agnostic way, always including current year
-        $availableYears = HariLibur::orderBy('tanggal', 'desc')->pluck('tanggal')
-            ->map(fn($date) => Carbon::parse($date)->format('Y'))
-            ->push(date('Y'))
-            ->unique()
-            ->values()
-            ->sortDesc();
-
-        return view('operator.master-data.hari-libur.index', compact('hariLiburs', 'availableYears'));
+        return response()->json(['data' => $hariLiburs]);
     }
 
     public function create()

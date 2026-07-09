@@ -14,33 +14,14 @@ class PendapatanController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Pendapatan::with(['rayon', 'juruParkir'])->orderBy('tanggal', 'desc');
-
-        // Filter by Date Range
-        if ($request->filled('tanggal_mulai')) {
-            $query->whereDate('tanggal', '>=', $request->tanggal_mulai);
-        }
-        if ($request->filled('tanggal_selesai')) {
-            $query->whereDate('tanggal', '<=', $request->tanggal_selesai);
-        }
-
-        // Filter by Rayon
-        if ($request->filled('rayon_id')) {
-            $query->where('rayon_id', $request->rayon_id);
-        }
-
-        // Search by Rayon Name
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->whereHas('rayon', function($q) use ($search) {
-                $q->where('nama_rayon', 'like', "%{$search}%");
-            });
-        }
-
-        $pendapatans = $query->paginate(10)->onEachSide(1)->withQueryString();
         $rayons = Rayon::all();
+        return view('operator.master-data.pendapatan.index', compact('rayons'));
+    }
 
-        return view('operator.master-data.pendapatan.index', compact('pendapatans', 'rayons'));
+    public function data()
+    {
+        $pendapatans = Pendapatan::with(['rayon', 'juruParkir'])->orderBy('tanggal', 'desc')->get();
+        return response()->json(['data' => $pendapatans]);
     }
 
     public function create()

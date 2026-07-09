@@ -178,7 +178,12 @@
         </div>
 
         <!-- Evaluasi Model Cards -->
-        <h5 class="fw-bold mb-3 text-dark" style="font-size: 14px;"><i class="bi bi-award-fill me-2 text-primary"></i>Hasil Evaluasi Tingkat Akurasi</h5>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0 text-dark" style="font-size: 14px;"><i class="bi bi-award-fill me-2 text-primary"></i>Hasil Evaluasi Tingkat Akurasi</h5>
+            <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#accuracyCriteriaModal" style="border-radius: 8px; font-size: 11.5px; padding: 4px 10px;">
+                <i class="bi bi-info-circle"></i> Acuan Kriteria Akurasi
+            </button>
+        </div>
         <div class="row g-3 mb-4">
             <div class="col-md-3">
                 <div class="card text-center" style="border-radius: 12px; padding: 12px;">
@@ -336,10 +341,23 @@
             <div class="col-12">
                 <div class="card mb-0 bg-white" style="border-radius: 12px; padding: 20px 24px;">
                     <div class="card-body p-0">
-                        <h5 class="card-title" style="font-size: 14px;"><i class="bi bi-table me-2 text-primary"></i>Tabel Hasil Prediksi (Data Testing)</h5>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title mb-0" style="font-size: 14px;"><i class="bi bi-table me-2 text-primary"></i>Tabel Hasil Prediksi (Data Testing)</h5>
+                            
+                            <!-- Rayon Filter -->
+                            <div class="d-flex align-items-center gap-2">
+                                <label for="filter_rayon_id" class="small fw-semibold text-secondary text-nowrap mb-0" style="font-size: 11.5px;">Filter Rayon:</label>
+                                <select id="filter_rayon_id" name="rayon_id" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 12px; height: 32px; width: auto;">
+                                    <option value="0">Semua Rayon</option>
+                                    @foreach($rayons as $rayon)
+                                        <option value="{{ $rayon->id }}">{{ $rayon->nama_rayon }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
                         
                         <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0" style="font-size: 12.5px;">
+                            <table class="table table-hover align-middle mb-0" id="predictionTable" style="font-size: 12.5px;">
                                 <thead>
                                     <tr class="table-light">
                                         <th style="width: 50px;">No</th>
@@ -352,42 +370,11 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse($predictions as $index => $pred)
-                                        @php
-                                            $absError = abs($pred->actual_value - $pred->predicted_value);
-                                        @endphp
-                                        <tr>
-                                            <td>{{ $predictions->firstItem() + $index }}</td>
-                                            <td>{{ date('d-m-Y', strtotime($pred->tanggal)) }}</td>
-                                            <td>
-                                                <span class="badge bg-primary-subtle text-primary px-2 py-1" style="font-size: 10px;">
-                                                    {{ $pred->rayon_name }}
-                                                </span>
-                                            </td>
-                                            <td style="text-align: right;">Rp {{ number_format($pred->actual_value, 0, ',', '.') }}</td>
-                                            <td style="text-align: right; font-weight: 600;">Rp {{ number_format($pred->predicted_value, 0, ',', '.') }}</td>
-                                            <td style="text-align: right; font-weight: 600; color: #dc2626;">Rp {{ number_format($absError, 0, ',', '.') }}</td>
-                                            <td style="text-align: right;">{{ number_format($pred->percentage_error, 2, ',', '.') }}%</td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="7" class="text-center text-secondary py-4">Belum ada hasil prediksi tersimpan.</td>
-                                        </tr>
-                                    @endforelse
                                 </tbody>
                             </table>
                         </div>
                         
-                        @if($predictions->hasPages())
-                            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-                                <span class="text-secondary small" style="font-size: 11px;">
-                                    Menampilkan {{ $predictions->firstItem() }} - {{ $predictions->lastItem() }} dari {{ $predictions->total() }} entri
-                                </span>
-                                <div class="pagination-sm">
-                                    {{ $predictions->links('components.pagination') }}
-                                </div>
-                            </div>
-                        @endif
+
                     </div>
                 </div>
             </div>
@@ -492,6 +479,74 @@
                         }
                     }
                 }
+            });
+            // Initialize Prediction DataTable
+            const predTable = $('#predictionTable').DataTable({
+                processing: true,
+                ajax: {
+                    url: '{{ route("kepala-upt.prediksi.data") }}',
+                    data: function (d) {
+                        d.rayon_id = $('#filter_rayon_id').val();
+                    }
+                },
+                columns: [
+                    { 
+                        data: null, 
+                        render: function (data, type, row, meta) {
+                            return meta.row + 1;
+                        }
+                    },
+                    { 
+                        data: 'tanggal',
+                        render: function (data) {
+                            const dateParts = data.split('-');
+                            return dateParts[2] + '-' + dateParts[1] + '-' + dateParts[0];
+                        }
+                    },
+                    { 
+                        data: 'rayon_name',
+                        render: function (data) {
+                            return `<span class="badge bg-primary-subtle text-primary px-2 py-1" style="font-size: 10px;">${data}</span>`;
+                        }
+                    },
+                    { 
+                        data: 'actual_value', 
+                        className: 'text-end',
+                        render: function (data) {
+                            return 'Rp ' + parseInt(data).toLocaleString('id-ID');
+                        }
+                    },
+                    { 
+                        data: 'predicted_value', 
+                        className: 'text-end fw-semibold',
+                        render: function (data) {
+                            return 'Rp ' + parseInt(data).toLocaleString('id-ID');
+                        }
+                    },
+                    { 
+                        data: null, 
+                        className: 'text-end fw-semibold text-danger',
+                        render: function (data, type, row) {
+                            const absError = Math.abs(row.actual_value - row.predicted_value);
+                            return 'Rp ' + absError.toLocaleString('id-ID');
+                        }
+                    },
+                    { 
+                        data: 'percentage_error', 
+                        className: 'text-end',
+                        render: function (data) {
+                            return parseFloat(data).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+                        }
+                    }
+                ],
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/id.json'
+                }
+            });
+
+            // Trigger AJAX reload on rayon filter change
+            $('#filter_rayon_id').on('change', function() {
+                predTable.ajax.reload();
             });
         });
     </script>

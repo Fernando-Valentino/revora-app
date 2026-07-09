@@ -66,6 +66,7 @@ class OperatorPrediksiController extends Controller
         $predictions = collect([]);
         $chartData = collect([]);
         
+        $pipelineData = null;
         if ($lastRun) {
             $params = $lastRun->modelParameter;
             $metrics = $lastRun->modelMetrics()->where('dataset_type', 'test')->first();
@@ -84,14 +85,12 @@ class OperatorPrediksiController extends Controller
                     ->get();
             }
                 
-            // Query for table (with pagination and optional filters)
-            $predictionsQuery = $lastRun->predictionResults()->orderBy('tanggal', 'desc');
-            
-            if ($request->filled('rayon_id') && $request->rayon_id > 0) {
-                $predictionsQuery->where('rayon_id', $request->rayon_id);
+            $predictions = collect([]);
+
+            $filePath = storage_path('app/preprocessing_svr_default.json');
+            if (file_exists($filePath)) {
+                $pipelineData = json_decode(file_get_contents($filePath), true);
             }
-            
-            $predictions = $predictionsQuery->paginate(10)->withQueryString();
         }
         
         $rayons = Rayon::all();
@@ -118,6 +117,10 @@ class OperatorPrediksiController extends Controller
                 'libur_nasional' => $isLibur
             ];
         }
+        $historyRuns = ModelRun::where('model_type', 'svr_default')
+            ->where('status', 'success')
+            ->orderBy('id', 'desc')
+            ->get();
         
         return view('operator.prediksi.index', compact(
             'totalPendapatan',
@@ -141,8 +144,31 @@ class OperatorPrediksiController extends Controller
             'predictions',
             'chartData',
             'rayons',
-            'rawSnapshot'
+            'rawSnapshot',
+            'historyRuns',
+            'pipelineData'
         ));
+    }
+
+    public function data(Request $request)
+    {
+        $lastRun = ModelRun::where('model_type', 'svr_default')
+            ->where('status', 'success')
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if (!$lastRun) {
+            return response()->json(['data' => []]);
+        }
+
+        $predictionsQuery = $lastRun->predictionResults()->orderBy('tanggal', 'desc');
+
+        if ($request->filled('rayon_id') && $request->rayon_id > 0) {
+            $predictionsQuery->where('rayon_id', $request->rayon_id);
+        }
+
+        $predictions = $predictionsQuery->get();
+        return response()->json(['data' => $predictions]);
     }
 
     public function runSvr(Request $request)
@@ -246,6 +272,12 @@ class OperatorPrediksiController extends Controller
                         'train_period' => $response['dataset']['train_period'],
                         'test_period' => $response['dataset']['test_period'],
                     ]);
+
+                    // Simpan Preprocessing Pipeline Data Snapshot ke File JSON
+                    if (isset($response['pipeline_snapshots'])) {
+                        $snapshotsPath = storage_path('app/preprocessing_svr_default.json');
+                        file_put_contents($snapshotsPath, json_encode($response['pipeline_snapshots'], JSON_PRETTY_PRINT));
+                    }
                     
                     // Simpan Parameter
                     ModelParameter::create([
@@ -333,19 +365,33 @@ class OperatorPrediksiController extends Controller
         }
     }
 
-    public function resetSvr()
+    public function resetSvr(Request $request)
     {
         DB::beginTransaction();
         try {
-            // Hapus semua model run dengan tipe svr_default (cascade delete akan menghapus parameter, metrik, dan hasil prediksi)
-            ModelRun::where('model_type', 'svr_default')->delete();
+            if ($request->filled('id')) {
+                $run = ModelRun::where('model_type', 'svr_default')->findOrFail($request->id);
+                $run->delete();
+                $msg = 'Riwayat pelatihan model berhasil dihapus.';
+            } else {
+                // Hapus semua model run dengan tipe svr_default (cascade delete akan menghapus parameter, metrik, dan hasil prediksi)
+                ModelRun::where('model_type', 'svr_default')->delete();
+                
+                // Hapus file JSON preprocessing
+                $snapshotsPath = storage_path('app/preprocessing_svr_default.json');
+                if (file_exists($snapshotsPath)) {
+                    unlink($snapshotsPath);
+                }
+                
+                $msg = 'Model SVR Standar berhasil di-reset. Semua riwayat training dan prediksi telah dihapus.';
+            }
             
             DB::commit();
             
-            return redirect()->route('operator.prediksi.index')->with('success', 'Model SVR Standar berhasil di-reset. Semua riwayat training dan prediksi telah dihapus.');
+            return redirect()->route('operator.prediksi.index')->with('success', $msg);
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->route('operator.prediksi.index')->with('error', 'Gagal melakukan reset model: ' . $e->getMessage());
+            return redirect()->route('operator.prediksi.index')->with('error', 'Gagal memproses penghapusan: ' . $e->getMessage());
         }
     }
 }
