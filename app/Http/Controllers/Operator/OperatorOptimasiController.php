@@ -98,6 +98,23 @@ class OperatorOptimasiController extends Controller
 
         // Ringkasan Dataset dari database
         $totalPendapatan = Pendapatan::count();
+
+        // Jika data pendapatan berubah/direset, hapus semua riwayat training yang usang
+        if ($lastRun && $lastRun->total_rows !== $totalPendapatan) {
+            DB::beginTransaction();
+            try {
+                ModelRun::query()->delete();
+                $snapshotsPath = storage_path('app/preprocessing_svr_default.json');
+                if (file_exists($snapshotsPath)) {
+                    unlink($snapshotsPath);
+                }
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+            }
+            $lastRun = null;
+        }
+
         $periodeAwal = Pendapatan::min('tanggal');
         $periodeAkhir = Pendapatan::max('tanggal');
         
@@ -457,7 +474,7 @@ class OperatorOptimasiController extends Controller
                     'status'       => 'success',
                     'started_at'   => now(),
                     'finished_at'  => now(),
-                    'total_rows'   => $response['dataset']['total_rows'],
+                    'total_rows'   => count($dataset),
                     'train_rows'   => $response['dataset']['train_rows'],
                     'test_rows'    => $response['dataset']['test_rows'],
                     'train_period' => $response['dataset']['train_period'],
@@ -654,7 +671,7 @@ class OperatorOptimasiController extends Controller
                     'status'       => 'success',
                     'started_at'   => now(),
                     'finished_at'  => now(),
-                    'total_rows'   => $response['dataset']['total_rows'],
+                    'total_rows'   => count($dataset),
                     'train_rows'   => $response['dataset']['train_rows'],
                     'test_rows'    => $response['dataset']['test_rows'],
                     'train_period' => $response['dataset']['train_period'],
@@ -776,23 +793,30 @@ class OperatorOptimasiController extends Controller
 
     public function resetOptimasi(Request $request)
     {
-        $target = $request->input('target');
-        if (!in_array($target, ['grid_search', 'gwo'])) {
-            return redirect()->route('operator.optimasi.index')->with('error', 'Target reset tidak valid.');
-        }
-
-        $modelType = $target === 'grid_search' ? 'svr_grid_search' : 'svr_gwo';
-        $modelName = $target === 'grid_search' ? 'Grid Search' : 'Grey Wolf Optimizer (GWO)';
-
         DB::beginTransaction();
         try {
-            ModelRun::where('model_type', $modelType)->delete();
+            if ($request->filled('id')) {
+                $run = ModelRun::findOrFail($request->id);
+                $modelName = $run->model_type === 'svr_grid_search' ? 'Grid Search' : 'Grey Wolf Optimizer (GWO)';
+                $run->delete();
+                $msg = "Riwayat pelatihan model {$modelName} berhasil dihapus.";
+            } else {
+                $target = $request->input('target');
+                if (!in_array($target, ['grid_search', 'gwo'])) {
+                    return redirect()->route('operator.optimasi.index')->with('error', 'Target reset tidak valid.');
+                }
+                $modelType = $target === 'grid_search' ? 'svr_grid_search' : 'svr_gwo';
+                $modelName = $target === 'grid_search' ? 'Grid Search' : 'Grey Wolf Optimizer (GWO)';
+                
+                ModelRun::where('model_type', $modelType)->delete();
+                $msg = "Model Optimasi {$modelName} berhasil di-reset. Semua riwayat training dan parameter optimal terkait telah dihapus.";
+            }
             DB::commit();
             
-            return redirect()->route('operator.optimasi.index')->with('success', "Model Optimasi {$modelName} berhasil di-reset. Semua riwayat training dan parameter optimal terkait telah dihapus.");
+            return redirect()->route('operator.optimasi.index')->with('success', $msg);
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->route('operator.optimasi.index')->with('error', "Gagal melakukan reset model optimasi {$modelName}: " . $e->getMessage());
+            return redirect()->route('operator.optimasi.index')->with('error', 'Gagal memproses penghapusan: ' . $e->getMessage());
         }
     }
 }

@@ -55,65 +55,7 @@
             
             $rmsePercentage = $meanActual > 0 ? ($rmseVal / $meanActual) * 100 : 0;
             
-            // 1. Klasifikasi MAPE
-            if ($mapeVal < 10) {
-                $mapeCategory = "Sangat Akurat";
-                $mapeDesc = "Rata-rata kesalahan tebakan sangat kecil (di bawah 10%). Hasil perkiraan sangat mendekati kenyataan pendapatan lapangan.";
-                $mapeColor = "text-success border-success bg-success-subtle";
-                $mapeAlertClass = "alert-success text-success-emphasis bg-success-subtle border-success-subtle";
-                $mapeIcon = "bi-patch-check-fill text-success";
-            } elseif ($mapeVal <= 20) {
-                $mapeCategory = "Baik";
-                $mapeDesc = "Rata-rata kesalahan tebakan rendah (10% - 20%). Hasil perkiraan andal dan layak dijadikan acuan target pendapatan.";
-                $mapeColor = "text-primary border-primary bg-primary-subtle";
-                $mapeAlertClass = "alert-primary text-primary-emphasis bg-primary-subtle border-primary-subtle";
-                $mapeIcon = "bi-check-circle-fill text-primary";
-            } elseif ($mapeVal <= 50) {
-                $mapeCategory = "Cukup Akurat";
-                $mapeDesc = "Rata-rata kesalahan tebakan model sedang (20% - 50%). Hasil perkiraan cukup memadai namun memerlukan pemantauan berkala.";
-                $mapeColor = "text-warning border-warning bg-warning-subtle";
-                $mapeAlertClass = "alert-warning text-warning-emphasis bg-warning-subtle border-warning-subtle";
-                $mapeIcon = "bi-exclamation-triangle-fill text-warning";
-            } else {
-                $mapeCategory = "Kurang Akurat";
-                $mapeDesc = "Rata-rata kesalahan tebakan sangat tinggi (di atas 50%). Model kurang direkomendasikan untuk target perencanaan.";
-                $mapeColor = "text-danger border-danger bg-danger-subtle";
-                $mapeAlertClass = "alert-danger text-danger-emphasis bg-danger-subtle border-danger-subtle";
-                $mapeIcon = "bi-x-circle-fill text-danger";
-            }
-
-            // 2. Klasifikasi R2 Score
-            if ($r2Val >= 0.67) {
-                $r2Category = "Model Kuat";
-                $r2Desc = "Model mampu membaca fluktuasi pola naik-turun transaksi pendapatan harian secara sangat kuat dan tepat.";
-                $r2Icon = "bi-graph-up text-success";
-            } elseif ($r2Val >= 0.33) {
-                $r2Category = "Model Moderat";
-                $r2Desc = "Model cukup baik dalam mengikuti pola naik-turun transaksi, walaupun dipengaruhi variabilitas luar.";
-                $r2Icon = "bi-graph-up text-primary";
-            } else {
-                $r2Category = "Model Lemah";
-                $r2Desc = "Model kurang sensitif membaca pola naik-turun transaksi harian pendapatan parkir.";
-                $r2Icon = "bi-graph-up text-danger";
-            }
-
-            // 3. Klasifikasi RMSE
-            if ($rmsePercentage < 10) {
-                $rmseCategory = "Sangat Kecil (Bagus)";
-                $rmseDesc = "Rata-rata penyimpangan nominal tebakan berada di batas aman (hanya <strong>" . number_format($rmsePercentage, 2, ',', '.') . "%</strong> dari rata-rata transaksi).";
-                $rmseColor = "text-success";
-                $rmseIcon = "bi-shield-check-fill text-success";
-            } else {
-                $rmseCategory = "Perlu Perbaikan (Lebar)";
-                $rmseDesc = "Rata-rata selisih nominal uang harian melampaui batas toleransi 10% (yaitu sebesar <strong>" . number_format($rmsePercentage, 2, ',', '.') . "%</strong> dari rata-rata pendapatan harian).";
-                $rmseColor = "text-warning";
-                $rmseIcon = "bi-exclamation-octagon-fill text-warning";
-            }
-
-            // 4. MAE
-            $maeCategory = "Sangat Presisi";
-            $maeDesc = "Rata-rata selisih nominal uang harian secara mutlak adalah <strong>Rp " . number_format($maeVal, 0, ',', '.') . "</strong>. Angka ini membuktikan keakuratan model dalam nilai rupiah.";
-            $maeIcon = "bi-pin-map-fill text-primary";
+            // Metrik sudah diproses di komponen Blade secara terpusat
 
             // Analysis variables
             $totalActualSum = array_sum($chartActualValues);
@@ -216,75 +158,15 @@
             <div class="card-body p-0">
                 <h5 class="card-title text-dark mb-3" style="font-size: 14px;"><i class="bi bi-chat-left-text-fill me-2 text-primary"></i>Analisis Kinerja & Rekomendasi Model</h5>
                 
-                <div class="row g-3">
-                    <!-- Penjelasan Analisis -->
-                    <div class="col-md-7">
-                        <h6 class="fw-bold text-secondary text-uppercase mb-2 shadow-none border-0 pb-0" style="font-size: 10px; letter-spacing: 0.5px;">Keterangan Hasil Analisis</h6>
-                        <div class="d-flex flex-column gap-3">
-                            <!-- Card MAPE -->
-                            <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
-                                <div class="fs-4"><i class="bi {{ $mapeIcon }}"></i></div>
-                                <div>
-                                    <div class="fw-bold text-dark mb-1" style="font-size: 13px;">Kesalahan Perkiraan (MAPE: {{ number_format($mapeVal, 2, ',', '.') }}%): <span class="{{ explode(' ', $mapeColor)[0] }}">{{ $mapeCategory }}</span></div>
-                                    <div class="text-secondary small" style="line-height: 1.5; font-size: 11.5px;">{!! $mapeDesc !!}</div>
-                                </div>
-                            </div>
-                            
-                            <!-- Card R2 -->
-                            <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
-                                <div class="fs-4"><i class="bi {{ $r2Icon }}"></i></div>
-                                <div>
-                                    <div class="fw-bold text-dark mb-1" style="font-size: 13px;">Pola Pendapatan (R² Score: {{ number_format($r2Val, 4, ',', '.') }}): <span class="text-dark">{{ $r2Category }}</span></div>
-                                    <div class="text-secondary small" style="line-height: 1.5; font-size: 11.5px;">{!! $r2Desc !!}</div>
-                                </div>
-                            </div>
-
-                            <!-- Card RMSE -->
-                            <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
-                                <div class="fs-4"><i class="bi {{ $rmseIcon }}"></i></div>
-                                <div>
-                                    <div class="fw-bold text-dark mb-1" style="font-size: 13px;">Penyimpangan Nominal (RMSE): <span class="{{ $rmseColor }}">{{ $rmseCategory }}</span></div>
-                                    <div class="text-secondary small" style="line-height: 1.5; font-size: 11.5px;">{!! $rmseDesc !!}</div>
-                                </div>
-                            </div>
-
-                            <!-- Card MAE -->
-                            <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
-                                <div class="fs-4"><i class="bi {{ $maeIcon }}"></i></div>
-                                <div>
-                                    <div class="fw-bold text-dark mb-1" style="font-size: 13px;">Penyimpangan Rupiah (MAE): <span class="text-primary">{{ $maeCategory }}</span></div>
-                                    <div class="text-secondary small" style="line-height: 1.5; font-size: 11.5px;">{!! $maeDesc !!}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Rekomendasi Tindakan -->
-                    <div class="col-md-5">
-                        <div class="p-3 rounded-3 h-100 {{ $mapeAlertClass }} border border-0">
-                            <h6 class="fw-bold text-uppercase mb-3 d-flex align-items-center" style="font-size: 11px; letter-spacing: 0.5px;">
-                                <i class="bi bi-lightbulb-fill me-2 fs-5"></i>Kesimpulan & Rekomendasi
-                            </h6>
-                            <div style="font-size: 12.5px; line-height: 1.6;">
-                                @if($mapeVal < 20 && $r2Val >= 0.33)
-                                    <p class="mb-3">
-                                        <strong>Model Siap Dijadikan Acuan:</strong> Hasil evaluasi menunjukkan model memiliki tingkat kesalahan rendah dan kemampuan pola yang memadai. Sangat layak digunakan oleh UPT untuk penyusunan sasaran pendapatan harian.
-                                    </p>
-                                    <ul class="list-unstyled d-flex flex-column gap-2 mb-0" style="font-size: 12px;">
-                                        <li class="d-flex align-items-start gap-2">
-                                            <i class="bi bi-check2-circle text-success flex-shrink-0 mt-0.5"></i>
-                                            <span>Jadikan nilai proyeksi sebagai target operasional resmi jukir di lapangan.</span>
-                                        </li>
-                                    </ul>
-                                @else
-                                    <p class="mb-3">
-                                        <strong>Rekomendasikan Pelatihan Ulang:</strong> Nilai akurasi saat ini masih kurang ideal. Rekomendasikan kepada operator untuk menjalankan pelatihan ulang (optimasi parameter C, Epsilon, Gamma) menggunakan metode Grey Wolf Optimizer (GWO) agar setelan parameter model lebih presisi.
-                                    </p>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <x-model-analysis-results
+                    :mape="$mapeVal"
+                    :r2="$r2Val"
+                    :rmse="$rmseVal"
+                    :mae="$maeVal"
+                    :meanActual="$meanActual"
+                    target="svr_default_upt"
+                    recTitle="Kesimpulan & Rekomendasi"
+                />
             </div>
         </div>
 

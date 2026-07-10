@@ -61,6 +61,22 @@ class OperatorPrediksiController extends Controller
             ->orderBy('id', 'desc')
             ->first();
             
+        // Jika data pendapatan berubah/direset, hapus semua riwayat training yang usang
+        if ($lastRun && $lastRun->total_rows !== $totalPendapatan) {
+            DB::beginTransaction();
+            try {
+                ModelRun::query()->delete();
+                $snapshotsPath = storage_path('app/preprocessing_svr_default.json');
+                if (file_exists($snapshotsPath)) {
+                    unlink($snapshotsPath);
+                }
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+            }
+            $lastRun = null;
+        }
+            
         $params = null;
         $metrics = null;
         $predictions = collect([]);
@@ -266,7 +282,7 @@ class OperatorPrediksiController extends Controller
                     $modelRun->update([
                         'status' => 'success',
                         'finished_at' => now(),
-                        'total_rows' => $response['dataset']['total_rows'],
+                        'total_rows' => count($dataset),
                         'train_rows' => $response['dataset']['train_rows'],
                         'test_rows' => $response['dataset']['test_rows'],
                         'train_period' => $response['dataset']['train_period'],

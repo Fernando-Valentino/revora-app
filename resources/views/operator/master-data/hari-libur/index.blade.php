@@ -5,26 +5,19 @@
 
 @section('content')
 <div class="container-fluid p-0">
-    <!-- Toolbar (Bootstrap Row / Col) -->
-    <div class="row mb-4">
-        <div class="col text-end">
-            <div class="d-inline-flex gap-2">
-                <button type="button" class="btn btn-border" data-bs-toggle="modal" data-bs-target="#generateLiburModal">
-                    <i class="bi bi-calendar-check me-1"></i> Generate Otomatis
-                </button>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLiburModal">
-                    <i class="bi bi-plus-lg me-1"></i> Tambah Data
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Table Card -->
     <div class="card">
         <div class="card-body">
             <!-- Table Header Toolbar -->
-            <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom flex-wrap gap-3">
-                <h5 class="card-title mb-0" style="border-bottom: none !important; padding-bottom: 0 !important;">Daftar Data Hari Libur & Weekend</h5>
+            <div class="d-flex justify-content-end align-items-center mb-3 pb-3 border-bottom flex-wrap gap-3">
+                <div class="d-inline-flex gap-2">
+                    <button type="button" class="btn btn-border" data-bs-toggle="modal" data-bs-target="#generateLiburModal">
+                        <i class="bi bi-calendar-check me-1"></i> Generate Otomatis
+                    </button>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLiburModal">
+                        <i class="bi bi-plus-lg me-1"></i> Tambah Data
+                    </button>
+                </div>
             </div>
             
             <div class="table-responsive">

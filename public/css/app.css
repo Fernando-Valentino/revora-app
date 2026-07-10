@@ -653,23 +653,104 @@ body {
 .btn-action {
     background: none;
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 4px 6px;
+    border-radius: 6px;
+    padding: 6px 10px;
     cursor: pointer;
     font-size: 14px;
     transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.btn-action:hover {
-    background-color: var(--primary-blue-light);
-    border-color: var(--primary-blue);
-    color: var(--primary-blue);
+/* Edit Button - Warning themed */
+.btn-action.btn-edit {
+    background-color: var(--warning-bg) !important;
+    border-color: #FDE68A !important;
+    color: #D97706 !important;
+}
+
+.btn-action.btn-edit:hover {
+    background-color: var(--warning) !important;
+    border-color: var(--warning) !important;
+    color: #FFFFFF !important;
+}
+
+/* Delete Button - Danger themed */
+.btn-action.btn-delete {
+    background-color: var(--danger-bg) !important;
+    border-color: #FCA5A5 !important;
+    color: var(--danger) !important;
 }
 
 .btn-action.btn-delete:hover {
-    background-color: var(--danger-bg);
-    border-color: #FCA5A5;
-    color: var(--danger);
+    background-color: var(--danger) !important;
+    border-color: var(--danger) !important;
+    color: #FFFFFF !important;
+}
+
+/* DataTables wrapper styling overrides */
+.dataTables_wrapper {
+    font-size: 13px !important;
+}
+
+.dataTables_length,
+.dataTables_filter,
+.dataTables_info,
+.dataTables_paginate {
+    font-size: 12.5px !important;
+    color: var(--text-secondary) !important;
+}
+
+.dataTables_length label,
+.dataTables_filter label {
+    color: var(--text-secondary) !important;
+    font-weight: 500 !important;
+}
+
+.dataTables_length select {
+    padding: 4px 24px 4px 8px !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+    font-size: 12px !important;
+    color: var(--text-primary) !important;
+    background-color: var(--surface) !important;
+    outline: none !important;
+}
+
+.dataTables_filter input {
+    padding: 4px 10px !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+    font-size: 12.5px !important;
+    color: var(--text-primary) !important;
+    background-color: var(--surface) !important;
+    outline: none !important;
+    height: 32px !important;
+    width: 200px !important;
+    transition: all 0.2s ease !important;
+}
+
+.dataTables_filter input:focus {
+    border-color: var(--primary-blue) !important;
+    box-shadow: 0 0 0 3px rgba(0, 91, 170, 0.08) !important;
+}
+
+.dataTables_info {
+    padding-top: 12px !important;
+}
+
+.dataTables_paginate {
+    padding-top: 8px !important;
+}
+
+/* Adjust Pagination in DataTable wrapper */
+.dataTables_wrapper .pagination .page-item .page-link {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+    min-width: 30px !important;
+    height: 30px !important;
+    border-radius: 6px !important;
 }
 
 /* 9. Pagination Styling */

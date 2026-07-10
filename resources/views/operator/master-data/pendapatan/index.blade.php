@@ -5,26 +5,40 @@
 
 @section('content')
 <div class="container-fluid p-0">
-    <!-- Toolbar (Bootstrap Row / Col) -->
-    <div class="row mb-4">
-        <div class="col text-end">
-            <div class="d-inline-flex gap-2">
-                <button type="button" class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#importPendapatanModal">
-                    <i class="bi bi-file-earmark-excel me-1"></i> Import Excel/CSV
-                </button>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPendapatanModal">
-                    <i class="bi bi-plus-lg me-1"></i> Tambah Data
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Table Card -->
     <div class="card">
         <div class="card-body">
             <!-- Table Header Toolbar -->
             <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom flex-wrap gap-3">
-                <h5 class="card-title mb-0" style="border-bottom: none !important; padding-bottom: 0 !important;">Daftar Data Pendapatan</h5>
+                <!-- Left: Date Range Filter -->
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span style="font-size: 13px; font-weight: 500; color: var(--text-secondary);">Tanggal:</span>
+                        <div style="width: 155px;">
+                            <input type="date" class="form-control" id="filter_start_date" name="start_date" style="height: 38px; font-size: 13px; border-radius: 6px;">
+                        </div>
+                        <span style="font-size: 13px; color: var(--text-secondary);">s/d</span>
+                        <div style="width: 155px;">
+                            <input type="date" class="form-control" id="filter_end_date" name="end_date" style="height: 38px; font-size: 13px; border-radius: 6px;">
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-primary fw-semibold" id="btnFilterTanggal" style="height: 38px; font-size: 13px; padding: 0 16px; gap: 4px;">
+                        <i class="bi bi-search"></i> Cari
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary bg-white text-dark" id="btnResetTanggal" style="height: 38px; width: 38px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px;" title="Reset Filter">
+                        <i class="bi bi-arrow-counterclockwise" style="font-size: 15px;"></i>
+                    </button>
+                </div>
+
+                <!-- Right: Action Buttons -->
+                <div class="d-inline-flex gap-2">
+                    <button type="button" class="btn btn-outline-dark fw-semibold" data-bs-toggle="modal" data-bs-target="#importPendapatanModal" style="height: 38px; font-size: 13px; gap: 4px;">
+                        <i class="bi bi-file-earmark-text"></i> Import CSV
+                    </button>
+                    <button type="button" class="btn btn-primary fw-semibold" data-bs-toggle="modal" data-bs-target="#addPendapatanModal" style="height: 38px; font-size: 13px; gap: 4px;">
+                        <i class="bi bi-plus-lg"></i> Tambah Data
+                    </button>
+                </div>
             </div>
             
             <div class="table-responsive">
@@ -199,7 +213,13 @@
         // Initialize DataTable
         const table = $('#pendapatanTable').DataTable({
             processing: true,
-            ajax: '{{ route("operator.pendapatan.data") }}',
+            ajax: {
+                url: '{{ route("operator.pendapatan.data") }}',
+                data: function(d) {
+                    d.start_date = $('#filter_start_date').val();
+                    d.end_date = $('#filter_end_date').val();
+                }
+            },
             columns: [
                 { 
                     data: null, 
@@ -260,6 +280,17 @@
             language: {
                 url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/id.json'
             }
+        });
+
+        // Filter Tanggal Button Actions
+        $('#btnFilterTanggal').on('click', function() {
+            table.ajax.reload();
+        });
+
+        $('#btnResetTanggal').on('click', function() {
+            $('#filter_start_date').val('');
+            $('#filter_end_date').val('');
+            table.ajax.reload();
         });
 
         // Clear validations helper

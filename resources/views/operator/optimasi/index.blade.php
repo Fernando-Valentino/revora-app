@@ -556,7 +556,14 @@
             <!-- Riwayat Optimasi Grid Search -->
             <div class="card bg-white mb-4 shadow-sm border border-light">
                 <div class="card-body">
-                    <h5 class="card-title mb-3"><i class="bi bi-clock-history me-2 text-primary-custom"></i>Riwayat Optimasi Grid Search</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0"><i class="bi bi-clock-history me-2 text-primary-custom"></i>Riwayat Optimasi Grid Search</h5>
+                        @if(!$historyGsRuns->isEmpty())
+                            <button type="button" class="btn btn-outline-danger btn-sm rounded-3 fw-semibold text-xs px-3" onclick="confirmResetOptimasiAll('grid_search')">
+                                <i class="bi bi-trash3-fill me-1"></i> Reset Semua Riwayat
+                            </button>
+                        @endif
+                    </div>
                     @if($historyGsRuns->isEmpty())
                         <div class="text-center py-4 text-secondary">
                             <i class="bi bi-folder2-open fs-2 text-muted mb-2 d-block"></i>
@@ -575,6 +582,7 @@
                                         <th>R&sup2; Score</th>
                                         <th>Lama Proses</th>
                                         <th class="text-center">Status</th>
+                                        <th class="text-center" style="width: 100px;">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -653,6 +661,11 @@
                                                         <i class="bi bi-clock-history me-1"></i>Riwayat
                                                     </span>
                                                 @endif
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-link text-danger p-0 border-0" onclick="confirmDeleteOptimasiRun({{ $run->id }}, '{{ \Carbon\Carbon::parse($run->started_at)->timezone('Asia/Jakarta')->translatedFormat('d M Y, H:i') }}', 'Grid Search')" title="Hapus Riwayat">
+                                                    <i class="bi bi-trash fs-5"></i>
+                                                </button>
                                             </td>
                                         </tr>
                                     @endforeach
@@ -1065,7 +1078,14 @@
             <!-- Riwayat Optimasi GWO -->
             <div class="card bg-white mb-4 shadow-sm border border-light">
                 <div class="card-body">
-                    <h5 class="card-title mb-3"><i class="bi bi-clock-history me-2 text-primary-custom"></i>Riwayat Optimasi Grey Wolf Optimizer (GWO)</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0"><i class="bi bi-clock-history me-2 text-primary-custom"></i>Riwayat Optimasi Grey Wolf Optimizer (GWO)</h5>
+                        @if(!$historyGwoRuns->isEmpty())
+                            <button type="button" class="btn btn-outline-danger btn-sm rounded-3 fw-semibold text-xs px-3" onclick="confirmResetOptimasiAll('gwo')">
+                                <i class="bi bi-trash3-fill me-1"></i> Reset Semua Riwayat
+                            </button>
+                        @endif
+                    </div>
                     @if($historyGwoRuns->isEmpty())
                         <div class="text-center py-4 text-secondary">
                             <i class="bi bi-folder2-open fs-2 text-muted mb-2 d-block"></i>
@@ -1084,6 +1104,7 @@
                                         <th>R&sup2; Score</th>
                                         <th>Lama Proses</th>
                                         <th class="text-center">Status</th>
+                                        <th class="text-center" style="width: 100px;">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1162,6 +1183,11 @@
                                                         <i class="bi bi-clock-history me-1"></i>Riwayat
                                                     </span>
                                                 @endif
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-link text-danger p-0 border-0" onclick="confirmDeleteOptimasiRun({{ $run->id }}, '{{ \Carbon\Carbon::parse($run->started_at)->timezone('Asia/Jakarta')->translatedFormat('d M Y, H:i') }}', 'GWO')" title="Hapus Riwayat">
+                                                    <i class="bi bi-trash fs-5"></i>
+                                                </button>
                                             </td>
                                         </tr>
                                     @endforeach
@@ -1695,120 +1721,16 @@
                                 $gsMape = $gsMetricsObj->mape;
                                 $gsR2 = $gsMetricsObj->r2_score;
                                 $gsRmse = $gsMetricsObj->rmse;
-                                $gsMae = $gsMetricsObj->mae;
-                                
-                                // Hitung Rata-rata Aktual untuk RMSE
                                 $gsMeanActual = $gsRun->predictionResults()->avg('actual_value') ?? 0;
-                                $gsRmsePercentage = $gsMeanActual > 0 ? ($gsRmse / $gsMeanActual) * 100 : 0;
-                                
-                                // 1. Klasifikasi MAPE
-                                if ($gsMape < 10) {
-                                    $gsMapeCategory = "Sangat Akurat";
-                                    $gsMapeDesc = "Prediksi model sangat mendekati nilai aktual.";
-                                    $gsMapeColor = "text-success border-success bg-success-subtle";
-                                    $gsMapeAlertClass = "alert-success text-success-emphasis bg-success-subtle border-success-subtle";
-                                    $gsMapeIcon = "bi-patch-check-fill text-success";
-                                } elseif ($gsMape <= 20) {
-                                    $gsMapeCategory = "Baik";
-                                    $gsMapeDesc = "Akurasi prediksi sudah baik dan layak digunakan untuk perencanaan.";
-                                    $gsMapeColor = "text-primary border-primary bg-primary-subtle";
-                                    $gsMapeAlertClass = "alert-primary text-primary-emphasis bg-primary-subtle border-primary-subtle";
-                                    $gsMapeIcon = "bi-check-circle-fill text-primary";
-                                } elseif ($gsMape <= 50) {
-                                    $gsMapeCategory = "Cukup";
-                                    $gsMapeDesc = "Prediksi cukup, namun masih perlu peningkatan untuk hasil yang lebih andal.";
-                                    $gsMapeColor = "text-warning border-warning bg-warning-subtle";
-                                    $gsMapeAlertClass = "alert-warning text-warning-emphasis bg-warning-subtle border-warning-subtle";
-                                    $gsMapeIcon = "bi-exclamation-triangle-fill text-warning";
-                                } else {
-                                    $gsMapeCategory = "Buruk";
-                                    $gsMapeDesc = "Error prediksi terlalu besar; model tidak disarankan untuk perencanaan.";
-                                    $gsMapeColor = "text-danger border-danger bg-danger-subtle";
-                                    $gsMapeAlertClass = "alert-danger text-danger-emphasis bg-danger-subtle border-danger-subtle";
-                                    $gsMapeIcon = "bi-x-circle-fill text-danger";
-                                }
-
-                                // 2. Klasifikasi R2 Score
-                                if ($gsR2 >= 0.67) {
-                                    $gsR2Category = "Model Kuat";
-                                    $gsR2Desc = "Model mampu mengikuti pola data dengan baik.";
-                                    $gsR2Icon = "bi-graph-up text-success";
-                                } elseif ($gsR2 >= 0.33) {
-                                    $gsR2Category = "Model Moderat";
-                                    $gsR2Desc = "Model cukup mengikuti pola, namun ada sebagian variasi data yang belum tertangkap.";
-                                    $gsR2Icon = "bi-graph-up text-primary";
-                                } else {
-                                    $gsR2Category = "Model Lemah";
-                                    $gsR2Desc = "Model kurang mampu mengenali pola data; perlu optimasi parameter.";
-                                    $gsR2Icon = "bi-graph-up text-danger";
-                                }
-                                
-                                // 3. Klasifikasi RMSE
-                                if ($gsRmsePercentage < 10) {
-                                    $gsRmseCategory = "Sangat Baik";
-                                    $gsRmseDesc = "Selisih prediksi relatif kecil (" . number_format($gsRmsePercentage, 2, ',', '.') . "% dari rata-rata aktual).";
-                                    $gsRmseColor = "text-success";
-                                    $gsRmseIcon = "bi-shield-check-fill text-success";
-                                } else {
-                                    $gsRmseCategory = "Perlu Perbaikan";
-                                    $gsRmseDesc = "Selisih prediksi cukup besar (" . number_format($gsRmsePercentage, 2, ',', '.') . "% dari rata-rata aktual); optimasi parameter diperlukan.";
-                                    $gsRmseColor = "text-warning";
-                                    $gsRmseIcon = "bi-exclamation-octagon-fill text-warning";
-                                }
-
-                                // 5. Rekomendasi
-                                $gsRecommendations = [];
-                                if ($gsMape < 10 && $gsR2 >= 0.67) {
-                                    $gsRecommendations[] = "<strong>Pertahankan parameter saat ini</strong> — performa Grid Search sudah sangat optimal.";
-                                } else {
-                                    $gsRecommendations[] = "<strong>Optimalkan parameter model</strong> dengan memperluas rentang pencarian atau coba GWO untuk hasil yang lebih presisi.";
-                                }
-                                $gsRecommendations[] = "<strong>Lakukan pelatihan ulang</strong> setiap kali ada penambahan data transaksi baru.";
                             @endphp
 
-                            <div class="row g-3">
-                                <div class="col-md-7">
-                                    <h6 class="fw-bold text-secondary text-uppercase mb-2 shadow-none border-0 pb-0" style="font-size: 11px; letter-spacing: 0.5px;">Keterangan Hasil Analisis</h6>
-                                    <div class="d-flex flex-column gap-3">
-                                        <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
-                                            <div class="fs-4"><i class="bi {{ $gsMapeIcon }}"></i></div>
-                                            <div>
-                                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">MAPE: {{ number_format($gsMape, 2, ',', '.') }}% — <span class="{{ explode(' ', $gsMapeColor)[0] }}">{{ $gsMapeCategory }}</span></div>
-                                                <div class="text-secondary small">{!! $gsMapeDesc !!}</div>
-                                            </div>
-                                        </div>
-                                        <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
-                                            <div class="fs-4"><i class="bi {{ $gsR2Icon }}"></i></div>
-                                            <div>
-                                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">R² Score: {{ number_format($gsR2, 4, ',', '.') }} — <span class="text-dark">{{ $gsR2Category }}</span></div>
-                                                <div class="text-secondary small">{!! $gsR2Desc !!}</div>
-                                            </div>
-                                        </div>
-                                        <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
-                                            <div class="fs-4"><i class="bi {{ $gsRmseIcon }}"></i></div>
-                                            <div>
-                                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">RMSE: Rp {{ number_format($gsRmse, 0, ',', '.') }} — <span class="{{ $gsRmseColor }}">{{ $gsRmseCategory }}</span></div>
-                                                <div class="text-secondary small">{!! $gsRmseDesc !!}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-5">
-                                    <div class="p-3 rounded-3 h-100 {{ $gsMapeAlertClass }} border border-0">
-                                        <h6 class="fw-bold text-uppercase mb-3 d-flex align-items-center" style="font-size: 11px; letter-spacing: 0.5px;">
-                                            <i class="bi bi-lightbulb-fill me-2 fs-5"></i>Rekomendasi Tindakan
-                                        </h6>
-                                        <ul class="list-unstyled mb-0 d-flex flex-column gap-3" style="font-size: 12.5px; line-height: 1.6;">
-                                            @foreach($gsRecommendations as $rec)
-                                                <li class="d-flex align-items-start gap-2">
-                                                    <i class="bi bi-check2-circle mt-0.5 flex-shrink-0"></i>
-                                                    <span>{!! $rec !!}</span>
-                                                </li>
-                                            @endforeach
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
+                            <x-model-analysis-results
+                                :mape="$gsMape"
+                                :r2="$gsR2"
+                                :rmse="$gsRmse"
+                                :meanActual="$gsMeanActual"
+                                target="grid_search"
+                            />
                         </div>
                     </div>
 
@@ -2159,120 +2081,16 @@
                                 $gwoMape = $gwoMetricsObj->mape;
                                 $gwoR2 = $gwoMetricsObj->r2_score;
                                 $gwoRmse = $gwoMetricsObj->rmse;
-                                $gwoMae = $gwoMetricsObj->mae;
-                                
-                                // Hitung Rata-rata Aktual untuk RMSE
                                 $gwoMeanActual = $gwoRun->predictionResults()->avg('actual_value') ?? 0;
-                                $gwoRmsePercentage = $gwoMeanActual > 0 ? ($gwoRmse / $gwoMeanActual) * 100 : 0;
-                                
-                                // 1. Klasifikasi MAPE
-                                if ($gwoMape < 10) {
-                                    $gwoMapeCategory = "Sangat Akurat";
-                                    $gwoMapeDesc = "Prediksi model sangat mendekati nilai aktual.";
-                                    $gwoMapeColor = "text-success border-success bg-success-subtle";
-                                    $gwoMapeAlertClass = "alert-success text-success-emphasis bg-success-subtle border-success-subtle";
-                                    $gwoMapeIcon = "bi-patch-check-fill text-success";
-                                } elseif ($gwoMape <= 20) {
-                                    $gwoMapeCategory = "Baik";
-                                    $gwoMapeDesc = "Akurasi prediksi sudah baik dan layak digunakan untuk perencanaan.";
-                                    $gwoMapeColor = "text-primary border-primary bg-primary-subtle";
-                                    $gwoMapeAlertClass = "alert-primary text-primary-emphasis bg-primary-subtle border-primary-subtle";
-                                    $gwoMapeIcon = "bi-check-circle-fill text-primary";
-                                } elseif ($gwoMape <= 50) {
-                                    $gwoMapeCategory = "Cukup";
-                                    $gwoMapeDesc = "Prediksi cukup, namun masih perlu peningkatan untuk hasil yang lebih andal.";
-                                    $gwoMapeColor = "text-warning border-warning bg-warning-subtle";
-                                    $gwoMapeAlertClass = "alert-warning text-warning-emphasis bg-warning-subtle border-warning-subtle";
-                                    $gwoMapeIcon = "bi-exclamation-triangle-fill text-warning";
-                                } else {
-                                    $gwoMapeCategory = "Buruk";
-                                    $gwoMapeDesc = "Error prediksi terlalu besar; model tidak disarankan untuk perencanaan.";
-                                    $gwoMapeColor = "text-danger border-danger bg-danger-subtle";
-                                    $gwoMapeAlertClass = "alert-danger text-danger-emphasis bg-danger-subtle border-danger-subtle";
-                                    $gwoMapeIcon = "bi-x-circle-fill text-danger";
-                                }
-
-                                // 2. Klasifikasi R2 Score
-                                if ($gwoR2 >= 0.67) {
-                                    $gwoR2Category = "Model Kuat";
-                                    $gwoR2Desc = "Model mampu mengikuti pola data dengan baik.";
-                                    $gwoR2Icon = "bi-graph-up text-success";
-                                } elseif ($gwoR2 >= 0.33) {
-                                    $gwoR2Category = "Model Moderat";
-                                    $gwoR2Desc = "Model cukup mengikuti pola, namun ada sebagian variasi data yang belum tertangkap.";
-                                    $gwoR2Icon = "bi-graph-up text-primary";
-                                } else {
-                                    $gwoR2Category = "Model Lemah";
-                                    $gwoR2Desc = "Model kurang mampu mengenali pola data; perlu optimasi parameter.";
-                                    $gwoR2Icon = "bi-graph-up text-danger";
-                                }
-                                
-                                // 3. Klasifikasi RMSE
-                                if ($gwoRmsePercentage < 10) {
-                                    $gwoRmseCategory = "Sangat Baik";
-                                    $gwoRmseDesc = "Selisih prediksi relatif kecil (" . number_format($gwoRmsePercentage, 2, ',', '.') . "% dari rata-rata aktual).";
-                                    $gwoRmseColor = "text-success";
-                                    $gwoRmseIcon = "bi-shield-check-fill text-success";
-                                } else {
-                                    $gwoRmseCategory = "Perlu Perbaikan";
-                                    $gwoRmseDesc = "Selisih prediksi cukup besar (" . number_format($gwoRmsePercentage, 2, ',', '.') . "% dari rata-rata aktual); optimasi parameter diperlukan.";
-                                    $gwoRmseColor = "text-warning";
-                                    $gwoRmseIcon = "bi-exclamation-octagon-fill text-warning";
-                                }
-
-                                // 5. Rekomendasi
-                                $gwoRecommendations = [];
-                                if ($gwoMape < 10 && $gwoR2 >= 0.67) {
-                                    $gwoRecommendations[] = "<strong>Pertahankan parameter saat ini</strong> — GWO berhasil menemukan konfigurasi yang sangat optimal.";
-                                } else {
-                                    $gwoRecommendations[] = "<strong>Perluas rentang pencarian parameter</strong> GWO atau tambahkan jumlah iterasi untuk hasil yang lebih presisi.";
-                                }
-                                $gwoRecommendations[] = "<strong>Lakukan pelatihan ulang</strong> setiap kali ada penambahan data transaksi baru.";
                             @endphp
 
-                            <div class="row g-3">
-                                <div class="col-md-7">
-                                    <h6 class="fw-bold text-secondary text-uppercase mb-2 shadow-none border-0 pb-0" style="font-size: 11px; letter-spacing: 0.5px;">Keterangan Hasil Analisis</h6>
-                                    <div class="d-flex flex-column gap-3">
-                                        <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
-                                            <div class="fs-4"><i class="bi {{ $gwoMapeIcon }}"></i></div>
-                                            <div>
-                                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">MAPE: {{ number_format($gwoMape, 2, ',', '.') }}% — <span class="{{ explode(' ', $gwoMapeColor)[0] }}">{{ $gwoMapeCategory }}</span></div>
-                                                <div class="text-secondary small">{!! $gwoMapeDesc !!}</div>
-                                            </div>
-                                        </div>
-                                        <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
-                                            <div class="fs-4"><i class="bi {{ $gwoR2Icon }}"></i></div>
-                                            <div>
-                                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">R² Score: {{ number_format($gwoR2, 4, ',', '.') }} — <span class="text-dark">{{ $gwoR2Category }}</span></div>
-                                                <div class="text-secondary small">{!! $gwoR2Desc !!}</div>
-                                            </div>
-                                        </div>
-                                        <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
-                                            <div class="fs-4"><i class="bi {{ $gwoRmseIcon }}"></i></div>
-                                            <div>
-                                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">RMSE: Rp {{ number_format($gwoRmse, 0, ',', '.') }} — <span class="{{ $gwoRmseColor }}">{{ $gwoRmseCategory }}</span></div>
-                                                <div class="text-secondary small">{!! $gwoRmseDesc !!}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-5">
-                                    <div class="p-3 rounded-3 h-100 {{ $gwoMapeAlertClass }} border border-0">
-                                        <h6 class="fw-bold text-uppercase mb-3 d-flex align-items-center" style="font-size: 11px; letter-spacing: 0.5px;">
-                                            <i class="bi bi-lightbulb-fill me-2 fs-5"></i>Rekomendasi Tindakan
-                                        </h6>
-                                        <ul class="list-unstyled mb-0 d-flex flex-column gap-3" style="font-size: 12.5px; line-height: 1.6;">
-                                            @foreach($gwoRecommendations as $rec)
-                                                <li class="d-flex align-items-start gap-2">
-                                                    <i class="bi bi-check2-circle mt-0.5 flex-shrink-0"></i>
-                                                    <span>{!! $rec !!}</span>
-                                                </li>
-                                            @endforeach
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
+                            <x-model-analysis-results
+                                :mape="$gwoMape"
+                                :r2="$gwoR2"
+                                :rmse="$gwoRmse"
+                                :meanActual="$gwoMeanActual"
+                                target="gwo"
+                            />
                         </div>
                     </div>
 
@@ -2443,10 +2261,11 @@
                     @csrf
                     <input type="hidden" name="target" value="gwo">
                 </form>
+                <form id="delete-optimasi-run-form" action="{{ route('operator.optimasi.reset') }}" method="POST" style="display: none;">
+                    @csrf
+                    <input type="hidden" name="id" id="delete-run-id" value="">
+                </form>
 
-                <button type="button" class="btn btn-outline-danger px-4 py-2.5 rounded-3 fw-bold text-sm" onclick="triggerReset()">
-                    <i class="bi bi-trash3 me-1"></i> Reset Optimasi
-                </button>
                 <button type="button" class="btn btn-dark px-4 py-2.5 rounded-3 fw-bold text-sm" onclick="retuneCurrentMethod()">
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Optimasi Ulang
                 </button>
@@ -2970,6 +2789,34 @@
 
     // ── Grid Step Navigation ──────────────────────────────────────────────────
     window.goToGridStep = function(stepNum) {
+        const isGridTrained = @json($gsRun !== null);
+        
+        if (stepNum === 3 && !isGridRunning) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Akses Terkunci!',
+                    text: 'Langkah 3 (Proses Tuning) hanya dapat diakses saat proses optimasi Grid Search sedang berjalan.',
+                    icon: 'warning',
+                    confirmButtonColor: '#005BAA',
+                    confirmButtonText: 'Mengerti'
+                });
+            }
+            return;
+        }
+        
+        if (stepNum === 4 && !isGridTrained && (typeof bestParamsGs === 'undefined' || !bestParamsGs.c)) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Hasil Belum Tersedia!',
+                    text: 'Silakan jalankan proses optimasi Grid Search terlebih dahulu pada Langkah 2 untuk melihat hasil.',
+                    icon: 'warning',
+                    confirmButtonColor: '#005BAA',
+                    confirmButtonText: 'Mengerti'
+                });
+            }
+            return;
+        }
+
         gridStep = stepNum;
         sessionStorage.setItem('grid_step', stepNum.toString());
         for (let i = 1; i <= 4; i++) {
@@ -3063,6 +2910,34 @@
 
     // ── GWO Step Navigation ───────────────────────────────────────────────────
     window.goToGwoStep = function(stepNum) {
+        const isGwoTrained = @json($gwoRun !== null);
+        
+        if (stepNum === 3 && !isGwoRunning) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Akses Terkunci!',
+                    text: 'Langkah 3 (Proses Tuning) hanya dapat diakses saat proses optimasi GWO sedang berjalan.',
+                    icon: 'warning',
+                    confirmButtonColor: '#005BAA',
+                    confirmButtonText: 'Mengerti'
+                });
+            }
+            return;
+        }
+        
+        if (stepNum === 4 && !isGwoTrained && (typeof bestParamsGwo === 'undefined' || !bestParamsGwo.c)) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Hasil Belum Tersedia!',
+                    text: 'Silakan jalankan proses optimasi GWO terlebih dahulu pada Langkah 2 untuk melihat hasil.',
+                    icon: 'warning',
+                    confirmButtonColor: '#005BAA',
+                    confirmButtonText: 'Mengerti'
+                });
+            }
+            return;
+        }
+
         gwoStep = stepNum;
         sessionStorage.setItem('gwo_step', stepNum.toString());
         for (let i = 1; i <= 4; i++) {
@@ -3728,8 +3603,14 @@
         // because there is no active process running. Clamp to step 2 if saved as 3.
         const rawGridStep = parseInt(urlParams.get('grid_step') || sessionStorage.getItem('grid_step') || defaultGridStep);
         const rawGwoStep  = parseInt(urlParams.get('gwo_step')  || sessionStorage.getItem('gwo_step')  || defaultGwoStep);
-        const savedGridStep = rawGridStep === 3 ? 2 : rawGridStep;
-        const savedGwoStep  = rawGwoStep  === 3 ? 2 : rawGwoStep;
+        let savedGridStep = rawGridStep === 3 ? 2 : rawGridStep;
+        if (savedGridStep === 4 && !isGridTrained) {
+            savedGridStep = 1;
+        }
+        let savedGwoStep  = rawGwoStep  === 3 ? 2 : rawGwoStep;
+        if (savedGwoStep === 4 && !isGwoTrained) {
+            savedGwoStep = 1;
+        }
 
         gridStep = savedGridStep;
         gwoStep  = savedGwoStep;
@@ -4036,19 +3917,27 @@
         @endif
     });
 
-    window.triggerReset = function() {
-        const target = currentMethod === 'grid' ? 'grid_search' : 'gwo';
-        window.confirmReset(target);
-    }
+    window.confirmDeleteOptimasiRun = function(runId, startedAt, modelName) {
+        SwalConfirm(
+            'Hapus Riwayat Pelatihan?',
+            `Riwayat pelatihan ${modelName} tanggal ${startedAt} beserta hasil prediksinya akan dihapus secara permanen!`,
+            'Ya, Hapus!',
+            function() {
+                SwalLoading('Menghapus Riwayat...', 'Mohon tunggu sebentar.');
+                document.getElementById('delete-run-id').value = runId;
+                document.getElementById('delete-optimasi-run-form').submit();
+            }
+        );
+    };
 
-    window.confirmReset = function(target) {
+    window.confirmResetOptimasiAll = function(target) {
         const modelName = target === 'grid_search' ? 'Grid Search' : 'Grey Wolf Optimizer (GWO)';
         const formId = target === 'grid_search' ? 'reset-grid-form' : 'reset-gwo-form';
         
         SwalConfirm(
-            'Apakah Anda yakin?',
-            `Seluruh hasil training ${modelName} beserta parameter optimalnya akan dihapus secara permanen!`,
-            'Ya, Hapus!',
+            'Reset Semua Riwayat?',
+            `Seluruh riwayat proses optimasi ${modelName} dan hasil prediksi terkait akan dihapus secara permanen dari database!`,
+            'Ya, Reset Semua!',
             function() {
                 SwalLoading('Memproses Reset...', 'Mohon tunggu sebentar.');
                 document.getElementById(formId).submit();

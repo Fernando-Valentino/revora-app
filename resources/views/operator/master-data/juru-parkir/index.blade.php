@@ -5,27 +5,20 @@
 
 @section('content')
 <div class="container-fluid p-0">
-    <!-- Toolbar (Bootstrap Row / Col) -->
-    <div class="row mb-4">
-        <div class="col text-end">
-            @if(count($availableRayons) > 0)
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addJukirModal">
-                    <i class="bi bi-plus-lg me-1"></i> Tambah Data
-                </button>
-            @else
-                <button type="button" class="btn btn-primary" disabled title="Semua rayon sudah memiliki data juru parkir">
-                    <i class="bi bi-plus-lg me-1"></i> Tambah Data
-                </button>
-            @endif
-        </div>
-    </div>
-
     <!-- Table Card -->
     <div class="card">
         <div class="card-body">
             <!-- Table Header Toolbar -->
-            <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom flex-wrap gap-3">
-                <h5 class="card-title mb-0" style="border-bottom: none !important; padding-bottom: 0 !important;">Daftar Data Juru Parkir</h5>
+            <div class="d-flex justify-content-end align-items-center mb-3 pb-3 border-bottom flex-wrap gap-3">
+                @if(count($availableRayons) > 0)
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addJukirModal">
+                        <i class="bi bi-plus-lg me-1"></i> Tambah Data
+                    </button>
+                @else
+                    <button type="button" class="btn btn-primary" disabled title="Semua rayon sudah memiliki data juru parkir">
+                        <i class="bi bi-plus-lg me-1"></i> Tambah Data
+                    </button>
+                @endif
             </div>
             
             <div class="table-responsive">

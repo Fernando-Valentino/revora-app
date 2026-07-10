@@ -18,9 +18,18 @@ class PendapatanController extends Controller
         return view('operator.master-data.pendapatan.index', compact('rayons'));
     }
 
-    public function data()
+    public function data(Request $request)
     {
-        $pendapatans = Pendapatan::with(['rayon', 'juruParkir'])->orderBy('tanggal', 'desc')->get();
+        $query = Pendapatan::with(['rayon', 'juruParkir']);
+
+        if ($request->filled('start_date')) {
+            $query->where('tanggal', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->where('tanggal', '<=', $request->end_date);
+        }
+
+        $pendapatans = $query->orderBy('tanggal', 'desc')->get();
         return response()->json(['data' => $pendapatans]);
     }
 
