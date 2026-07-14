@@ -25,7 +25,7 @@ class FastApiService
             'Content-Type' => 'application/json',
         ];
 
-        $secret = env('JWT_SECRET', 'rahasia-jwt-secret-key-123');
+        $secret = env('JWT_SECRET', 'rahasia-jwt-secret-key-123-dishub-cirebon-32-bytes');
 
         $isAuthenticated = false;
         try {
