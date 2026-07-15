@@ -239,21 +239,7 @@
         }
     </style>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show rounded-3 mb-4" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i>
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
 
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-4" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
 
     <!-- 1. Stepper Card -->
     <div class="card mb-4">
@@ -1238,6 +1224,14 @@
     <!-- STEP 4 CONTENT -->
     <div id="step-content-4" class="step-content-section d-none">
         @php
+            $allSvrPredictions = $lastRun ? $lastRun->predictionResults()->orderBy('tanggal', 'asc')->get() : collect([]);
+            $allSvrMapped = $allSvrPredictions->map(fn($p) => [
+                'tanggal' => Carbon\Carbon::parse($p->tanggal)->format('d M Y'),
+                'rayon_id' => (int)$p->rayon_id,
+                'actual_value' => (double)$p->actual_value,
+                'predicted_value' => (double)$p->predicted_value
+            ])->toArray();
+
             $rayonStats = collect([]);
             $bestRayon = null;
             $worstRayon = null;
@@ -1357,51 +1351,26 @@
         </div>
         <div class="row g-3 mb-4">
             <!-- MAE -->
-            <div class="col-12 col-md-4 col-lg">
+            <div class="col-12 col-md-6 col-lg">
                 <div class="metric-card-custom">
                     <span class="metric-label-custom">Mean Absolute Error (MAE)</span>
                     <span class="metric-value-custom">Rp {{ number_format($metrics->mae, 0, ',', '.') }}</span>
-                    <span class="text-muted small" style="font-size: 11px;">Rata-rata absolut selisih error</span>
+                    <span class="text-muted small" style="font-size: 11px;">Rata-rata selisih nominal error</span>
                 </div>
             </div>
             <!-- RMSE -->
-            <div class="col-12 col-md-4 col-lg">
+            <div class="col-12 col-md-6 col-lg">
                 <div class="metric-card-custom">
                     <span class="metric-label-custom">Root Mean Squared Error (RMSE)</span>
                     <span class="metric-value-custom">Rp {{ number_format($metrics->rmse, 0, ',', '.') }}</span>
-                    <span class="text-muted small" style="font-size: 11px;">Akar kuadrat rata-rata error kuadrat</span>
-                </div>
-            </div>
-            <!-- Akurasi MAPE -->
-            <div class="col-12 col-md-4 col-lg">
-                <div class="metric-card-custom">
-                    <span class="metric-label-custom">Akurasi MAPE</span>
-                    <span class="metric-value-custom text-success">{{ number_format($metrics->accuracy, 2, ',', '.') }}%</span>
-                    @php
-                        $mapeVal = $metrics->mape;
-                        $mapeInterpret = 'Cukup / Reasonable';
-                        $mapeClass = 'bg-warning-subtle text-warning';
-                        if ($mapeVal < 10) {
-                            $mapeInterpret = 'Sangat Akurat';
-                            $mapeClass = 'bg-success-subtle text-success';
-                        } elseif ($mapeVal < 20) {
-                            $mapeInterpret = 'Baik / Good';
-                            $mapeClass = 'bg-success-subtle text-success';
-                        } elseif ($mapeVal > 50) {
-                            $mapeInterpret = 'Lemah / Weak';
-                            $mapeClass = 'bg-danger-subtle text-danger';
-                        }
-                    @endphp
-                    <div>
-                        <span class="badge border-0 {{ $mapeClass }} py-1 px-2.5" style="font-size: 9.5px; font-weight: 600;">{{ $mapeInterpret }}</span>
-                    </div>
+                    <span class="text-muted small" style="font-size: 11px;">Ukuran penyimpangan ekstrem</span>
                 </div>
             </div>
             <!-- R2 Score -->
             <div class="col-12 col-md-6 col-lg">
                 <div class="metric-card-custom">
                     <span class="metric-label-custom">R² Score</span>
-                    <span class="metric-value-custom">{{ number_format($metrics->r2_score, 6, ',', '.') }}</span>
+                    <span class="metric-value-custom">{{ number_format($metrics->r2_score, 2, ',', '.') }}</span>
                     @php
                         $r2Val = $metrics->r2_score;
                         $r2Interpret = 'Lemah';
@@ -1423,8 +1392,33 @@
             <div class="col-12 col-md-6 col-lg">
                 <div class="metric-card-custom">
                     <span class="metric-label-custom">Persentase MAPE</span>
-                    <span class="metric-value-custom text-secondary">{{ number_format($metrics->mape, 4, ',', '.') }}%</span>
+                    <span class="metric-value-custom text-secondary">{{ number_format($metrics->mape, 2, ',', '.') }}%</span>
                     <span class="text-muted small" style="font-size: 11px;">Rata-rata persentase error</span>
+                </div>
+            </div>
+            <!-- Akurasi MAPE -->
+            <div class="col-12 col-md-6 col-lg">
+                <div class="metric-card-custom">
+                    <span class="metric-label-custom">Akurasi (100% - MAPE)</span>
+                    <span class="metric-value-custom text-success">{{ number_format($metrics->accuracy, 2, ',', '.') }}%</span>
+                    @php
+                        $mapeVal = $metrics->mape;
+                        $mapeInterpret = 'Cukup / Reasonable';
+                        $mapeClass = 'bg-warning-subtle text-warning';
+                        if ($mapeVal < 10) {
+                            $mapeInterpret = 'Sangat Akurat';
+                            $mapeClass = 'bg-success-subtle text-success';
+                        } elseif ($mapeVal < 20) {
+                            $mapeInterpret = 'Baik / Good';
+                            $mapeClass = 'bg-success-subtle text-success';
+                        } elseif ($mapeVal > 50) {
+                            $mapeInterpret = 'Lemah / Weak';
+                            $mapeClass = 'bg-danger-subtle text-danger';
+                        }
+                    @endphp
+                    <div>
+                        <span class="badge border-0 {{ $mapeClass }} py-1 px-2.5" style="font-size: 9.5px; font-weight: 600;">{{ $mapeInterpret }}</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1460,7 +1454,18 @@
             <div class="col-12">
                 <div class="card mb-0 bg-white">
                     <div class="card-body">
-                        <h5 class="card-title"><i class="bi bi-graph-up-arrow me-2 text-primary-custom"></i>Grafik Aktual vs Prediksi Model SVR</h5>
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                            <h5 class="card-title mb-0"><i class="bi bi-graph-up-arrow me-2 text-primary-custom"></i>Grafik Aktual vs Prediksi Model SVR</h5>
+                            <div class="d-flex align-items-center gap-2">
+                                <label for="filter_rayon_id_chart" class="small fw-semibold text-secondary text-nowrap mb-0" style="font-size: 11.5px;">Filter Rayon:</label>
+                                <select id="filter_rayon_id_chart" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 12px; height: 32px; width: 160px;" onchange="window.updateSvrChart(this.value)">
+                                    <option value="0">Semua Rayon</option>
+                                    @foreach($rayons as $rayon)
+                                        <option value="{{ $rayon->id }}">{{ $rayon->nama_rayon }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
                         <div style="height: 380px; position: relative; width: 100%;">
                             <canvas id="svrChart"></canvas>
                         </div>
@@ -1729,6 +1734,9 @@
         // Trigger AJAX reload on rayon filter change
         $('#filter_rayon_id').on('change', function() {
             predTable.ajax.reload();
+            if (typeof window.updateSvrChart === 'function') {
+                window.updateSvrChart(this.value);
+            }
         });
 
         // Initialize step from URL parameter
@@ -1894,7 +1902,45 @@
         }
         
         // 2. Chart.js Implementation (Hanya jika data chart tersedia)
-        @if($lastRun && $chartData->count() > 0)
+        @if($lastRun && $allSvrPredictions->count() > 0)
+            const allSvrPreds = @json($allSvrMapped);
+
+            function getFilteredData(preds, rayonId) {
+                rayonId = parseInt(rayonId);
+                if (rayonId === 0) {
+                    const grouped = {};
+                    preds.forEach(p => {
+                        if (!grouped[p.tanggal]) {
+                            grouped[p.tanggal] = { actual: 0, predicted: 0 };
+                        }
+                        grouped[p.tanggal].actual += p.actual_value;
+                        grouped[p.tanggal].predicted += p.predicted_value;
+                    });
+                    const labels = Object.keys(grouped);
+                    const actual = labels.map(l => grouped[l].actual);
+                    const predicted = labels.map(l => grouped[l].predicted);
+                    return { labels, actual, predicted };
+                } else {
+                    const filtered = preds.filter(p => p.rayon_id === rayonId);
+                    const labels = filtered.map(p => p.tanggal);
+                    const actual = filtered.map(p => p.actual_value);
+                    const predicted = filtered.map(p => p.predicted_value);
+                    return { labels, actual, predicted };
+                }
+            }
+
+            window.updateSvrChart = function(rayonId) {
+                const data = getFilteredData(allSvrPreds, rayonId);
+                if (window.svrChartInstance) {
+                    window.svrChartInstance.data.labels = data.labels;
+                    const dsActual = window.svrChartInstance.data.datasets.find(ds => ds.label === 'Pendapatan Aktual');
+                    if (dsActual) dsActual.data = data.actual;
+                    const dsPredict = window.svrChartInstance.data.datasets.find(ds => ds.label === 'Pendapatan Prediksi SVR');
+                    if (dsPredict) dsPredict.data = data.predicted;
+                    window.svrChartInstance.update();
+                }
+            }
+
             const ctx = document.getElementById('svrChart').getContext('2d');
             
             // Gradient Fills
@@ -1906,18 +1952,17 @@
             gradientPredict.addColorStop(0, 'rgba(244, 197, 66, 0.08)');
             gradientPredict.addColorStop(1, 'rgba(244, 197, 66, 0.0)');
             
-            const labels = @json($chartData->pluck('tanggal')->map(fn($t) => Carbon\Carbon::parse($t)->format('d M Y'))->toArray());
-            const actualData = @json($chartData->pluck('actual_value')->map(fn($v) => (double)$v)->toArray());
-            const predictedData = @json($chartData->pluck('predicted_value')->map(fn($v) => (double)$v)->toArray());
+            const startRayonId = $('#filter_rayon_id').val() || 0;
+            const startData = getFilteredData(allSvrPreds, startRayonId);
             
-            new Chart(ctx, {
+            window.svrChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: labels,
+                    labels: startData.labels,
                     datasets: [
                         {
                             label: 'Pendapatan Aktual',
-                            data: actualData,
+                            data: startData.actual,
                             borderColor: '#005BAA',
                             borderWidth: 2,
                             backgroundColor: gradientActual,
@@ -1931,7 +1976,7 @@
                         },
                         {
                             label: 'Pendapatan Prediksi SVR',
-                            data: predictedData,
+                            data: startData.predicted,
                             borderColor: '#F4C542',
                             borderWidth: 2,
                             backgroundColor: gradientPredict,

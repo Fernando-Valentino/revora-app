@@ -176,7 +176,18 @@
             <div class="col-12">
                 <div class="card mb-0 bg-white" style="border-radius: 12px; padding: 20px 24px;">
                     <div class="card-body p-0">
-                        <h5 class="card-title" style="font-size: 14px;"><i class="bi bi-graph-up-arrow me-2 text-primary"></i>Grafik Aktual vs Prediksi Model SVR</h5>
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                            <h5 class="card-title mb-0" style="font-size: 14px;"><i class="bi bi-graph-up-arrow me-2 text-primary"></i>Grafik Aktual vs Prediksi Model SVR</h5>
+                            <div class="d-flex align-items-center gap-2">
+                                <label for="filter_rayon_id_chart" class="small fw-semibold text-secondary text-nowrap mb-0" style="font-size: 11.5px;">Filter Rayon:</label>
+                                <select id="filter_rayon_id_chart" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 12px; height: 32px; width: 160px;" onchange="window.updateSvrChart(this.value)">
+                                    <option value="0">Semua Rayon</option>
+                                    @foreach($rayons as $rayon)
+                                        <option value="{{ $rayon->id }}">{{ $rayon->nama_rayon }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
                         <div style="height: 350px; position: relative; width: 100%;">
                             <canvas id="svrChart"></canvas>
                         </div>
@@ -267,9 +278,56 @@
 
 @section('scripts')
 @if($lastRun && count($chartActualValues) > 0)
+    @php
+        $allSvrPredictions = $lastRun ? $lastRun->predictionResults()->orderBy('tanggal', 'asc')->get() : collect([]);
+        $allSvrMapped = $allSvrPredictions->map(fn($p) => [
+            'tanggal' => Carbon\Carbon::parse($p->tanggal)->format('d M Y'),
+            'rayon_id' => (int)$p->rayon_id,
+            'actual_value' => (double)$p->actual_value,
+            'predicted_value' => (double)$p->predicted_value
+        ])->toArray();
+    @endphp
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const allSvrPreds = @json($allSvrMapped);
+
+            function getFilteredData(preds, rayonId) {
+                rayonId = parseInt(rayonId);
+                if (rayonId === 0) {
+                    const grouped = {};
+                    preds.forEach(p => {
+                        if (!grouped[p.tanggal]) {
+                            grouped[p.tanggal] = { actual: 0, predicted: 0 };
+                        }
+                        grouped[p.tanggal].actual += p.actual_value;
+                        grouped[p.tanggal].predicted += p.predicted_value;
+                    });
+                    const labels = Object.keys(grouped);
+                    const actual = labels.map(l => grouped[l].actual);
+                    const predicted = labels.map(l => grouped[l].predicted);
+                    return { labels, actual, predicted };
+                } else {
+                    const filtered = preds.filter(p => p.rayon_id === rayonId);
+                    const labels = filtered.map(p => p.tanggal);
+                    const actual = filtered.map(p => p.actual_value);
+                    const predicted = filtered.map(p => p.predicted_value);
+                    return { labels, actual, predicted };
+                }
+            }
+
+            window.updateSvrChart = function(rayonId) {
+                const data = getFilteredData(allSvrPreds, rayonId);
+                if (window.svrChartInstance) {
+                    window.svrChartInstance.data.labels = data.labels;
+                    const dsActual = window.svrChartInstance.data.datasets.find(ds => ds.label === 'Realisasi Pendapatan (Aktual)');
+                    if (dsActual) dsActual.data = data.actual;
+                    const dsPredict = window.svrChartInstance.data.datasets.find(ds => ds.label === 'Hasil Perkiraan (Prediksi SVR)');
+                    if (dsPredict) dsPredict.data = data.predicted;
+                    window.svrChartInstance.update();
+                }
+            }
+
             const ctx = document.getElementById('svrChart').getContext('2d');
             
             // Gradient Fills
@@ -281,18 +339,17 @@
             gradientPredict.addColorStop(0, 'rgba(244, 197, 66, 0.08)');
             gradientPredict.addColorStop(1, 'rgba(244, 197, 66, 0.0)');
             
-            const labels = @json($chartLabels);
-            const actualData = @json($chartActualValues);
-            const predictedData = @json($chartPredictValues);
+            const startRayonId = $('#filter_rayon_id').val() || 0;
+            const startData = getFilteredData(allSvrPreds, startRayonId);
             
-            new Chart(ctx, {
+            window.svrChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: labels,
+                    labels: startData.labels,
                     datasets: [
                         {
                             label: 'Realisasi Pendapatan (Aktual)',
-                            data: actualData,
+                            data: startData.actual,
                             borderColor: '#005BAA',
                             borderWidth: 2,
                             backgroundColor: gradientActual,
@@ -305,7 +362,7 @@
                         },
                         {
                             label: 'Hasil Perkiraan (Prediksi SVR)',
-                            data: predictedData,
+                            data: startData.predicted,
                             borderColor: '#F4C542',
                             borderWidth: 2,
                             backgroundColor: gradientPredict,
@@ -429,6 +486,9 @@
             // Trigger AJAX reload on rayon filter change
             $('#filter_rayon_id').on('change', function() {
                 predTable.ajax.reload();
+                if (typeof window.updateSvrChart === 'function') {
+                    window.updateSvrChart(this.value);
+                }
             });
         });
     </script>

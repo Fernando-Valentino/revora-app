@@ -14,25 +14,25 @@
     // 1. Klasifikasi MAPE
     if ($mape < 10) {
         $mapeCategory = "Sangat Akurat";
-        $mapeDesc = "Prediksi model sangat mendekati nilai aktual.";
+        $mapeDesc = "Angka prediksi model ini hampir sama persis dengan pendapatan yang sebenarnya terjadi.";
         $mapeColor = "text-success border-success bg-success-subtle";
         $mapeAlertClass = "alert-success text-success-emphasis bg-success-subtle border-success-subtle";
         $mapeIcon = "bi-patch-check-fill text-success";
     } elseif ($mape <= 20) {
         $mapeCategory = "Baik";
-        $mapeDesc = "Akurasi prediksi sudah baik dan layak digunakan untuk perencanaan.";
+        $mapeDesc = "Prediksi model ini sudah cukup mendekati kenyataan dan aman dipakai untuk perencanaan.";
         $mapeColor = "text-primary border-primary bg-primary-subtle";
         $mapeAlertClass = "alert-primary text-primary-emphasis bg-primary-subtle border-primary-subtle";
         $mapeIcon = "bi-check-circle-fill text-primary";
     } elseif ($mape <= 50) {
         $mapeCategory = "Cukup";
-        $mapeDesc = "Prediksi cukup, namun masih perlu peningkatan untuk hasil yang lebih andal.";
+        $mapeDesc = "Prediksi model ini masih meleset cukup jauh, sebaiknya ditingkatkan lagi akurasinya.";
         $mapeColor = "text-warning border-warning bg-warning-subtle";
         $mapeAlertClass = "alert-warning text-warning-emphasis bg-warning-subtle border-warning-subtle";
         $mapeIcon = "bi-exclamation-triangle-fill text-warning";
     } else {
         $mapeCategory = "Buruk";
-        $mapeDesc = "Error prediksi terlalu besar; model tidak disarankan untuk perencanaan.";
+        $mapeDesc = "Selisih antara prediksi dan kenyataan terlalu besar, model ini belum layak dipakai untuk perencanaan.";
         $mapeColor = "text-danger border-danger bg-danger-subtle";
         $mapeAlertClass = "alert-danger text-danger-emphasis bg-danger-subtle border-danger-subtle";
         $mapeIcon = "bi-x-circle-fill text-danger";
@@ -41,27 +41,27 @@
     // 2. Klasifikasi R2 Score
     if ($r2 >= 0.67) {
         $r2Category = "Model Kuat";
-        $r2Desc = "Model mampu mengikuti pola data dengan baik.";
+        $r2Desc = "Model ini sudah pintar membaca pola naik-turunnya pendapatan parkir.";
         $r2Icon = "bi-graph-up text-success";
     } elseif ($r2 >= 0.33) {
         $r2Category = "Model Moderat";
-        $r2Desc = "Model cukup mengikuti pola, namun ada sebagian variasi data yang belum tertangkap.";
+        $r2Desc = "Model ini sudah cukup mengerti polanya, tapi masih ada sebagian pola yang belum tertangkap dengan baik.";
         $r2Icon = "bi-graph-up text-primary";
     } else {
         $r2Category = "Model Lemah";
-        $r2Desc = "Model kurang mampu mengenali pola data; perlu optimasi parameter.";
+        $r2Desc = "Model ini masih kesulitan mengenali pola data, perlu disetel ulang parameternya.";
         $r2Icon = "bi-graph-up text-danger";
     }
     
     // 3. Klasifikasi RMSE
     if ($rmsePercentage < 10) {
         $rmseCategory = "Sangat Baik";
-        $rmseDesc = "Selisih prediksi relatif kecil (" . number_format($rmsePercentage, 2, ',', '.') . "% dari rata-rata aktual).";
+        $rmseDesc = "Selisih prediksi tergolong kecil, hanya sekitar " . number_format($rmsePercentage, 2, ',', '.') . "% dari rata-rata pendapatan aktual.";
         $rmseColor = "text-success";
         $rmseIcon = "bi-shield-check-fill text-success";
     } else {
         $rmseCategory = "Perlu Perbaikan";
-        $rmseDesc = "Selisih prediksi cukup besar (" . number_format($rmsePercentage, 2, ',', '.') . "% dari rata-rata aktual); optimasi parameter diperlukan.";
+        $rmseDesc = "Selisih prediksi masih cukup besar, sekitar " . number_format($rmsePercentage, 2, ',', '.') . "% dari rata-rata pendapatan aktual, sebaiknya parameter model disetel ulang.";
         $rmseColor = "text-warning";
         $rmseIcon = "bi-exclamation-octagon-fill text-warning";
     }
@@ -69,7 +69,7 @@
     // 4. MAE
     if ($mae !== null) {
         $maeCategory = "Presisi Tinggi";
-        $maeDesc = "Kesalahan rata-rata harian sebesar Rp " . number_format($mae, 0, ',', '.') . ".";
+        $maeDesc = "Rata-rata selisih prediksi dengan kenyataan setiap harinya sekitar Rp " . number_format($mae, 0, ',', '.') . ".";
         $maeIcon = "bi-pin-map-fill text-primary";
     }
 
@@ -77,39 +77,39 @@
     $recommendations = [];
     if ($target === 'svr_default') {
         if ($mape < 10 && $r2 >= 0.67) {
-            $recommendations[] = "<strong>Pertahankan parameter saat ini</strong> — performa model sudah sangat optimal.";
+            $recommendations[] = "<strong>Pertahankan pengaturan saat ini</strong> — hasil model sudah sangat bagus, tidak perlu diubah.";
         } else {
-            $recommendations[] = "<strong>Optimalkan parameter model</strong> menggunakan Grid Search atau GWO di menu Optimasi.";
-            $recommendations[] = "<strong>Tambahkan data historis terbaru</strong> agar model belajar dari pola yang lebih lengkap.";
+            $recommendations[] = "<strong>Coba tingkatkan akurasi model</strong> dengan menjalankan fitur Grid Search atau GWO di menu Optimasi.";
+            $recommendations[] = "<strong>Lengkapi data terbaru</strong> supaya model belajar dari informasi yang lebih up-to-date.";
         }
-        $recommendations[] = "<strong>Lakukan pelatihan ulang</strong> setiap kali ada penambahan data transaksi baru.";
+        $recommendations[] = "<strong>Latih ulang model</strong> setiap kali ada data transaksi baru yang masuk.";
     } elseif ($target === 'grid_search') {
         if ($mape < 10 && $r2 >= 0.67) {
-            $recommendations[] = "<strong>Pertahankan parameter saat ini</strong> — performa Grid Search sudah sangat optimal.";
+            $recommendations[] = "<strong>Pertahankan pengaturan saat ini</strong> — hasil Grid Search sudah sangat bagus.";
         } else {
-            $recommendations[] = "<strong>Optimalkan parameter model</strong> dengan memperluas rentang pencarian atau coba GWO untuk hasil yang lebih presisi.";
+            $recommendations[] = "<strong>Coba tingkatkan hasilnya</strong> dengan memperluas pilihan parameter pencarian, atau coba metode GWO untuk hasil yang lebih presisi.";
         }
-        $recommendations[] = "<strong>Lakukan pelatihan ulang</strong> setiap kali ada penambahan data transaksi baru.";
+        $recommendations[] = "<strong>Latih ulang model</strong> setiap kali ada data transaksi baru yang masuk.";
     } elseif ($target === 'gwo') {
         if ($mape < 10 && $r2 >= 0.67) {
-            $recommendations[] = "<strong>Pertahankan parameter saat ini</strong> — GWO berhasil menemukan konfigurasi yang sangat optimal.";
+            $recommendations[] = "<strong>Pertahankan pengaturan saat ini</strong> — GWO berhasil menemukan pengaturan yang sangat pas.";
         } else {
-            $recommendations[] = "<strong>Perluas rentang pencarian parameter</strong> GWO atau tambahkan jumlah iterasi untuk hasil yang lebih presisi.";
+            $recommendations[] = "<strong>Perluas rentang pencarian GWO</strong> atau tambah jumlah iterasinya supaya hasilnya lebih presisi.";
         }
-        $recommendations[] = "<strong>Lakukan pelatihan ulang</strong> setiap kali ada penambahan data transaksi baru.";
+        $recommendations[] = "<strong>Latih ulang model</strong> setiap kali ada data transaksi baru yang masuk.";
     } elseif ($target === 'svr_default_upt') {
         if ($mape < 20 && $r2 >= 0.33) {
-            $recommendations[] = "<strong>Model Siap Dijadikan Acuan:</strong> Hasil evaluasi menunjukkan model memiliki tingkat kesalahan rendah dan kemampuan pola yang memadai. Sangat layak digunakan oleh UPT untuk penyusunan sasaran pendapatan harian.";
-            $recommendations[] = "Jadikan nilai proyeksi sebagai target operasional resmi jukir di lapangan.";
+            $recommendations[] = "<strong>Model Siap Dipakai:</strong> Hasilnya menunjukkan tingkat kesalahan yang rendah dan model cukup mengerti polanya. Model ini layak dijadikan acuan oleh UPT untuk menyusun target pendapatan harian.";
+            $recommendations[] = "Gunakan angka proyeksi ini sebagai target kerja resmi untuk juru parkir di lapangan.";
         } else {
-            $recommendations[] = "<strong>Rekomendasikan Pelatihan Ulang:</strong> Nilai akurasi saat ini masih kurang ideal. Rekomendasikan kepada operator untuk menjalankan pelatihan ulang (optimasi parameter C, Epsilon, Gamma) menggunakan metode Grey Wolf Optimizer (GWO) agar setelan parameter model lebih presisi.";
+            $recommendations[] = "<strong>Sebaiknya Dilatih Ulang:</strong> Akurasi model saat ini masih kurang ideal. Operator disarankan menjalankan pelatihan ulang (menyetel ulang parameter C, Epsilon, Gamma) menggunakan metode Grey Wolf Optimizer (GWO) agar hasilnya lebih presisi.";
         }
     } elseif ($target === 'svr_default_dishub') {
         if ($mape < 20 && $r2 >= 0.33) {
-            $recommendations[] = "<strong>Model Siap Dijadikan Acuan:</strong> Hasil evaluasi menunjukkan model memiliki tingkat kesalahan rendah dan kemampuan pola yang memadai. Sangat layak digunakan oleh Dishub untuk mendukung penyusunan target anggaran retribusi.";
-            $recommendations[] = "Jadikan proyeksi model ini sebagai acuan resmi penetapan target dan kebijakan anggaran retribusi daerah.";
+            $recommendations[] = "<strong>Model Siap Dipakai:</strong> Hasilnya menunjukkan tingkat kesalahan yang rendah dan model cukup mengerti polanya. Model ini layak dijadikan acuan oleh Dishub untuk menyusun target anggaran retribusi.";
+            $recommendations[] = "Gunakan angka proyeksi ini sebagai acuan resmi dalam menetapkan target dan kebijakan anggaran retribusi daerah.";
         } else {
-            $recommendations[] = "<strong>Rekomendasikan Pelatihan Ulang:</strong> Nilai akurasi saat ini masih kurang ideal. Rekomendasikan kepada operator untuk menjalankan pelatihan ulang (optimasi parameter C, Epsilon, Gamma) menggunakan metode Grey Wolf Optimizer (GWO) agar setelan parameter model lebih presisi.";
+            $recommendations[] = "<strong>Sebaiknya Dilatih Ulang:</strong> Akurasi model saat ini masih kurang ideal. Operator disarankan menjalankan pelatihan ulang (menyetel ulang parameter C, Epsilon, Gamma) menggunakan metode Grey Wolf Optimizer (GWO) agar hasilnya lebih presisi.";
         }
     }
 @endphp

@@ -171,6 +171,9 @@ class KepalaUptOptimasiController extends Controller
             'r2_gwo'       => $gwoMetric ? (float)$gwoMetric->r2_score : $SKRIPSI_GWO['r2_raw'],
         ];
 
-        return view('kepala-upt.optimasi.index', compact('grid_best', 'gwo_best', 'comparisons', 'chartMetrics', 'lastRun', 'gsRun', 'gwoRun'));
+        $rayons = \App\Models\Rayon::all();
+        $rayonId = request()->input('rayon_id', 0);
+
+        return view('kepala-upt.optimasi.index', compact('grid_best', 'gwo_best', 'comparisons', 'chartMetrics', 'lastRun', 'gsRun', 'gwoRun', 'rayons', 'rayonId'));
     }
 }

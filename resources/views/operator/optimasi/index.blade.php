@@ -6,21 +6,7 @@
 @section('content')
 <div class="container-fluid p-0">
     
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show rounded-3 mb-4" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i>
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
 
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-4" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
 
     @if(!$lastRun)
         <div class="card shadow-sm border border-light bg-white rounded-3 overflow-hidden mb-4">
@@ -265,7 +251,12 @@
                         <div class="stepper-line" id="stepper-line-grid-3"></div>
                         <div class="stepper-item" id="stepper-grid-4" onclick="goToGridStep(4)" style="cursor: pointer;">
                             <div class="step-number">4</div>
-                            <div class="step-title">Hasil &amp; Perbandingan</div>
+                            <div class="step-title">Hasil Optimasi</div>
+                        </div>
+                        <div class="stepper-line" id="stepper-line-grid-4"></div>
+                        <div class="stepper-item" id="stepper-grid-5" onclick="goToGridStep(5)" style="cursor: pointer;">
+                            <div class="step-number">5</div>
+                            <div class="step-title">Perbandingan Model</div>
                         </div>
                     </div>
                 </div>
@@ -775,7 +766,12 @@
                         <div class="stepper-line" id="stepper-line-gwo-3"></div>
                         <div class="stepper-item" id="stepper-gwo-4" onclick="goToGwoStep(4)" style="cursor: pointer;">
                             <div class="step-number">4</div>
-                            <div class="step-title">Hasil &amp; Perbandingan</div>
+                            <div class="step-title">Hasil Optimasi</div>
+                        </div>
+                        <div class="stepper-line" id="stepper-line-gwo-4"></div>
+                        <div class="stepper-item" id="stepper-gwo-5" onclick="goToGwoStep(5)" style="cursor: pointer;">
+                            <div class="step-number">5</div>
+                            <div class="step-title">Perbandingan Model</div>
                         </div>
                     </div>
                 </div>
@@ -1274,8 +1270,8 @@
             </div>
         </div>
 
-        <!-- COMMON STEP 3 CONTENT: Hasil & Perbandingan -->
-        <div id="results-step-content-3" class="d-none">
+        <!-- COMMON STEP 5 CONTENT: Perbandingan Model -->
+        <div id="results-step-content-5" class="step-opt-content d-none">
             <!-- Hasil Optimasi Parameter Table -->
             <div class="card mb-4 bg-white">
                 <div class="card-body">
@@ -1331,204 +1327,76 @@
                 </div>
             </div>
 
-            <!-- Analisis Perbandingan Performa Model -->
-            <div class="card mb-4 bg-white shadow-sm border border-light">
+            <!-- Grafik Tren Perbandingan Ketiga Model SVR -->
+            @php
+                $allDefaultPredictions = $lastRun ? $lastRun->predictionResults()->orderBy('tanggal', 'asc')->get() : collect([]);
+                $allGsPredictionsData = $gsRun ? $gsRun->predictionResults()->orderBy('tanggal', 'asc')->get() : collect([]);
+                $allGwoPredictionsData = $gwoRun ? $gwoRun->predictionResults()->orderBy('tanggal', 'asc')->get() : collect([]);
+                
+                $defaultMapped = $allDefaultPredictions->map(fn($p) => [
+                    'tanggal' => Carbon\Carbon::parse($p->tanggal)->format('d M Y'),
+                    'rayon_id' => (int)$p->rayon_id,
+                    'actual_value' => (double)$p->actual_value,
+                    'predicted_value' => (double)$p->predicted_value
+                ])->toArray();
+
+                $gsMapped = $allGsPredictionsData->map(fn($p) => [
+                    'tanggal' => Carbon\Carbon::parse($p->tanggal)->format('d M Y'),
+                    'rayon_id' => (int)$p->rayon_id,
+                    'actual_value' => (double)$p->actual_value,
+                    'predicted_value' => (double)$p->predicted_value
+                ])->toArray();
+
+                $gwoMapped = $allGwoPredictionsData->map(fn($p) => [
+                    'tanggal' => Carbon\Carbon::parse($p->tanggal)->format('d M Y'),
+                    'rayon_id' => (int)$p->rayon_id,
+                    'actual_value' => (double)$p->actual_value,
+                    'predicted_value' => (double)$p->predicted_value
+                ])->toArray();
+            @endphp
+            <div class="card bg-white mb-4">
                 <div class="card-body">
-                    <h5 class="card-title text-dark mb-3"><i class="bi bi-chat-left-text-fill me-2 text-primary-custom"></i>Analisis Perbandingan Performa Model</h5>
-                    
-                    @php
-                        $defaultMape = $chartMetrics['mape_default'];
-                        $gsMape = $chartMetrics['mape_gs'];
-                        $gwoMape = $chartMetrics['mape_gwo'];
-
-                        $models = [];
-                        if ($defaultMape !== null) $models['SVR Standar (Default)'] = $defaultMape;
-                        if ($gsMape !== null) $models['SVR + Grid Search'] = $gsMape;
-                        if ($gwoMape !== null) $models['SVR + GWO (Grey Wolf)'] = $gwoMape;
-
-                        $bestModelName = '-';
-                        $bestModelMape = 0;
-                        if (count($models) > 0) {
-                            asort($models);
-                            $bestModelName = array_key_first($models);
-                            $bestModelMape = reset($models);
-                        }
-
-                        $gsImprovement = ($defaultMape !== null && $gsMape !== null) ? ($defaultMape - $gsMape) : 0;
-                        $gwoImprovement = ($defaultMape !== null && $gwoMape !== null) ? ($defaultMape - $gwoMape) : 0;
-                        
-                        // Extract exact parameters from SVR runs
-                        $defaultC = $lastRun ? ($lastRun->modelParameter?->c_value ?? '1.0') : '1.0';
-                        $defaultEps = $lastRun ? ($lastRun->modelParameter?->epsilon_value ?? '0.1') : '0.1';
-                        $defaultGam = $lastRun ? ($lastRun->modelParameter?->gamma_value ?? 'scale') : 'scale';
-
-                        $gsParamC = $gsRun ? ($gsRun->modelParameter?->c_value ?? '-') : '-';
-                        $gsParamEps = $gsRun ? ($gsRun->modelParameter?->epsilon_value ?? '-') : '-';
-                        $gsParamGam = $gsRun ? ($gsRun->modelParameter?->gamma_value ?? '-') : '-';
-
-                        $gwoParamC = $gwoRun ? ($gwoRun->modelParameter?->c_value ?? '-') : '-';
-                        $gwoParamEps = $gwoRun ? ($gwoRun->modelParameter?->epsilon_value ?? '-') : '-';
-                        $gwoParamGam = $gwoRun ? ($gwoRun->modelParameter?->gamma_value ?? '-') : '-';
-
-                        // Helper formatter to trim trailing zeros of decimals and support precise representation
-                        $formatParamVal = function ($val, int $maxDecimals = 8): string {
-                            if ($val === null || $val === '' || $val === '-') {
-                                return '-';
-                            }
-                            if (!is_numeric($val)) {
-                                return $val;
-                            }
-                            $formatted = number_format((float)$val, $maxDecimals, ',', '.');
-                            if (strpos($formatted, ',') !== false) {
-                                $formatted = rtrim($formatted, '0');
-                                $formatted = rtrim($formatted, ',');
-                            }
-                            return $formatted;
-                        };
-
-                        // Best model interpretations
-                        $bestRunObj = null;
-                        $bestR2Val = 0;
-                        if ($bestModelName === 'SVR Standar (Default)') {
-                            $bestRunObj = $lastRun;
-                        } elseif ($bestModelName === 'SVR + Grid Search') {
-                            $bestRunObj = $gsRun;
-                        } elseif ($bestModelName === 'SVR + GWO (Grey Wolf)') {
-                            $bestRunObj = $gwoRun;
-                        }
-
-                        if ($bestRunObj) {
-                            $bestMetric = $bestRunObj->modelMetrics()->where('dataset_type', 'test')->first();
-                            if ($bestMetric) {
-                                $bestR2Val = (float)$bestMetric->r2_score;
-                            }
-                        }
-
-                        $bestModelMapeInterpret = 'Cukup Akurat (Perlu Dipantau)';
-                        if ($bestModelMape < 10) {
-                            $bestModelMapeInterpret = 'Sangat Akurat (Sangat Tepat)';
-                        } elseif ($bestModelMape <= 20) {
-                            $bestModelMapeInterpret = 'Baik (Layak Digunakan)';
-                        } elseif ($bestModelMape > 50) {
-                            $bestModelMapeInterpret = 'Kurang Akurat';
-                        }
-
-                        $bestR2Interpret = 'Kurang Baik dalam Membaca Pola';
-                        if ($bestR2Val >= 0.67) {
-                            $bestR2Interpret = 'Sangat Kuat dalam Membaca Pola';
-                        } elseif ($bestR2Val >= 0.33) {
-                            $bestR2Interpret = 'Cukup Baik dalam Membaca Pola';
-                        }
-
-                        // Set class and alerts depending on the best model
-                        $alertClass = 'alert-success text-success-emphasis bg-success-subtle border-success-subtle';
-                        $iconClass = 'bi-patch-check-fill text-success';
-                        if ($bestModelName === 'SVR Standar (Default)') {
-                            $alertClass = 'alert-warning text-warning-emphasis bg-warning-subtle border-warning-subtle';
-                            $iconClass = 'bi-exclamation-triangle-fill text-warning';
-                        }
-                    @endphp
-
-                    <div class="row g-3">
-                        <!-- Temuan & Komparasi Kinerja -->
-                        <div class="col-md-7">
-                            <h6 class="fw-bold text-secondary text-uppercase mb-2 shadow-none border-0 pb-0" style="font-size: 11px; letter-spacing: 0.5px;">Temuan &amp; Komparasi Kinerja</h6>
-                            <div class="d-flex flex-column gap-3">
-                                <!-- Card SVR Default -->
-                                <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
-                                    <div class="fs-4"><i class="bi bi-cpu text-secondary"></i></div>
-                                    <div>
-                                        <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">SVR Standar (Default): <span class="text-secondary">{{ $defaultMape !== null ? number_format($defaultMape, 2, ',', '.') . '%' : '-' }}</span></div>
-                                        <div class="text-secondary small" style="line-height: 1.5;">
-                                            Menggunakan setelan awal (C = {{ $formatParamVal($defaultC, 6) }}, &epsilon; = {{ $formatParamVal($defaultEps, 8) }}, &gamma; = {{ $formatParamVal($defaultGam, 6) }}). Model ini digunakan sebagai acuan awal akurasi pembanding sebelum dilakukan perbaikan/optimasi.
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Card Grid Search -->
-                                <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
-                                    <div class="fs-4"><i class="bi bi-grid-3x3 text-warning"></i></div>
-                                    <div>
-                                        <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">SVR + Grid Search: <span class="text-warning">{{ $gsMape !== null ? number_format($gsMape, 2, ',', '.') . '%' : '-' }}</span></div>
-                                        <div class="text-secondary small" style="line-height: 1.5;">
-                                            @if($gsMape !== null)
-                                                Menggunakan setelan optimal (C = {{ $formatParamVal($gsParamC, 6) }}, &epsilon; = {{ $formatParamVal($gsParamEps, 8) }}, &gamma; = {{ $formatParamVal($gsParamGam, 6) }}).
-                                                @if($gsImprovement > 0)
-                                                    Berhasil mengurangi tingkat kesalahan sebesar <strong class="text-success">{{ number_format($gsImprovement, 2, ',', '.') }}%</strong> dibanding model awal dengan melakukan pencarian setelan terbaik dalam rentang nilai tertentu.
-                                                @else
-                                                    Setelan hasil Grid Search tidak berhasil memberikan peningkatan akurasi dibandingkan model awal.
-                                                @endif
-                                            @else
-                                                Pencarian setelan dengan Grid Search belum dijalankan.
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Card GWO -->
-                                <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
-                                    <div class="fs-4"><i class="bi bi-activity text-success"></i></div>
-                                    <div>
-                                        <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">SVR + GWO (Grey Wolf): <span class="text-success">{{ $gwoMape !== null ? number_format($gwoMape, 2, ',', '.') . '%' : '-' }}</span></div>
-                                        <div class="text-secondary small" style="line-height: 1.5;">
-                                            @if($gwoMape !== null)
-                                                Menggunakan setelan optimal (C = {{ $formatParamVal($gwoParamC, 6) }}, &epsilon; = {{ $formatParamVal($gwoParamEps, 8) }}, &gamma; = {{ $formatParamVal($gwoParamGam, 6) }}).
-                                                @if($gwoImprovement > 0)
-                                                    Berhasil mengurangi tingkat kesalahan sebesar <strong class="text-success">{{ number_format($gwoImprovement, 2, ',', '.') }}%</strong> dibanding model awal melalui pencarian otomatis yang meniru cara berburu kawanan serigala untuk menemukan setelan terbaik.
-                                                @else
-                                                    Setelan hasil GWO tidak berhasil memberikan peningkatan akurasi dibandingkan model awal.
-                                                @endif
-                                            @else
-                                                Pencarian setelan dengan Grey Wolf Optimizer (GWO) belum dijalankan.
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <h5 class="card-title mb-0"><i class="bi bi-graph-up me-2 text-primary-custom"></i>Grafik Tren Perbandingan Hasil Prediksi</h5>
+                        <div class="d-flex align-items-center gap-2">
+                            <label for="rayon_id_comp" class="small fw-semibold text-secondary text-nowrap mb-0" style="font-size: 11.5px;">Filter Rayon:</label>
+                            <select id="rayon_id_comp" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 12px; height: 32px; width: 160px;" onchange="window.updateCompChart(this.value)">
+                                <option value="0">Semua Rayon</option>
+                                @foreach($rayons as $rayon)
+                                    <option value="{{ $rayon->id }}" {{ $rayonId == $rayon->id ? 'selected' : '' }}>{{ $rayon->nama_rayon }}</option>
+                                @endforeach
+                            </select>
                         </div>
-
-                        <!-- Rekomendasi Model Terbaik -->
-                        <div class="col-md-5">
-                            <div class="p-3 rounded-3 h-100 {{ $alertClass }} border border-0">
-                                <h6 class="fw-bold text-uppercase mb-3 d-flex align-items-center" style="font-size: 11px; letter-spacing: 0.5px;">
-                                    <i class="bi {{ $iconClass }} me-2 fs-5"></i>Rekomendasi Model
-                                </h6>
-                                <div style="font-size: 12.5px; line-height: 1.6;">
-                                    @if(count($models) > 0)
-                                        <p class="mb-3">
-                                            Berdasarkan hasil uji coba, model <strong>{{ $bestModelName }}</strong> terpilih sebagai model dengan akurasi tertinggi (kesalahan perkiraan terkecil MAPE = <strong>{{ number_format($bestModelMape, 2, ',', '.') }}%</strong> - kategori <strong>{{ $bestModelMapeInterpret }}</strong>), dan kemampuan membaca pola data sebesar <strong>{{ number_format($bestR2Val, 4, ',', '.') }}</strong> (kategori <strong>{{ $bestR2Interpret }}</strong>).
-                                        </p>
-                                        <p class="mb-3 small text-secondary-emphasis">
-                                            Setelan parameter terbaik yang digunakan adalah:<br>
-                                            &bull; C = <strong>{{ $formatParamVal($bestRunObj?->modelParameter?->c_value, 6) }}</strong><br>
-                                            &bull; &epsilon; = <strong>{{ $formatParamVal($bestRunObj?->modelParameter?->epsilon_value, 8) }}</strong><br>
-                                            &bull; &gamma; = <strong>{{ $formatParamVal($bestRunObj?->modelParameter?->gamma_value, 6) }}</strong>
-                                        </p>
-                                        <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
-                                            <li class="d-flex align-items-start gap-2">
-                                                <i class="bi bi-check2-circle mt-0.5 flex-shrink-0"></i>
-                                                <span>Gunakan model <strong>{{ $bestModelName }}</strong> untuk memperkirakan pendapatan parkir harian di masa depan.</span>
-                                            </li>
-                                            <li class="d-flex align-items-start gap-2">
-                                                <i class="bi bi-check2-circle mt-0.5 flex-shrink-0"></i>
-                                                <span>Metode Grey Wolf (GWO) terbukti lebih unggul menemukan setelan terbaik karena melacak secara menyeluruh tanpa dibatasi oleh pilihan angka tertentu (seperti pada Grid Search).</span>
-                                            </li>
-                                            <li class="d-flex align-items-start gap-2">
-                                                <i class="bi bi-check2-circle mt-0.5 flex-shrink-0"></i>
-                                                <span>Lakukan pencarian ulang setelan terbaik jika performa perkiraan model di lapangan menurun atau pola setoran parkir bergeser.</span>
-                                            </li>
-                                        </ul>
-                                    @else
-                                        <p class="mb-0">
-                                            Belum ada hasil optimasi yang disimpan untuk dibandingkan.
-                                        </p>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
+                    </div>
+                    <div style="position: relative; height: 360px;">
+                        <canvas id="comparisonTrendChart"></canvas>
                     </div>
                 </div>
             </div>
+
+            <!-- Analisis Perbandingan Performa Model Component -->
+            <div class="card mb-4 bg-white shadow-sm border border-light">
+                <div class="card-body">
+                    <h5 class="card-title text-dark mb-4"><i class="bi bi-chat-left-text-fill me-2 text-primary-custom"></i>Analisis Perbandingan Performa Model</h5>
+                    <x-model-comparison-analysis 
+                        :comparisons="$comparisons" 
+                        :chartMetrics="$chartMetrics" 
+                        :lastRun="$lastRun" 
+                        :gsRun="$gsRun" 
+                        :gwoRun="$gwoRun" 
+                    />
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-start mt-4 mb-4">
+                <button type="button" class="btn btn-outline-secondary px-4 py-2.5 rounded-3 fw-bold text-sm shadow-sm" onclick="currentMethod === 'grid' ? goToGridStep(4) : goToGwoStep(4)">
+                    <i class="bi bi-arrow-left me-1"></i> Kembali ke Hasil Optimasi
+                </button>
+            </div>
+        </div> {{-- END results-step-content-5 --}}
+
+        <!-- STEP 4 CONTENT: Hasil Optimasi -->
+        <div id="results-step-content-4" class="step-opt-content d-none">
 
 
             <!-- --- DETAIL EVALUASI PREDIKSI MODEL SVR + GRID SEARCH --- -->
@@ -1640,51 +1508,26 @@
                     <h5 class="fw-bold mb-3 text-dark mt-4"><i class="bi bi-award-fill me-2 text-warning"></i>Hasil Evaluasi Model SVR + Grid Search</h5>
                     <div class="row g-3 mb-4">
                         <!-- MAE -->
-                        <div class="col-12 col-md-4 col-lg">
+                        <div class="col-12 col-md-6 col-lg">
                             <div class="metric-card-custom">
                                 <span class="metric-label-custom">Mean Absolute Error (MAE)</span>
                                 <span class="metric-value-custom">Rp {{ number_format($gsMetricsObj->mae, 0, ',', '.') }}</span>
-                                <span class="text-muted small" style="font-size: 11px;">Rata-rata absolut selisih error</span>
+                                <span class="text-muted small" style="font-size: 11px;">Rata-rata selisih nominal error</span>
                             </div>
                         </div>
                         <!-- RMSE -->
-                        <div class="col-12 col-md-4 col-lg">
+                        <div class="col-12 col-md-6 col-lg">
                             <div class="metric-card-custom">
                                 <span class="metric-label-custom">Root Mean Squared Error (RMSE)</span>
                                 <span class="metric-value-custom">Rp {{ number_format($gsMetricsObj->rmse, 0, ',', '.') }}</span>
-                                <span class="text-muted small" style="font-size: 11px;">Akar kuadrat rata-rata error kuadrat</span>
-                            </div>
-                        </div>
-                        <!-- Akurasi MAPE -->
-                        <div class="col-12 col-md-4 col-lg">
-                            <div class="metric-card-custom">
-                                <span class="metric-label-custom">Akurasi MAPE</span>
-                                <span class="metric-value-custom text-success">{{ number_format($gsMetricsObj->accuracy, 2, ',', '.') }}%</span>
-                                @php
-                                    $gsMapeVal = $gsMetricsObj->mape;
-                                    $gsMapeInterpret = 'Cukup / Reasonable';
-                                    $gsMapeClass = 'bg-warning-subtle text-warning';
-                                    if ($gsMapeVal < 10) {
-                                        $gsMapeInterpret = 'Sangat Akurat';
-                                        $gsMapeClass = 'bg-success-subtle text-success';
-                                    } elseif ($gsMapeVal < 20) {
-                                        $gsMapeInterpret = 'Baik / Good';
-                                        $gsMapeClass = 'bg-success-subtle text-success';
-                                    } elseif ($gsMapeVal > 50) {
-                                        $gsMapeInterpret = 'Lemah / Weak';
-                                        $gsMapeClass = 'bg-danger-subtle text-danger';
-                                    }
-                                @endphp
-                                <div>
-                                    <span class="badge border-0 {{ $gsMapeClass }} py-1 px-2.5" style="font-size: 9.5px; font-weight: 600;">{{ $gsMapeInterpret }}</span>
-                                </div>
+                                <span class="text-muted small" style="font-size: 11px;">Ukuran penyimpangan ekstrem</span>
                             </div>
                         </div>
                         <!-- R2 Score -->
                         <div class="col-12 col-md-6 col-lg">
                             <div class="metric-card-custom">
                                 <span class="metric-label-custom">R² Score</span>
-                                <span class="metric-value-custom">{{ number_format($gsMetricsObj->r2_score, 6, ',', '.') }}</span>
+                                <span class="metric-value-custom">{{ number_format($gsMetricsObj->r2_score, 2, ',', '.') }}</span>
                                 @php
                                     $gsR2Val = $gsMetricsObj->r2_score;
                                     $gsR2Interpret = 'Lemah';
@@ -1706,8 +1549,33 @@
                         <div class="col-12 col-md-6 col-lg">
                             <div class="metric-card-custom">
                                 <span class="metric-label-custom">Persentase MAPE</span>
-                                <span class="metric-value-custom text-secondary">{{ number_format($gsMetricsObj->mape, 4, ',', '.') }}%</span>
+                                <span class="metric-value-custom text-secondary">{{ number_format($gsMetricsObj->mape, 2, ',', '.') }}%</span>
                                 <span class="text-muted small" style="font-size: 11px;">Rata-rata persentase error</span>
+                            </div>
+                        </div>
+                        <!-- Akurasi MAPE -->
+                        <div class="col-12 col-md-6 col-lg">
+                            <div class="metric-card-custom">
+                                <span class="metric-label-custom">Akurasi (100% - MAPE)</span>
+                                <span class="metric-value-custom text-success">{{ number_format($gsMetricsObj->accuracy, 2, ',', '.') }}%</span>
+                                @php
+                                    $gsMapeVal = $gsMetricsObj->mape;
+                                    $gsMapeInterpret = 'Cukup / Reasonable';
+                                    $gsMapeClass = 'bg-warning-subtle text-warning';
+                                    if ($gsMapeVal < 10) {
+                                        $gsMapeInterpret = 'Sangat Akurat';
+                                        $gsMapeClass = 'bg-success-subtle text-success';
+                                    } elseif ($gsMapeVal < 20) {
+                                        $gsMapeInterpret = 'Baik / Good';
+                                        $gsMapeClass = 'bg-success-subtle text-success';
+                                    } elseif ($gsMapeVal > 50) {
+                                        $gsMapeInterpret = 'Lemah / Weak';
+                                        $gsMapeClass = 'bg-danger-subtle text-danger';
+                                    }
+                                @endphp
+                                <div>
+                                    <span class="badge border-0 {{ $gsMapeClass }} py-1 px-2.5" style="font-size: 9.5px; font-weight: 600;">{{ $gsMapeInterpret }}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1737,7 +1605,18 @@
                     <!-- Grafik Aktual vs Prediksi Grid Search -->
                     <div class="card mb-4 bg-white">
                         <div class="card-body">
-                            <h5 class="card-title"><i class="bi bi-graph-up-arrow me-2 text-primary-custom"></i>Grafik Aktual vs Prediksi Model SVR + Grid Search</h5>
+                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                <h5 class="card-title mb-0"><i class="bi bi-graph-up-arrow me-2 text-primary-custom"></i>Grafik Aktual vs Prediksi Model SVR + Grid Search</h5>
+                                <div class="d-flex align-items-center gap-2">
+                                    <label for="rayon_id_gs_chart" class="small fw-semibold text-secondary text-nowrap mb-0" style="font-size: 11.5px;">Filter Rayon:</label>
+                                    <select id="rayon_id_gs_chart" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 12px; height: 32px; width: 160px;" onchange="window.updateGsChart(this.value)">
+                                        <option value="0">Semua Rayon</option>
+                                        @foreach($rayons as $rayon)
+                                            <option value="{{ $rayon->id }}" {{ $rayonId == $rayon->id ? 'selected' : '' }}>{{ $rayon->nama_rayon }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
                             <div style="height: 380px; position: relative; width: 100%;">
                                 <canvas id="gsChart"></canvas>
                             </div>
@@ -1887,10 +1766,17 @@
                                 @endif
                             </div>
                         </div>
+                        
+                        <div class="d-flex justify-content-between mt-4 mb-4">
+                            <button type="button" class="btn btn-outline-secondary px-4 py-2.5 rounded-3 fw-bold text-sm shadow-sm" onclick="goToGridStep(2)">
+                                <i class="bi bi-arrow-left me-1"></i> Kembali ke Konfigurasi
+                            </button>
+                            <button type="button" class="btn btn-dark px-4 py-2.5 rounded-3 fw-bold text-sm shadow-sm" onclick="goToGridStep(5)">
+                                Lanjut ke Perbandingan <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
+                        </div>
                     </div>
                 @endif
-            </div>
-
             <!-- --- DETAIL EVALUASI PREDIKSI MODEL SVR + GWO --- -->
             @php
                 $gwoRayonStats = collect([]);
@@ -2000,51 +1886,26 @@
                     <h5 class="fw-bold mb-3 text-dark mt-4"><i class="bi bi-award-fill me-2 text-success"></i>Hasil Evaluasi Model SVR + GWO</h5>
                     <div class="row g-3 mb-4">
                         <!-- MAE -->
-                        <div class="col-12 col-md-4 col-lg">
+                        <div class="col-12 col-md-6 col-lg">
                             <div class="metric-card-custom">
                                 <span class="metric-label-custom">Mean Absolute Error (MAE)</span>
                                 <span class="metric-value-custom">Rp {{ number_format($gwoMetricsObj->mae, 0, ',', '.') }}</span>
-                                <span class="text-muted small" style="font-size: 11px;">Rata-rata absolut selisih error</span>
+                                <span class="text-muted small" style="font-size: 11px;">Rata-rata selisih nominal error</span>
                             </div>
                         </div>
                         <!-- RMSE -->
-                        <div class="col-12 col-md-4 col-lg">
+                        <div class="col-12 col-md-6 col-lg">
                             <div class="metric-card-custom">
                                 <span class="metric-label-custom">Root Mean Squared Error (RMSE)</span>
                                 <span class="metric-value-custom">Rp {{ number_format($gwoMetricsObj->rmse, 0, ',', '.') }}</span>
-                                <span class="text-muted small" style="font-size: 11px;">Akar kuadrat rata-rata error kuadrat</span>
-                            </div>
-                        </div>
-                        <!-- Akurasi MAPE -->
-                        <div class="col-12 col-md-4 col-lg">
-                            <div class="metric-card-custom">
-                                <span class="metric-label-custom">Akurasi MAPE</span>
-                                <span class="metric-value-custom text-success">{{ number_format($gwoMetricsObj->accuracy, 2, ',', '.') }}%</span>
-                                @php
-                                    $gwoMapeVal = $gwoMetricsObj->mape;
-                                    $gwoMapeInterpret = 'Cukup / Reasonable';
-                                    $gwoMapeClass = 'bg-warning-subtle text-warning';
-                                    if ($gwoMapeVal < 10) {
-                                        $gwoMapeInterpret = 'Sangat Akurat';
-                                        $gwoMapeClass = 'bg-success-subtle text-success';
-                                    } elseif ($gwoMapeVal < 20) {
-                                        $gwoMapeInterpret = 'Baik / Good';
-                                        $gwoMapeClass = 'bg-success-subtle text-success';
-                                    } elseif ($gwoMapeVal > 50) {
-                                        $gwoMapeInterpret = 'Lemah / Weak';
-                                        $gwoMapeClass = 'bg-danger-subtle text-danger';
-                                    }
-                                @endphp
-                                <div>
-                                    <span class="badge border-0 {{ $gwoMapeClass }} py-1 px-2.5" style="font-size: 9.5px; font-weight: 600;">{{ $gwoMapeInterpret }}</span>
-                                </div>
+                                <span class="text-muted small" style="font-size: 11px;">Ukuran penyimpangan ekstrem</span>
                             </div>
                         </div>
                         <!-- R2 Score -->
                         <div class="col-12 col-md-6 col-lg">
                             <div class="metric-card-custom">
                                 <span class="metric-label-custom">R² Score</span>
-                                <span class="metric-value-custom">{{ number_format($gwoMetricsObj->r2_score, 6, ',', '.') }}</span>
+                                <span class="metric-value-custom">{{ number_format($gwoMetricsObj->r2_score, 2, ',', '.') }}</span>
                                 @php
                                     $gwoR2Val = $gwoMetricsObj->r2_score;
                                     $gwoR2Interpret = 'Lemah';
@@ -2066,8 +1927,33 @@
                         <div class="col-12 col-md-6 col-lg">
                             <div class="metric-card-custom">
                                 <span class="metric-label-custom">Persentase MAPE</span>
-                                <span class="metric-value-custom text-secondary">{{ number_format($gwoMetricsObj->mape, 4, ',', '.') }}%</span>
+                                <span class="metric-value-custom text-secondary">{{ number_format($gwoMetricsObj->mape, 2, ',', '.') }}%</span>
                                 <span class="text-muted small" style="font-size: 11px;">Rata-rata persentase error</span>
+                            </div>
+                        </div>
+                        <!-- Akurasi MAPE -->
+                        <div class="col-12 col-md-6 col-lg">
+                            <div class="metric-card-custom">
+                                <span class="metric-label-custom">Akurasi (100% - MAPE)</span>
+                                <span class="metric-value-custom text-success">{{ number_format($gwoMetricsObj->accuracy, 2, ',', '.') }}%</span>
+                                @php
+                                    $gwoMapeVal = $gwoMetricsObj->mape;
+                                    $gwoMapeInterpret = 'Cukup / Reasonable';
+                                    $gwoMapeClass = 'bg-warning-subtle text-warning';
+                                    if ($gwoMapeVal < 10) {
+                                        $gwoMapeInterpret = 'Sangat Akurat';
+                                        $gwoMapeClass = 'bg-success-subtle text-success';
+                                    } elseif ($gwoMapeVal < 20) {
+                                        $gwoMapeInterpret = 'Baik / Good';
+                                        $gwoMapeClass = 'bg-success-subtle text-success';
+                                    } elseif ($gwoMapeVal > 50) {
+                                        $gwoMapeInterpret = 'Lemah / Weak';
+                                        $gwoMapeClass = 'bg-danger-subtle text-danger';
+                                    }
+                                @endphp
+                                <div>
+                                    <span class="badge border-0 {{ $gwoMapeClass }} py-1 px-2.5" style="font-size: 9.5px; font-weight: 600;">{{ $gwoMapeInterpret }}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2097,7 +1983,18 @@
                     <!-- Grafik Aktual vs Prediksi GWO -->
                     <div class="card mb-4 bg-white">
                         <div class="card-body">
-                            <h5 class="card-title"><i class="bi bi-graph-up-arrow me-2 text-primary-custom"></i>Grafik Aktual vs Prediksi Model SVR + GWO</h5>
+                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                <h5 class="card-title mb-0"><i class="bi bi-graph-up-arrow me-2 text-primary-custom"></i>Grafik Aktual vs Prediksi Model SVR + GWO</h5>
+                                <div class="d-flex align-items-center gap-2">
+                                    <label for="rayon_id_gwo_chart" class="small fw-semibold text-secondary text-nowrap mb-0" style="font-size: 11.5px;">Filter Rayon:</label>
+                                    <select id="rayon_id_gwo_chart" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 12px; height: 32px; width: 160px;" onchange="window.updateGwoChart(this.value)">
+                                        <option value="0">Semua Rayon</option>
+                                        @foreach($rayons as $rayon)
+                                            <option value="{{ $rayon->id }}" {{ $rayonId == $rayon->id ? 'selected' : '' }}>{{ $rayon->nama_rayon }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
                             <div style="height: 380px; position: relative; width: 100%;">
                                 <canvas id="gwoChart"></canvas>
                             </div>
@@ -2247,9 +2144,21 @@
                                 @endif
                             </div>
                         </div>
+                        
+                        <div class="d-flex justify-content-between mt-4 mb-4">
+                            <button type="button" class="btn btn-outline-secondary px-4 py-2.5 rounded-3 fw-bold text-sm shadow-sm" onclick="goToGwoStep(2)">
+                                <i class="bi bi-arrow-left me-1"></i> Kembali ke Konfigurasi
+                            </button>
+                            <button type="button" class="btn btn-dark px-4 py-2.5 rounded-3 fw-bold text-sm shadow-sm" onclick="goToGwoStep(5)">
+                                Lanjut ke Perbandingan <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
+                        </div>
                     </div>
                 @endif
             </div>
+
+            </div>
+
 
             <!-- Re-train / Re-optimize Button & Reset Button -->
             <div class="d-flex justify-content-end gap-2 mb-4">
@@ -2265,10 +2174,6 @@
                     @csrf
                     <input type="hidden" name="id" id="delete-run-id" value="">
                 </form>
-
-                <button type="button" class="btn btn-dark px-4 py-2.5 rounded-3 fw-bold text-sm" onclick="retuneCurrentMethod()">
-                    <i class="bi bi-arrow-counterclockwise me-1"></i> Optimasi Ulang
-                </button>
             </div>
         </div>
     @endif
@@ -2804,7 +2709,7 @@
             return;
         }
         
-        if (stepNum === 4 && !isGridTrained && (typeof bestParamsGs === 'undefined' || !bestParamsGs.c)) {
+        if ((stepNum === 4 || stepNum === 5) && !isGridTrained && (typeof bestParamsGs === 'undefined' || !bestParamsGs.c)) {
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     title: 'Hasil Belum Tersedia!',
@@ -2819,7 +2724,7 @@
 
         gridStep = stepNum;
         sessionStorage.setItem('grid_step', stepNum.toString());
-        for (let i = 1; i <= 4; i++) {
+        for (let i = 1; i <= 5; i++) {
             const item = document.getElementById(`stepper-grid-${i}`);
             if (item) {
                 item.classList.remove('active', 'completed');
@@ -2827,7 +2732,7 @@
                 else if (i === stepNum) item.classList.add('active');
             }
         }
-        for (let i = 1; i <= 3; i++) {
+        for (let i = 1; i <= 4; i++) {
             const line = document.getElementById(`stepper-line-grid-${i}`);
             if (line) {
                 line.classList.remove('completed');
@@ -2837,15 +2742,22 @@
         const s1 = document.getElementById('grid-step-content-1');
         const s2 = document.getElementById('grid-step-content-2');
         const s3 = document.getElementById('grid-step-content-3');
-        const s4 = document.getElementById('results-step-content-3');
+        const s4 = document.getElementById('results-step-content-4');
+        const s5 = document.getElementById('results-step-content-5');
+        
         if (s1) s1.classList.add('d-none');
         if (s2) s2.classList.add('d-none');
         if (s3) s3.classList.add('d-none');
+        if (s4) s4.classList.add('d-none');
+        if (s5) s5.classList.add('d-none');
+
         if (stepNum === 4) {
             if (s4) s4.classList.remove('d-none');
             setTimeout(() => { s4?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+        } else if (stepNum === 5) {
+            if (s5) s5.classList.remove('d-none');
+            setTimeout(() => { s5?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
         } else {
-            if (s4) s4.classList.add('d-none');
             const target = document.getElementById(`grid-step-content-${stepNum}`);
             if (target) target.classList.remove('d-none');
             
@@ -2925,7 +2837,7 @@
             return;
         }
         
-        if (stepNum === 4 && !isGwoTrained && (typeof bestParamsGwo === 'undefined' || !bestParamsGwo.c)) {
+        if ((stepNum === 4 || stepNum === 5) && !isGwoTrained && (typeof bestParamsGwo === 'undefined' || !bestParamsGwo.c)) {
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     title: 'Hasil Belum Tersedia!',
@@ -2940,7 +2852,7 @@
 
         gwoStep = stepNum;
         sessionStorage.setItem('gwo_step', stepNum.toString());
-        for (let i = 1; i <= 4; i++) {
+        for (let i = 1; i <= 5; i++) {
             const item = document.getElementById(`stepper-gwo-${i}`);
             if (item) {
                 item.classList.remove('active', 'completed');
@@ -2948,7 +2860,7 @@
                 else if (i === stepNum) item.classList.add('active');
             }
         }
-        for (let i = 1; i <= 3; i++) {
+        for (let i = 1; i <= 4; i++) {
             const line = document.getElementById(`stepper-line-gwo-${i}`);
             if (line) {
                 line.classList.remove('completed');
@@ -2958,15 +2870,22 @@
         const s1 = document.getElementById('gwo-step-content-1');
         const s2 = document.getElementById('gwo-step-content-2');
         const s3 = document.getElementById('gwo-step-content-3');
-        const s4 = document.getElementById('results-step-content-3');
+        const s4 = document.getElementById('results-step-content-4');
+        const s5 = document.getElementById('results-step-content-5');
+        
         if (s1) s1.classList.add('d-none');
         if (s2) s2.classList.add('d-none');
         if (s3) s3.classList.add('d-none');
+        if (s4) s4.classList.add('d-none');
+        if (s5) s5.classList.add('d-none');
+
         if (stepNum === 4) {
             if (s4) s4.classList.remove('d-none');
             setTimeout(() => { s4?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+        } else if (stepNum === 5) {
+            if (s5) s5.classList.remove('d-none');
+            setTimeout(() => { s5?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
         } else {
-            if (s4) s4.classList.add('d-none');
             const target = document.getElementById(`gwo-step-content-${stepNum}`);
             if (target) target.classList.remove('d-none');
             
@@ -3094,6 +3013,7 @@
 
     window.startGridSearchTuning = function() {
         if (typeof Swal === 'undefined') {
+            isGridRunning = true;
             window.goToGridStep(3);
             executeGridSearchTuning();
             return;
@@ -3109,6 +3029,7 @@
             cancelButtonText: 'Batal'
         }).then(result => {
             if (result.isConfirmed) {
+                isGridRunning = true;
                 window.goToGridStep(3);
                 executeGridSearchTuning();
             }
@@ -3357,6 +3278,7 @@
                      }).then((result) => {
                           clearTempParams();
                           if (result.dismiss === 'cancel') {
+                              isGridRunning = true;
                               window.goToGridStep(3);
                               executeGridSearchTuning();
                           } else {
@@ -3386,6 +3308,7 @@
 
     window.startGwoTuning = function() {
         if (typeof Swal === 'undefined') {
+            isGwoRunning = true;
             window.goToGwoStep(3);
             executeGwoTuning();
             return;
@@ -3401,6 +3324,7 @@
             cancelButtonText: 'Batal'
         }).then(result => {
             if (result.isConfirmed) {
+                isGwoRunning = true;
                 window.goToGwoStep(3);
                 executeGwoTuning();
             }
@@ -3572,7 +3496,8 @@
                      }).then((result) => {
                          clearTempParams();
                          if (result.dismiss === 'cancel') {
-                             window.goToGwoStep(3);
+                             isGwoRunning = true;
+                              window.goToGwoStep(3);
                              executeGwoTuning();
                          } else {
                              sessionStorage.setItem('optimasi_method', 'gwo');
@@ -3604,11 +3529,11 @@
         const rawGridStep = parseInt(urlParams.get('grid_step') || sessionStorage.getItem('grid_step') || defaultGridStep);
         const rawGwoStep  = parseInt(urlParams.get('gwo_step')  || sessionStorage.getItem('gwo_step')  || defaultGwoStep);
         let savedGridStep = rawGridStep === 3 ? 2 : rawGridStep;
-        if (savedGridStep === 4 && !isGridTrained) {
+        if ((savedGridStep === 4 || savedGridStep === 5) && !isGridTrained) {
             savedGridStep = 1;
         }
         let savedGwoStep  = rawGwoStep  === 3 ? 2 : rawGwoStep;
-        if (savedGwoStep === 4 && !isGwoTrained) {
+        if ((savedGwoStep === 4 || savedGwoStep === 5) && !isGwoTrained) {
             savedGwoStep = 1;
         }
 
@@ -3700,6 +3625,208 @@
             });
         }
 
+        // --- CLIENT-SIDE RAYON FILTERING DATA AND HELPERS ---
+        const allDefaultPreds = @json($defaultMapped);
+        const allGsPreds = @json($gsMapped);
+        const allGwoPreds = @json($gwoMapped);
+
+        function getFilteredData(preds, rayonId) {
+            rayonId = parseInt(rayonId);
+            if (rayonId === 0) {
+                const grouped = {};
+                preds.forEach(p => {
+                    if (!grouped[p.tanggal]) {
+                        grouped[p.tanggal] = { actual: 0, predicted: 0 };
+                    }
+                    grouped[p.tanggal].actual += p.actual_value;
+                    grouped[p.tanggal].predicted += p.predicted_value;
+                });
+                const labels = Object.keys(grouped);
+                const actual = labels.map(l => grouped[l].actual);
+                const predicted = labels.map(l => grouped[l].predicted);
+                return { labels, actual, predicted };
+            } else {
+                const filtered = preds.filter(p => p.rayon_id === rayonId);
+                const labels = filtered.map(p => p.tanggal);
+                const actual = filtered.map(p => p.actual_value);
+                const predicted = filtered.map(p => p.predicted_value);
+                return { labels, actual, predicted };
+            }
+        }
+
+        window.updateGsChart = function(rayonId) {
+            const data = getFilteredData(allGsPreds, rayonId);
+            if (window.gsChartInstance) {
+                window.gsChartInstance.data.labels = data.labels;
+                const dsActual = window.gsChartInstance.data.datasets.find(ds => ds.label === 'Pendapatan Aktual');
+                if (dsActual) dsActual.data = data.actual;
+                const dsPredict = window.gsChartInstance.data.datasets.find(ds => ds.label === 'Pendapatan Prediksi SVR (GS)');
+                if (dsPredict) dsPredict.data = data.predicted;
+                window.gsChartInstance.update();
+            }
+        }
+
+        window.updateGwoChart = function(rayonId) {
+            const data = getFilteredData(allGwoPreds, rayonId);
+            if (window.gwoChartInstance) {
+                window.gwoChartInstance.data.labels = data.labels;
+                const dsActual = window.gwoChartInstance.data.datasets.find(ds => ds.label === 'Pendapatan Aktual');
+                if (dsActual) dsActual.data = data.actual;
+                const dsPredict = window.gwoChartInstance.data.datasets.find(ds => ds.label === 'Pendapatan Prediksi SVR (GWO)');
+                if (dsPredict) dsPredict.data = data.predicted;
+                window.gwoChartInstance.update();
+            }
+        }
+
+        window.updateCompChart = function(rayonId) {
+            const defaultData = getFilteredData(allDefaultPreds, rayonId);
+            const gsData = getFilteredData(allGsPreds, rayonId);
+            const gwoData = getFilteredData(allGwoPreds, rayonId);
+            
+            if (window.comparisonChartInstance) {
+                window.comparisonChartInstance.data.labels = gwoData.labels.length > 0 ? gwoData.labels : (gsData.labels.length > 0 ? gsData.labels : defaultData.labels);
+                
+                const dsActual = window.comparisonChartInstance.data.datasets.find(ds => ds.label === 'Pendapatan Aktual');
+                if (dsActual) dsActual.data = gwoData.actual.length > 0 ? gwoData.actual : (gsData.actual.length > 0 ? gsData.actual : defaultData.actual);
+                
+                const dsDefault = window.comparisonChartInstance.data.datasets.find(ds => ds.label === 'Prediksi SVR Standar');
+                if (dsDefault) dsDefault.data = defaultData.predicted;
+                
+                const dsGs = window.comparisonChartInstance.data.datasets.find(ds => ds.label === 'Prediksi SVR + Grid Search');
+                if (dsGs) dsGs.data = gsData.predicted;
+                
+                const dsGwo = window.comparisonChartInstance.data.datasets.find(ds => ds.label === 'Prediksi SVR + GWO (Grey Wolf)');
+                if (dsGwo) dsGwo.data = gwoData.predicted;
+                
+                window.comparisonChartInstance.update();
+            }
+        }
+
+        // --- COMPARISON TREND LINE CHART INITIALIZATION ---
+        const canvasCompEl = document.getElementById('comparisonTrendChart');
+        if (typeof Chart !== 'undefined' && canvasCompEl) {
+            const ctxComp = canvasCompEl.getContext('2d');
+            
+            // Initialize with currently active rayonId from PHP
+            const startRayonId = {{ $rayonId }};
+            const defaultData = getFilteredData(allDefaultPreds, startRayonId);
+            const gsData = getFilteredData(allGsPreds, startRayonId);
+            const gwoData = getFilteredData(allGwoPreds, startRayonId);
+            
+            const labelsComp = gwoData.labels.length > 0 ? gwoData.labels : (gsData.labels.length > 0 ? gsData.labels : defaultData.labels);
+            const actualDataComp = gwoData.actual.length > 0 ? gwoData.actual : (gsData.actual.length > 0 ? gsData.actual : defaultData.actual);
+            
+            const datasetsComp = [
+                {
+                    label: 'Pendapatan Aktual',
+                    data: actualDataComp,
+                    borderColor: '#005BAA',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.3,
+                    pointBackgroundColor: '#005BAA',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 1,
+                    pointRadius: 2.5,
+                    pointHoverRadius: 4
+                }
+            ];
+
+            if (defaultData.predicted.length > 0) {
+                datasetsComp.push({
+                    label: 'Prediksi SVR Standar',
+                    data: defaultData.predicted,
+                    borderColor: '#6c757d',
+                    borderWidth: 1.5,
+                    fill: false,
+                    tension: 0.3,
+                    pointBackgroundColor: '#6c757d',
+                    pointRadius: 2,
+                    borderDash: [4, 4]
+                });
+            }
+
+            if (gsData.predicted.length > 0) {
+                datasetsComp.push({
+                    label: 'Prediksi SVR + Grid Search',
+                    data: gsData.predicted,
+                    borderColor: '#F59E0B',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.3,
+                    pointBackgroundColor: '#F59E0B',
+                    pointRadius: 2,
+                    borderDash: [3, 3]
+                });
+            }
+
+            if (gwoData.predicted.length > 0) {
+                datasetsComp.push({
+                    label: 'Prediksi SVR + GWO (Grey Wolf)',
+                    data: gwoData.predicted,
+                    borderColor: '#10B981',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.3,
+                    pointBackgroundColor: '#10B981',
+                    pointRadius: 2.5,
+                    pointHoverRadius: 4
+                });
+            }
+
+            window.comparisonChartInstance = new Chart(ctxComp, {
+                type: 'line',
+                data: {
+                    labels: labelsComp,
+                    datasets: datasetsComp
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                boxWidth: 10,
+                                padding: 12,
+                                font: { family: 'Inter', size: 11, weight: '500' },
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            padding: 10,
+                            backgroundColor: '#1f2937',
+                            titleFont: { family: 'Inter', size: 11, weight: 'bold' },
+                            bodyFont: { family: 'Inter', size: 11 },
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    let val = context.raw;
+                                    return ' ' + label + ': Rp ' + new Intl.NumberFormat('id-ID').format(val);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                font: { family: 'Inter', size: 10 },
+                                callback: function(value) {
+                                    return 'Rp ' + new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(value);
+                                }
+                            },
+                            grid: { borderDash: [5, 5], color: '#e2e8f0' }
+                        },
+                        x: {
+                            ticks: { font: { family: 'Inter', size: 10 }, maxRotation: 45, minRotation: 0 }
+                        }
+                    }
+                }
+            });
+        }
+
         // --- GS LINE CHART INITIALIZATION ---
         @if($gsRun && $gsChartData->count() > 0)
             const canvasGsEl = document.getElementById('gsChart');
@@ -3714,18 +3841,18 @@
                 gradientPredictGs.addColorStop(0, 'rgba(244, 197, 66, 0.08)');
                 gradientPredictGs.addColorStop(1, 'rgba(244, 197, 66, 0.0)');
                 
-                const labelsGs = @json($gsChartData->pluck('tanggal')->map(fn($t) => Carbon\Carbon::parse($t)->format('d M Y'))->toArray());
-                const actualDataGs = @json($gsChartData->pluck('actual_value')->map(fn($v) => (double)$v)->toArray());
-                const predictedDataGs = @json($gsChartData->pluck('predicted_value')->map(fn($v) => (double)$v)->toArray());
+                // Initialize with currently active rayonId from PHP
+                const startRayonId = {{ $rayonId }};
+                const startGsData = getFilteredData(allGsPreds, startRayonId);
                 
-                new Chart(ctxGs, {
+                window.gsChartInstance = new Chart(ctxGs, {
                     type: 'line',
                     data: {
-                        labels: labelsGs,
+                        labels: startGsData.labels,
                         datasets: [
                             {
                                 label: 'Pendapatan Aktual',
-                                data: actualDataGs,
+                                data: startGsData.actual,
                                 borderColor: '#005BAA',
                                 borderWidth: 2,
                                 backgroundColor: gradientActualGs,
@@ -3739,7 +3866,7 @@
                             },
                             {
                                 label: 'Pendapatan Prediksi SVR (GS)',
-                                data: predictedDataGs,
+                                data: startGsData.predicted,
                                 borderColor: '#F4C542',
                                 borderWidth: 2,
                                 backgroundColor: gradientPredictGs,
@@ -3822,18 +3949,17 @@
                 gradientPredictGwo.addColorStop(0, 'rgba(16, 185, 129, 0.08)');
                 gradientPredictGwo.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
                 
-                const labelsGwo = @json($gwoChartData->pluck('tanggal')->map(fn($t) => Carbon\Carbon::parse($t)->format('d M Y'))->toArray());
-                const actualDataGwo = @json($gwoChartData->pluck('actual_value')->map(fn($v) => (double)$v)->toArray());
-                const predictedDataGwo = @json($gwoChartData->pluck('predicted_value')->map(fn($v) => (double)$v)->toArray());
+                const startRayonId = {{ $rayonId }};
+                const startGwoData = getFilteredData(allGwoPreds, startRayonId);
                 
-                new Chart(ctxGwo, {
+                window.gwoChartInstance = new Chart(ctxGwo, {
                     type: 'line',
                     data: {
-                        labels: labelsGwo,
+                        labels: startGwoData.labels,
                         datasets: [
                             {
                                 label: 'Pendapatan Aktual',
-                                data: actualDataGwo,
+                                data: startGwoData.actual,
                                 borderColor: '#005BAA',
                                 borderWidth: 2,
                                 backgroundColor: gradientActualGwo,
@@ -3847,7 +3973,7 @@
                             },
                             {
                                 label: 'Pendapatan Prediksi SVR (GWO)',
-                                data: predictedDataGwo,
+                                data: startGwoData.predicted,
                                 borderColor: '#10B981',
                                 borderWidth: 2,
                                 backgroundColor: gradientPredictGwo,

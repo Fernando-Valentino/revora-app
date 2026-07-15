@@ -116,196 +116,64 @@
         </div>
     </div>
 
-    <!-- Analisis Perbandingan Performa Model -->
-    <div class="card mb-4 bg-white shadow-sm border border-light">
+    <!-- Grafik Tren Perbandingan Ketiga Model SVR -->
+    @php
+        $allDefaultPredictions = $lastRun ? $lastRun->predictionResults()->orderBy('tanggal', 'asc')->get() : collect([]);
+        $allGsPredictionsData = $gsRun ? $gsRun->predictionResults()->orderBy('tanggal', 'asc')->get() : collect([]);
+        $allGwoPredictionsData = $gwoRun ? $gwoRun->predictionResults()->orderBy('tanggal', 'asc')->get() : collect([]);
+        
+        $defaultMapped = $allDefaultPredictions->map(fn($p) => [
+            'tanggal' => Carbon\Carbon::parse($p->tanggal)->format('d M Y'),
+            'rayon_id' => (int)$p->rayon_id,
+            'actual_value' => (double)$p->actual_value,
+            'predicted_value' => (double)$p->predicted_value
+        ])->toArray();
+
+        $gsMapped = $allGsPredictionsData->map(fn($p) => [
+            'tanggal' => Carbon\Carbon::parse($p->tanggal)->format('d M Y'),
+            'rayon_id' => (int)$p->rayon_id,
+            'actual_value' => (double)$p->actual_value,
+            'predicted_value' => (double)$p->predicted_value
+        ])->toArray();
+
+        $gwoMapped = $allGwoPredictionsData->map(fn($p) => [
+            'tanggal' => Carbon\Carbon::parse($p->tanggal)->format('d M Y'),
+            'rayon_id' => (int)$p->rayon_id,
+            'actual_value' => (double)$p->actual_value,
+            'predicted_value' => (double)$p->predicted_value
+        ])->toArray();
+    @endphp
+    <div class="card bg-white mb-4">
         <div class="card-body">
-            <h5 class="card-title text-dark mb-3"><i class="bi bi-chat-left-text-fill me-2 text-primary"></i>Analisis Perbandingan Performa Model</h5>
-            
-            @php
-                $defaultMape = $chartMetrics['mape_default'];
-                $gsMape = $chartMetrics['mape_gs'];
-                $gwoMape = $chartMetrics['mape_gwo'];
-
-                $models = [];
-                if ($defaultMape !== null) $models['SVR Standar (Default)'] = $defaultMape;
-                if ($gsMape !== null) $models['SVR + Grid Search'] = $gsMape;
-                if ($gwoMape !== null) $models['SVR + GWO (Grey Wolf)'] = $gwoMape;
-
-                $bestModelName = '-';
-                $bestModelMape = 0;
-                if (count($models) > 0) {
-                    asort($models);
-                    $bestModelName = array_key_first($models);
-                    $bestModelMape = reset($models);
-                }
-
-                $gsImprovement = ($defaultMape !== null && $gsMape !== null) ? ($defaultMape - $gsMape) : 0;
-                $gwoImprovement = ($defaultMape !== null && $gwoMape !== null) ? ($defaultMape - $gwoMape) : 0;
-                
-                // Extract exact parameters from SVR runs
-                $defaultC = $lastRun ? ($lastRun->modelParameter?->c_value ?? '1.0') : '1.0';
-                $defaultEps = $lastRun ? ($lastRun->modelParameter?->epsilon_value ?? '0.1') : '0.1';
-                $defaultGam = $lastRun ? ($lastRun->modelParameter?->gamma_value ?? 'scale') : 'scale';
-
-                $gsParamC = $gsRun ? ($gsRun->modelParameter?->c_value ?? '-') : '-';
-                $gsParamEps = $gsRun ? ($gsRun->modelParameter?->epsilon_value ?? '-') : '-';
-                $gsParamGam = $gsRun ? ($gsRun->modelParameter?->gamma_value ?? '-') : '-';
-
-                $gwoParamC = $gwoRun ? ($gwoRun->modelParameter?->c_value ?? '-') : '-';
-                $gwoParamEps = $gwoRun ? ($gwoRun->modelParameter?->epsilon_value ?? '-') : '-';
-                $gwoParamGam = $gwoRun ? ($gwoRun->modelParameter?->gamma_value ?? '-') : '-';
-
-                // Helper formatter to trim trailing zeros of decimals and support precise representation
-                $formatParamVal = function ($val, int $maxDecimals = 8): string {
-                    if ($val === null || $val === '' || $val === '-') {
-                        return '-';
-                    }
-                    if (!is_numeric($val)) {
-                        return $val;
-                    }
-                    $formatted = number_format((float)$val, $maxDecimals, ',', '.');
-                    if (strpos($formatted, ',') !== false) {
-                        $formatted = rtrim($formatted, '0');
-                        $formatted = rtrim($formatted, ',');
-                    }
-                    return $formatted;
-                };
-
-                // Best model interpretations
-                $bestRunObj = null;
-                $bestR2Val = 0;
-                if ($bestModelName === 'SVR Standar (Default)') {
-                    $bestRunObj = $lastRun;
-                } elseif ($bestModelName === 'SVR + Grid Search') {
-                    $bestRunObj = $gsRun;
-                } elseif ($bestModelName === 'SVR + GWO (Grey Wolf)') {
-                    $bestRunObj = $gwoRun;
-                }
-
-                if ($bestRunObj) {
-                    $bestMetric = $bestRunObj->modelMetrics()->where('dataset_type', 'test')->first();
-                    if ($bestMetric) {
-                        $bestR2Val = (float)$bestMetric->r2_score;
-                    }
-                }
-
-                $bestModelMapeInterpret = 'Cukup Akurat';
-                if ($bestModelMape < 10) {
-                    $bestModelMapeInterpret = 'Sangat Akurat';
-                } elseif ($bestModelMape <= 20) {
-                    $bestModelMapeInterpret = 'Baik';
-                }
-
-                $bestR2Interpret = 'Model Lemah';
-                if ($bestR2Val >= 0.67) {
-                    $bestR2Interpret = 'Model Kuat';
-                } elseif ($bestR2Val >= 0.33) {
-                    $bestR2Interpret = 'Model Moderat';
-                }
-
-                // Set class and alerts depending on the best model
-                $alertClass = 'alert-success text-success-emphasis bg-success-subtle border-success-subtle';
-                $iconClass = 'bi-patch-check-fill text-success';
-                if ($bestModelName === 'SVR Standar (Default)') {
-                    $alertClass = 'alert-warning text-warning-emphasis bg-warning-subtle border-warning-subtle';
-                    $iconClass = 'bi-exclamation-triangle-fill text-warning';
-                }
-            @endphp
-
-            <div class="row g-3">
-                <!-- Temuan & Komparasi Kinerja -->
-                <div class="col-md-7">
-                    <h6 class="fw-bold text-secondary text-uppercase mb-2 shadow-none border-0 pb-0" style="font-size: 11px; letter-spacing: 0.5px;">Temuan &amp; Komparasi Kinerja</h6>
-                    <div class="d-flex flex-column gap-3">
-                        <!-- Card SVR Default -->
-                        <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
-                            <div class="fs-4"><i class="bi bi-cpu text-secondary"></i></div>
-                            <div>
-                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">SVR Standar (Default): <span class="text-secondary">{{ $defaultMape !== null ? number_format($defaultMape, 2, ',', '.') . '%' : '-' }}</span></div>
-                                <div class="text-secondary small" style="line-height: 1.5;">
-                                    Menggunakan setelan awal (C = {{ $formatParamVal($defaultC, 6) }}, &epsilon; = {{ $formatParamVal($defaultEps, 8) }}, &gamma; = {{ $formatParamVal($defaultGam, 6) }}). Model ini digunakan sebagai acuan awal akurasi pembanding sebelum dilakukan perbaikan/optimasi.
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Card Grid Search -->
-                        <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
-                            <div class="fs-4"><i class="bi bi-grid-3x3 text-warning"></i></div>
-                            <div>
-                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">SVR + Grid Search: <span class="text-warning">{{ $gsMape !== null ? number_format($gsMape, 2, ',', '.') . '%' : '-' }}</span></div>
-                                <div class="text-secondary small" style="line-height: 1.5;">
-                                    @if($gsMape !== null)
-                                        Menggunakan setelan parameter yang lebih presisi (C = {{ $formatParamVal($gsParamC, 6) }}, &epsilon; = {{ $formatParamVal($gsParamEps, 8) }}, &gamma; = {{ $formatParamVal($gsParamGam, 6) }}).
-                                        @if($gsImprovement > 0)
-                                            Berhasil mengurangi tingkat kesalahan sebesar <strong class="text-success">{{ number_format($gsImprovement, 2, ',', '.') }}%</strong> dibanding model awal dengan melakukan pencarian setelan terbaik dalam rentang nilai tertentu.
-                                        @else
-                                            Setelan hasil Grid Search tidak berhasil memberikan peningkatan akurasi dibandingkan model awal.
-                                        @endif
-                                    @else
-                                        Pencarian setelan dengan Grid Search belum dijalankan.
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Card GWO -->
-                        <div class="p-3 rounded-3 border border-light bg-light-subtle d-flex gap-3">
-                            <div class="fs-4"><i class="bi bi-activity text-success"></i></div>
-                            <div>
-                                <div class="fw-bold text-dark mb-1" style="font-size: 13.5px;">SVR + GWO (Grey Wolf): <span class="text-success">{{ $gwoMape !== null ? number_format($gwoMape, 2, ',', '.') . '%' : '-' }}</span></div>
-                                <div class="text-secondary small" style="line-height: 1.5;">
-                                    @if($gwoMape !== null)
-                                        Menggunakan setelan parameter yang lebih presisi (C = {{ $formatParamVal($gwoParamC, 6) }}, &epsilon; = {{ $formatParamVal($gwoParamEps, 8) }}, &gamma; = {{ $formatParamVal($gwoParamGam, 6) }}).
-                                        @if($gwoImprovement > 0)
-                                            Berhasil mengurangi tingkat kesalahan sebesar <strong class="text-success">{{ number_format($gwoImprovement, 2, ',', '.') }}%</strong> dibanding model awal melalui pencarian otomatis secara optimal.
-                                        @else
-                                            Setelan hasil GWO tidak berhasil memberikan peningkatan akurasi dibandingkan model awal.
-                                        @endif
-                                    @else
-                                        Pencarian setelan dengan Grey Wolf Optimizer (GWO) belum dijalankan.
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Rekomendasi Model Terbaik -->
-                <div class="col-md-5">
-                    <div class="p-3 rounded-3 h-100 {{ $alertClass }} border border-0">
-                        <h6 class="fw-bold text-uppercase mb-3 d-flex align-items-center" style="font-size: 11px; letter-spacing: 0.5px;">
-                            <i class="bi {{ $iconClass }} me-2 fs-5"></i>Rekomendasi Keputusan
-                        </h6>
-                        <div style="font-size: 12.5px; line-height: 1.6;">
-                            @if(count($models) > 0)
-                                <p class="mb-3">
-                                    Berdasarkan hasil uji coba, model <strong>{{ $bestModelName }}</strong> terpilih sebagai model dengan tingkat kesalahan terkecil (MAPE = <strong>{{ number_format($bestModelMape, 2, ',', '.') }}%</strong> - kategori <strong>{{ $bestModelMapeInterpret }}</strong>), dan kemampuan membaca pola data sebesar <strong>{{ number_format($bestR2Val, 4, ',', '.') }}</strong> (kategori <strong>{{ $bestR2Interpret }}</strong>).
-                                </p>
-                                <p class="mb-3 small text-secondary-emphasis">
-                                    Setelan parameter terbaik yang aktif digunakan adalah:<br>
-                                    &bull; C = <strong>{{ $formatParamVal($bestRunObj?->modelParameter?->c_value, 6) }}</strong><br>
-                                    &bull; &epsilon; = <strong>{{ $formatParamVal($bestRunObj?->modelParameter?->epsilon_value, 8) }}</strong><br>
-                                    &bull; &gamma; = <strong>{{ $formatParamVal($bestRunObj?->modelParameter?->gamma_value, 6) }}</strong>
-                                </p>
-                                <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
-                                    <li class="d-flex align-items-start gap-2">
-                                        <i class="bi bi-check2-circle mt-0.5 flex-shrink-0 text-success"></i>
-                                        <span>Gunakan model <strong>{{ $bestModelName }}</strong> sebagai acuan resmi penetapan target retribusi parkir harian.</span>
-                                    </li>
-                                    <li class="d-flex align-items-start gap-2">
-                                        <i class="bi bi-check2-circle mt-0.5 flex-shrink-0 text-success"></i>
-                                        <span>Metode Grey Wolf (GWO) terbukti lebih unggul menemukan setelan terbaik dibandingkan Grid Search standar.</span>
-                                    </li>
-                                </ul>
-                            @else
-                                <p class="mb-0">
-                                    Belum ada hasil optimasi yang disimpan untuk dibandingkan.
-                                </p>
-                            @endif
-                        </div>
-                    </div>
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h5 class="card-title mb-0"><i class="bi bi-graph-up me-2 text-primary"></i>Grafik Tren Perbandingan Hasil Prediksi</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <label for="rayon_id_comp" class="small fw-semibold text-secondary text-nowrap mb-0" style="font-size: 11.5px;">Filter Rayon:</label>
+                    <select id="rayon_id_comp" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 12px; height: 32px; width: 160px;" onchange="window.updateCompChart(this.value)">
+                        <option value="0">Semua Rayon</option>
+                        @foreach($rayons as $rayon)
+                            <option value="{{ $rayon->id }}" {{ $rayonId == $rayon->id ? 'selected' : '' }}>{{ $rayon->nama_rayon }}</option>
+                        @endforeach
+                    </select>
                 </div>
             </div>
+            <div style="position: relative; height: 360px;">
+                <canvas id="comparisonTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analisis Perbandingan Performa Model Component -->
+    <div class="card mb-4 bg-white shadow-sm border border-light">
+        <div class="card-body">
+            <h5 class="card-title text-dark mb-4"><i class="bi bi-chat-left-text-fill me-2 text-primary"></i>Analisis Perbandingan Performa Model</h5>
+            <x-model-comparison-analysis 
+                :comparisons="$comparisons" 
+                :chartMetrics="$chartMetrics" 
+                :lastRun="$lastRun" 
+                :gsRun="$gsRun" 
+                :gwoRun="$gwoRun" 
+            />
         </div>
     </div>
 
@@ -381,6 +249,183 @@
                             ticks: { font: { family: 'Inter', size: 10 } }
                         },
                         x: { ticks: { font: { family: 'Inter', size: 11 } } }
+                    }
+                }
+            });
+        }
+
+        // --- CLIENT-SIDE RAYON FILTERING DATA AND HELPERS ---
+        const allDefaultPreds = @json($defaultMapped);
+        const allGsPreds = @json($gsMapped);
+        const allGwoPreds = @json($gwoMapped);
+
+        function getFilteredData(preds, rayonId) {
+            rayonId = parseInt(rayonId);
+            if (rayonId === 0) {
+                const grouped = {};
+                preds.forEach(p => {
+                    if (!grouped[p.tanggal]) {
+                        grouped[p.tanggal] = { actual: 0, predicted: 0 };
+                    }
+                    grouped[p.tanggal].actual += p.actual_value;
+                    grouped[p.tanggal].predicted += p.predicted_value;
+                });
+                const labels = Object.keys(grouped);
+                const actual = labels.map(l => grouped[l].actual);
+                const predicted = labels.map(l => grouped[l].predicted);
+                return { labels, actual, predicted };
+            } else {
+                const filtered = preds.filter(p => p.rayon_id === rayonId);
+                const labels = filtered.map(p => p.tanggal);
+                const actual = filtered.map(p => p.actual_value);
+                const predicted = filtered.map(p => p.predicted_value);
+                return { labels, actual, predicted };
+            }
+        }
+
+        window.updateCompChart = function(rayonId) {
+            const defaultData = getFilteredData(allDefaultPreds, rayonId);
+            const gsData = getFilteredData(allGsPreds, rayonId);
+            const gwoData = getFilteredData(allGwoPreds, rayonId);
+            
+            if (window.comparisonChartInstance) {
+                window.comparisonChartInstance.data.labels = gwoData.labels.length > 0 ? gwoData.labels : (gsData.labels.length > 0 ? gsData.labels : defaultData.labels);
+                
+                const dsActual = window.comparisonChartInstance.data.datasets.find(ds => ds.label === 'Pendapatan Aktual');
+                if (dsActual) dsActual.data = gwoData.actual.length > 0 ? gwoData.actual : (gsData.actual.length > 0 ? gsData.actual : defaultData.actual);
+                
+                const dsDefault = window.comparisonChartInstance.data.datasets.find(ds => ds.label === 'Prediksi SVR Standar');
+                if (dsDefault) dsDefault.data = defaultData.predicted;
+                
+                const dsGs = window.comparisonChartInstance.data.datasets.find(ds => ds.label === 'Prediksi SVR + Grid Search');
+                if (dsGs) dsGs.data = gsData.predicted;
+                
+                const dsGwo = window.comparisonChartInstance.data.datasets.find(ds => ds.label === 'Prediksi SVR + GWO (Grey Wolf)');
+                if (dsGwo) dsGwo.data = gwoData.predicted;
+                
+                window.comparisonChartInstance.update();
+            }
+        }
+
+        // --- COMPARISON TREND LINE CHART INITIALIZATION ---
+        const canvasCompEl = document.getElementById('comparisonTrendChart');
+        if (typeof Chart !== 'undefined' && canvasCompEl) {
+            const ctxComp = canvasCompEl.getContext('2d');
+            
+            const startRayonId = {{ $rayonId }};
+            const defaultData = getFilteredData(allDefaultPreds, startRayonId);
+            const gsData = getFilteredData(allGsPreds, startRayonId);
+            const gwoData = getFilteredData(allGwoPreds, startRayonId);
+            
+            const labelsComp = gwoData.labels.length > 0 ? gwoData.labels : (gsData.labels.length > 0 ? gsData.labels : defaultData.labels);
+            const actualDataComp = gwoData.actual.length > 0 ? gwoData.actual : (gsData.actual.length > 0 ? gsData.actual : defaultData.actual);
+            
+            const datasetsComp = [
+                {
+                    label: 'Pendapatan Aktual',
+                    data: actualDataComp,
+                    borderColor: '#005BAA',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.3,
+                    pointBackgroundColor: '#005BAA',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 1,
+                    pointRadius: 2.5,
+                    pointHoverRadius: 4
+                }
+            ];
+
+            if (defaultData.predicted.length > 0) {
+                datasetsComp.push({
+                    label: 'Prediksi SVR Standar',
+                    data: defaultData.predicted,
+                    borderColor: '#6c757d',
+                    borderWidth: 1.5,
+                    fill: false,
+                    tension: 0.3,
+                    pointBackgroundColor: '#6c757d',
+                    pointRadius: 2,
+                    borderDash: [4, 4]
+                });
+            }
+
+            if (gsData.predicted.length > 0) {
+                datasetsComp.push({
+                    label: 'Prediksi SVR + Grid Search',
+                    data: gsData.predicted,
+                    borderColor: '#F59E0B',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.3,
+                    pointBackgroundColor: '#F59E0B',
+                    pointRadius: 2,
+                    borderDash: [3, 3]
+                });
+            }
+
+            if (gwoData.predicted.length > 0) {
+                datasetsComp.push({
+                    label: 'Prediksi SVR + GWO (Grey Wolf)',
+                    data: gwoData.predicted,
+                    borderColor: '#10B981',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.3,
+                    pointBackgroundColor: '#10B981',
+                    pointRadius: 2.5,
+                    pointHoverRadius: 4
+                });
+            }
+
+            window.comparisonChartInstance = new Chart(ctxComp, {
+                type: 'line',
+                data: {
+                    labels: labelsComp,
+                    datasets: datasetsComp
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                boxWidth: 10,
+                                padding: 12,
+                                font: { family: 'Inter', size: 11, weight: '500' },
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            padding: 10,
+                            backgroundColor: '#1f2937',
+                            titleFont: { family: 'Inter', size: 11, weight: 'bold' },
+                            bodyFont: { family: 'Inter', size: 11 },
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    let val = context.raw;
+                                    return ' ' + label + ': Rp ' + new Intl.NumberFormat('id-ID').format(val);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                font: { family: 'Inter', size: 10 },
+                                callback: function(value) {
+                                    return 'Rp ' + new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(value);
+                                }
+                            },
+                            grid: { borderDash: [5, 5], color: '#e2e8f0' }
+                        },
+                        x: {
+                            ticks: { font: { family: 'Inter', size: 10 }, maxRotation: 45, minRotation: 0 }
+                        }
                     }
                 }
             });
