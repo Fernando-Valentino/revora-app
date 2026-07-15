@@ -67,8 +67,11 @@
             title: title,
             text: text,
             icon: 'success',
-            confirmButtonColor: '#005BAA',
-            confirmButtonText: 'Selesai'
+            confirmButtonText: 'Selesai',
+            customClass: {
+                confirmButton: 'btn btn-primary px-4 py-2 rounded-3 fw-bold text-sm'
+            },
+            buttonsStyling: false
         });
     };
 
@@ -83,12 +86,15 @@
             title: title,
             text: text,
             icon: 'error',
-            confirmButtonColor: '#DC2626',
-            confirmButtonText: 'Tutup'
+            confirmButtonText: 'Tutup',
+            customClass: {
+                confirmButton: 'btn btn-danger px-4 py-2 rounded-3 fw-bold text-sm'
+            },
+            buttonsStyling: false
         });
     };
 
-    // 6. Alert Warning / Confirmation Helper
+    // 6. Alert Warning / Destructive Confirmation Helper (Red Confirm Button)
     window.SwalConfirm = function(title, text, confirmButtonText, callback, cancelButtonText = 'Batal') {
         if (typeof Swal === 'undefined') {
             if (confirm(text || title)) {
@@ -102,8 +108,6 @@
             text: text,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#DC2626',
-            cancelButtonColor: '#4B5563',
             confirmButtonText: confirmButtonText,
             cancelButtonText: cancelButtonText,
             customClass: {
@@ -115,6 +119,53 @@
             if (result.isConfirmed && typeof callback === 'function') {
                 callback();
             }
+        });
+    };
+
+    // 7. Non-Destructive Confirmation Helper (Primary Blue/Dark Confirm Button)
+    window.SwalConfirmPrimary = function(title, text, confirmButtonText, callback, cancelButtonText = 'Batal') {
+        if (typeof Swal === 'undefined') {
+            if (confirm(text || title)) {
+                callback();
+            }
+            return;
+        }
+
+        Swal.fire({
+            title: title,
+            text: text,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: confirmButtonText,
+            cancelButtonText: cancelButtonText,
+            customClass: {
+                confirmButton: 'btn btn-primary px-4 py-2 me-2 rounded-3 fw-bold text-sm',
+                cancelButton: 'btn btn-secondary px-4 py-2 rounded-3 fw-bold text-sm'
+            },
+            buttonsStyling: false
+        }).then((result) => {
+            if (result.isConfirmed && typeof callback === 'function') {
+                callback();
+            }
+        });
+    };
+
+    // 8. Single Button Warning Dialog Helper
+    window.SwalAlertWarning = function(title, text, confirmButtonText = 'Mengerti') {
+        if (typeof Swal === 'undefined') {
+            alert(text || title);
+            return;
+        }
+
+        Swal.fire({
+            title: title,
+            text: text,
+            icon: 'warning',
+            confirmButtonText: confirmButtonText,
+            customClass: {
+                confirmButton: 'btn btn-primary px-4 py-2 rounded-3 fw-bold text-sm'
+            },
+            buttonsStyling: false
         });
     };
 </script>

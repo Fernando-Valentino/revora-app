@@ -357,8 +357,15 @@ class OperatorOptimasiController extends Controller
             }
             $gwoPredictions = $gwoPredictionsQuery->paginate(10, ['*'], 'page_gwo')->withQueryString();
         }
+        
+        $pipelineData = null;
+        $snapshotsPath = storage_path('app/preprocessing_svr_default.json');
+        if (file_exists($snapshotsPath)) {
+            $pipelineData = json_decode(file_get_contents($snapshotsPath), true);
+        }
 
         return view('operator.optimasi.index', compact(
+            'pipelineData',
             'comparisons', 
             'lastRun', 
             'chartMetrics', 

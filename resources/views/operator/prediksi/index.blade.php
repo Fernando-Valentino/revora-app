@@ -12,7 +12,7 @@
         .stepper-wrapper {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             position: relative;
         }
         .stepper-item {
@@ -48,7 +48,7 @@
             flex: 1;
             height: 2px;
             background-color: var(--border);
-            margin-bottom: 24px;
+            margin-top: 17px;
             transition: background-color 0.3s ease;
         }
         .stepper-line.completed {
@@ -656,8 +656,8 @@
                                                 <td>: {{ Carbon\Carbon::parse($lastRun->finished_at)->translatedFormat('d F Y') }}, {{ Carbon\Carbon::parse($lastRun->finished_at)->format('H:i:s') }} WIB</td>
                                             </tr>
                                             <tr>
-                                                <td class="fw-semibold text-secondary">Total Data Diproses</td>
-                                                <td>: {{ number_format($lastRun->total_rows, 0, ',', '.') }} baris</td>
+                                                <td class="fw-semibold text-secondary">Total Data Efektif</td>
+                                                <td>: {{ number_format($lastRun->train_rows + $lastRun->test_rows, 0, ',', '.') }} baris <span class="text-muted" style="font-size:11px;">(setelah lag, mentah: {{ number_format($lastRun->total_rows, 0, ',', '.') }} baris)</span></td>
                                             </tr>
                                         @endif
                                     </tbody>
@@ -1305,8 +1305,9 @@
                 <h5 class="card-title text-success"><i class="bi bi-check-circle-fill me-2"></i>Ringkasan Eksekusi Model SVR Terakhir</h5>
                 <div class="row g-3 small">
                     <div class="col-6 col-md-3 border-end border-light">
-                        <span class="text-secondary d-block text-uppercase fw-semibold" style="font-size: 9.5px; letter-spacing: 0.5px;">Jumlah Data</span>
-                        <strong class="fs-6 text-dark">{{ number_format($lastRun->total_rows, 0, ',', '.') }} baris</strong>
+                        <span class="text-secondary d-block text-uppercase fw-semibold" style="font-size: 9.5px; letter-spacing: 0.5px;">Jumlah Data Efektif</span>
+                        <strong class="fs-6 text-dark">{{ number_format($lastRun->train_rows + $lastRun->test_rows, 0, ',', '.') }} baris</strong>
+                        <span class="text-muted d-block" style="font-size: 10px;">(mentah: {{ number_format($lastRun->total_rows, 0, ',', '.') }} baris, terpotong 150 lag)</span>
                     </div>
                     <div class="col-6 col-md-3 border-end border-light">
                         <span class="text-secondary d-block text-uppercase fw-semibold" style="font-size: 9.5px; letter-spacing: 0.5px;">Data Training (80%)</span>
@@ -1576,50 +1577,32 @@
     let activeStep = 1;
 
     window.confirmDeleteRun = function(runId, startedAt) {
-        Swal.fire({
-            title: 'Hapus Riwayat Pelatihan?',
-            text: "Riwayat pelatihan tanggal " + startedAt + " beserta hasil prediksinya akan dihapus secara permanen!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#DC2626',
-            cancelButtonColor: '#6B7280',
-            confirmButtonText: 'Ya, Hapus!',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
+        SwalConfirm(
+            'Hapus Riwayat Pelatihan?',
+            "Riwayat pelatihan tanggal " + startedAt + " beserta hasil prediksinya akan dihapus secara permanen!",
+            'Ya, Hapus!',
+            function() {
                 document.getElementById('reset_run_id').value = runId;
                 document.getElementById('resetModelForm').submit();
             }
-        });
+        );
     };
 
     window.confirmResetAll = function() {
-        Swal.fire({
-            title: 'Reset Semua Riwayat?',
-            text: "Seluruh riwayat pelatihan model dan hasil prediksi SVR akan dihapus secara permanen dari database!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#DC2626',
-            cancelButtonColor: '#6B7280',
-            confirmButtonText: 'Ya, Reset Semua!',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
+        SwalConfirm(
+            'Reset Semua Riwayat?',
+            "Seluruh riwayat pelatihan model dan hasil prediksi SVR akan dihapus secara permanen dari database!",
+            'Ya, Reset Semua!',
+            function() {
                 document.getElementById('reset_run_id').value = '';
                 document.getElementById('resetModelForm').submit();
             }
-        });
+        );
     };
 
     window.goToStep = function(stepNum) {
         if (stepNum === 4 && !hasLastRun) {
-            Swal.fire({
-                title: 'Prediksi Belum Dijalankan!',
-                text: 'Silakan jalankan proses Generate Prediksi SVR terlebih dahulu pada Langkah 3.',
-                icon: 'warning',
-                confirmButtonColor: '#005BAA',
-                confirmButtonText: 'Tutup'
-            });
+            SwalAlertWarning('Prediksi Belum Dijalankan!', 'Silakan jalankan proses Generate Prediksi SVR terlebih dahulu pada Langkah 3.');
             return;
         }
 
@@ -1795,13 +1778,7 @@
                         btnJalankanSvrProses.innerHTML = '<i class="bi bi-play-fill me-1"></i> Generate Prediksi SVR';
                     }
                     
-                    Swal.fire({
-                        title: 'Gagal!',
-                        text: apiError.message || 'Proses Generate SVR gagal. Silakan periksa layanan Python API atau kelengkapan dataset.',
-                        icon: 'error',
-                        confirmButtonColor: '#DC2626',
-                        confirmButtonText: 'Tutup'
-                    });
+                    SwalError('Gagal!', apiError.message || 'Proses Generate SVR gagal. Silakan periksa layanan Python API atau kelengkapan dataset.');
                 }, 1200);
                 return;
             }
@@ -1826,8 +1803,11 @@
                             title: 'Berhasil!',
                             text: (apiData && apiData.message) || 'Model SVR berhasil dijalankan.',
                             icon: 'success',
-                            confirmButtonColor: '#005BAA',
-                            confirmButtonText: 'OK'
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                confirmButton: 'btn btn-primary px-4 py-2 rounded-3 fw-bold text-sm'
+                            },
+                            buttonsStyling: false
                         }).then((result) => {
                             window.location.href = "{{ route('operator.prediksi.index') }}?active_step=4";
                         });
