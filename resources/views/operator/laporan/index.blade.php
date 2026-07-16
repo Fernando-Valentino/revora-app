@@ -15,19 +15,21 @@
         border-radius: 16px;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01);
     }
-    .filter-input {
-        border: 1px solid #e2e8f0;
+    .filter-card .input-group {
         background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
         border-radius: 10px;
-        padding: 9px 14px;
-        font-size: 13px;
-        color: #334155;
         transition: all 0.2s ease;
+        padding-left: 8px;
     }
-    .filter-input:focus {
+    .filter-card .input-group:focus-within {
         background-color: #ffffff;
         border-color: #005BAA;
         box-shadow: 0 0 0 3px rgba(0, 91, 170, 0.08);
+    }
+    .filter-card .form-control:focus,
+    .filter-card .form-select:focus {
+        box-shadow: none;
         outline: none;
     }
     .btn-action-primary {
@@ -57,6 +59,32 @@
         background-color: #f8fafc;
         color: #334155;
         border-color: #cbd5e1;
+    }
+    .btn-pdf {
+        background-color: #fef2f2;
+        color: #dc2626;
+        border: 1px solid #fca5a5;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .btn-pdf:hover {
+        background-color: #dc2626;
+        color: #ffffff;
+        border-color: #dc2626;
+    }
+    .btn-excel {
+        background-color: #f0fdf4;
+        color: #16a34a;
+        border: 1px solid #86efac;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .btn-excel:hover {
+        background-color: #16a34a;
+        color: #ffffff;
+        border-color: #16a34a;
     }
     .report-card-summary {
         background: #ffffff;
@@ -216,9 +244,77 @@
 
 <div class="container-fluid p-0 report-container">
 
+    <!-- Metrik Evaluasi Akurasi Model Section -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0 text-dark" style="font-size: 14px;">
+            <i class="bi bi-award-fill me-2" style="color: #005BAA;"></i>Metrik Evaluasi Akurasi Model
+        </h5>
+        <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#accuracyCriteriaModal" style="border-radius: 8px; font-size: 11.5px; padding: 4px 10px;">
+            <i class="bi bi-info-circle"></i> Acuan Kriteria Akurasi
+        </button>
+    </div>
+    <div class="row g-3 mb-4">
+        <!-- Card 1: MAE -->
+        <div class="col-md-3">
+            <div class="card border-0 report-card-summary text-center h-100" style="padding: 22px 10px;">
+                <div class="card-body p-0 d-flex flex-column justify-content-center">
+                    <span class="metric-title d-block mb-2 text-uppercase text-secondary fw-semibold" style="font-size: 10px; letter-spacing: 0.5px; line-height: 1.4;">
+                        Mean Absolute Error<br>(MAE)
+                    </span>
+                    <h5 class="fw-bold mb-0 text-dark" style="font-size: 18px; font-variant-numeric: tabular-nums;">
+                        {{ $metrics['mae'] }}
+                    </h5>
+                </div>
+            </div>
+        </div>
+        <!-- Card 2: RMSE -->
+        <div class="col-md-3">
+            <div class="card border-0 report-card-summary text-center h-100" style="padding: 22px 10px;">
+                <div class="card-body p-0 d-flex flex-column justify-content-center">
+                    <span class="metric-title d-block mb-2 text-uppercase text-secondary fw-semibold" style="font-size: 10px; letter-spacing: 0.5px; line-height: 1.4;">
+                        Root Mean Squared Error<br>(RMSE)
+                    </span>
+                    <h5 class="fw-bold mb-0 text-dark" style="font-size: 18px; font-variant-numeric: tabular-nums;">
+                        {{ $metrics['rmse'] }}
+                    </h5>
+                </div>
+            </div>
+        </div>
+        <!-- Card 3: MAPE -->
+        <div class="col-md-3">
+            <div class="card border-0 report-card-summary text-center h-100" style="padding: 22px 10px;">
+                <div class="card-body p-0 d-flex flex-column justify-content-center">
+                    <span class="metric-title d-block mb-2 text-uppercase text-secondary fw-semibold" style="font-size: 10px; letter-spacing: 0.5px; line-height: 1.4;">
+                        Mean Absolute Pct<br>Error (MAPE)
+                    </span>
+                    <h5 class="fw-bold mb-0 text-success" style="font-size: 18px; font-variant-numeric: tabular-nums;">
+                        {{ $metrics['mape'] }}
+                    </h5>
+                </div>
+            </div>
+        </div>
+        <!-- Card 4: R2 -->
+        <div class="col-md-3">
+            <div class="card border-0 report-card-summary text-center h-100" style="padding: 22px 10px;">
+                <div class="card-body p-0 d-flex flex-column justify-content-center">
+                    <span class="metric-title d-block mb-2 text-uppercase text-secondary fw-semibold" style="font-size: 10px; letter-spacing: 0.5px; line-height: 1.4;">
+                        Koefisien Determinasi<br>(R²)
+                    </span>
+                    <h5 class="fw-bold mb-0 text-dark" style="font-size: 18px; font-variant-numeric: tabular-nums;">
+                        {{ $metrics['r2'] }}
+                    </h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Filter & Export Toolbar (Premium SaaS Style) -->
     <div class="card border-0 mb-4 filter-card">
-        <div class="card-body p-3.5">
+        <div class="card-body p-4">
+            <div class="text-center mb-4">
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 13.5px;"><i class="bi bi-filter-left me-1.5 text-primary"></i>Filter Periode & Wilayah Laporan</h6>
+                <span class="text-secondary" style="font-size: 11.5px;">Pilih rentang tanggal dan rayon untuk memfilter data laporan prediksi</span>
+            </div>
             <form method="GET" action="" class="row g-3 align-items-center">
                 <div class="col-lg-2.5 col-md-6">
                     <div class="input-group">
@@ -263,8 +359,8 @@
                     <i class="bi bi-clock me-1"></i> Periode: <strong>{{ $summary['periode'] }}</strong>
                 </span>
                 <div class="d-flex gap-2">
-                    <a href="{{ route('operator.laporan.export-pdf', request()->query()) }}" class="btn-action-outline btn-sm d-flex align-items-center gap-1.5" style="font-size: 11.5px;"><i class="bi bi-file-earmark-pdf text-danger"></i> PDF</a>
-                    <a href="{{ route('operator.laporan.export-excel', request()->query()) }}" class="btn-action-outline btn-sm d-flex align-items-center gap-1.5" style="font-size: 11.5px;"><i class="bi bi-file-earmark-excel text-success"></i> Excel</a>
+                    <a href="{{ route('operator.laporan.export-pdf', request()->query()) }}" class="btn btn-pdf btn-sm d-flex align-items-center gap-1.5 px-3 py-1.8" style="font-size: 11.5px;"><i class="bi bi-file-earmark-pdf"></i> Ekspor PDF</a>
+                    <a href="{{ route('operator.laporan.export-excel', request()->query()) }}" class="btn btn-excel btn-sm d-flex align-items-center gap-1.5 px-3 py-1.8" style="font-size: 11.5px;"><i class="bi bi-file-earmark-excel"></i> Ekspor Excel</a>
                 </div>
             </div>
         </div>
@@ -274,55 +370,55 @@
     <div class="row g-3 mb-4">
         <!-- Card 1: Jumlah Data -->
         <div class="col-md-3">
-            <div class="card border-0 report-card-summary">
+            <div class="card border-0 report-card-summary h-100">
                 <div class="card-body p-3.5 d-flex align-items-center gap-3">
                     <div class="icon-circle-wrapper bg-primary-subtle text-primary">
                         <i class="bi bi-calendar-range"></i>
                     </div>
                     <div>
                         <span class="metric-title d-block">Baris Data</span>
-                        <div class="metric-val">{{ $summary['total_data'] }}</div>
+                        <div class="metric-val text-dark">{{ $summary['total_data'] }}</div>
                     </div>
                 </div>
             </div>
         </div>
         <!-- Card 2: Realisasi Aktual -->
         <div class="col-md-3">
-            <div class="card border-0 report-card-summary">
+            <div class="card border-0 report-card-summary h-100">
                 <div class="card-body p-3.5 d-flex align-items-center gap-3">
                     <div class="icon-circle-wrapper bg-success-subtle text-success">
                         <i class="bi bi-cash-stack"></i>
                     </div>
                     <div>
                         <span class="metric-title d-block">Total Aktual</span>
-                        <div class="metric-val text-success" style="font-size: 18px;">{{ $summary['total_aktual'] }}</div>
+                        <div class="metric-val text-success">{{ $summary['total_aktual'] }}</div>
                     </div>
                 </div>
             </div>
         </div>
         <!-- Card 3: Proyeksi Target -->
         <div class="col-md-3">
-            <div class="card border-0 report-card-summary">
+            <div class="card border-0 report-card-summary h-100">
                 <div class="card-body p-3.5 d-flex align-items-center gap-3">
                     <div class="icon-circle-wrapper bg-info-subtle text-info">
                         <i class="bi bi-graph-up-arrow"></i>
                     </div>
                     <div>
                         <span class="metric-title d-block">Total Prediksi</span>
-                        <div class="metric-val text-info" style="font-size: 18px;">{{ $summary['total_prediksi'] }}</div>
+                        <div class="metric-val text-info">{{ $summary['total_prediksi'] }}</div>
                     </div>
                 </div>
             </div>
         </div>
         <!-- Card 4: MAPE / Accuracy Indicator -->
         <div class="col-md-3">
-            <div class="card border-0 report-card-summary bg-dark text-white">
+            <div class="card border-0 report-card-summary h-100">
                 <div class="card-body p-3.5 d-flex align-items-center gap-3">
-                    <div class="icon-circle-wrapper bg-white-50 text-warning" style="background: rgba(255, 255, 255, 0.1);">
+                    <div class="icon-circle-wrapper bg-warning-subtle text-warning">
                         <i class="bi bi-percent"></i>
                     </div>
                     <div>
-                        <span class="metric-title d-block text-white-50">Rerata Kesalahan</span>
+                        <span class="metric-title d-block">Rerata Kesalahan</span>
                         <div class="metric-val text-warning">{{ $metrics['mape'] }}</div>
                     </div>
                 </div>
@@ -334,7 +430,7 @@
     <div class="row g-4 mb-4">
         <!-- Left Column: Chart -->
         <div class="col-lg-8">
-            <div class="card border-0 chart-container-card p-4">
+            <div class="card border-0 chart-container-card h-100 p-4">
                 <div class="card-body p-0">
                     <h5 class="fw-bold text-dark mb-4" style="font-size: 14px;">
                         <i class="bi bi-graph-up text-primary me-2"></i>Grafik Tren Pendapatan & Prediksi SVR
@@ -417,7 +513,7 @@
             <h5 class="fw-bold text-dark mb-3.5" style="font-size: 14px;"><i class="bi bi-table me-2 text-primary"></i>Tabel Laporan Hasil Prediksi</h5>
             
             <div class="table-responsive">
-                <table class="table table-modern align-middle mb-0">
+                <table class="table table-modern align-middle mb-0" id="laporanTable">
                     <thead>
                         <tr>
                             <th style="border-top-left-radius: 8px; border-bottom-left-radius: 8px;">Tanggal</th>
@@ -431,7 +527,7 @@
                     <tbody>
                         @forelse($reports as $rep)
                             <tr>
-                                <td>{{ date('d-m-Y', strtotime($rep['tanggal'])) }}</td>
+                                <td data-order="{{ $rep['tanggal'] }}">{{ date('d-m-Y', strtotime($rep['tanggal'])) }}</td>
                                 <td>
                                     <span class="badge bg-primary-subtle text-primary px-2.5 py-1 rounded-pill" style="font-size: 10px; font-weight: 500;">
                                         {{ $rep['rayon'] }}
@@ -455,17 +551,7 @@
                 </table>
             </div>
 
-            <!-- Pagination Grid -->
-            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-                <div class="text-secondary small">Menampilkan 1 - {{ count($reports) }} dari {{ count($reports) }} data</div>
-                <nav aria-label="Page navigation">
-                    <ul class="pagination pagination-sm mb-0">
-                        <li class="page-item disabled"><span class="page-link">«</span></li>
-                        <li class="page-item active"><span class="page-link bg-dark border-dark text-white">1</span></li>
-                        <li class="page-item disabled"><span class="page-link">»</span></li>
-                    </ul>
-                </nav>
-            </div>
+
         </div>
     </div>
 
@@ -563,47 +649,6 @@
     </div>
     @endif
 
-    <!-- Evaluasi Model Cards (MAE, RMSE, MAPE, R2) -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="fw-bold mb-0 text-dark" style="font-size: 14px;"><i class="bi bi-award-fill me-2 text-primary"></i>Metrik Evaluasi Akurasi Model</h5>
-        <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#accuracyCriteriaModal" style="border-radius: 8px; font-size: 11.5px; padding: 4px 10px;">
-            <i class="bi bi-info-circle"></i> Acuan Kriteria Akurasi
-        </button>
-    </div>
-    <div class="row g-3">
-        <div class="col-md-3">
-            <div class="card border-0 report-card-summary text-center">
-                <div class="card-body py-3.5">
-                    <span class="metric-title d-block mb-1.5">Mean Absolute Error (MAE)</span>
-                    <h5 class="fw-bold mb-0 text-dark" style="font-size: 16px; font-variant-numeric: tabular-nums;">{{ $metrics['mae'] }}</h5>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 report-card-summary text-center">
-                <div class="card-body py-3.5">
-                    <span class="metric-title d-block mb-1.5">Root Mean Squared Error (RMSE)</span>
-                    <h5 class="fw-bold mb-0 text-dark" style="font-size: 16px; font-variant-numeric: tabular-nums;">{{ $metrics['rmse'] }}</h5>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 report-card-summary text-center">
-                <div class="card-body py-3.5">
-                    <span class="metric-title d-block mb-1.5">Mean Absolute Pct Error (MAPE)</span>
-                    <h5 class="fw-bold mb-0 text-success" style="font-size: 16px; font-variant-numeric: tabular-nums;">{{ $metrics['mape'] }}</h5>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 report-card-summary text-center">
-                <div class="card-body py-3.5">
-                    <span class="metric-title d-block mb-1.5">Koefisien Determinasi (R²)</span>
-                    <h5 class="fw-bold mb-0 text-dark" style="font-size: 16px; font-variant-numeric: tabular-nums;">{{ $metrics['r2'] }}</h5>
-                </div>
-            </div>
-        </div>
-    </div>
 
 </div>
 @endsection
@@ -682,6 +727,18 @@
                     if (errorMsg) errorMsg.innerText = err.message || 'Gagal memuat proyeksi masa depan. Pastikan server FastAPI ML aktif di port 8000.';
                     errorState.style.setProperty('display', 'block', 'important');
                 });
+            // Initialize DataTable for Laporan
+            $('#laporanTable').DataTable({
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/id.json'
+                },
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Semua"]],
+                order: [[0, 'asc']], // Sort by date ascending
+                columnDefs: [
+                    { targets: 5, orderable: false } // Actions column not orderable
+                ]
+            });
         }
     });
 </script>

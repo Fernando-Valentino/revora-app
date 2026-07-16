@@ -15,19 +15,21 @@
         border-radius: 16px;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01);
     }
-    .filter-input {
-        border: 1px solid #e2e8f0;
+    .filter-card .input-group {
         background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
         border-radius: 10px;
-        padding: 9px 14px;
-        font-size: 13px;
-        color: #334155;
         transition: all 0.2s ease;
+        padding-left: 8px;
     }
-    .filter-input:focus {
+    .filter-card .input-group:focus-within {
         background-color: #ffffff;
         border-color: #005BAA;
         box-shadow: 0 0 0 3px rgba(0, 91, 170, 0.08);
+    }
+    .filter-card .form-control:focus,
+    .filter-card .form-select:focus {
+        box-shadow: none;
         outline: none;
     }
     .btn-action-primary {
@@ -57,6 +59,19 @@
         background-color: #f8fafc;
         color: #334155;
         border-color: #cbd5e1;
+    }
+    .btn-pdf {
+        background-color: #fef2f2;
+        color: #dc2626;
+        border: 1px solid #fca5a5;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .btn-pdf:hover {
+        background-color: #dc2626;
+        color: #ffffff;
+        border-color: #dc2626;
     }
     .report-card-summary {
         background: #ffffff;
@@ -212,9 +227,102 @@
 
 <div class="container-fluid p-0 report-container">
 
+    @php
+        $mae = '-';
+        $rmse = '-';
+        $mape = '-';
+        $r2 = '-';
+        if ($latestRun) {
+            $metric = $latestRun->modelMetrics()->where('dataset_type', 'test')->first();
+            if ($metric) {
+                $mae = 'Rp ' . number_format($metric->mae, 0, ',', '.');
+                $rmse = 'Rp ' . number_format($metric->rmse, 0, ',', '.');
+                
+                $statusAkurasi = 'Cukup Akurat';
+                if ($metric->mape < 10) {
+                    $statusAkurasi = 'Sangat Akurat';
+                } elseif ($metric->mape <= 20) {
+                    $statusAkurasi = 'Baik';
+                }
+                $mape = number_format($metric->mape, 2, ',', '.') . '% (' . $statusAkurasi . ')';
+                
+                $r2Status = $metric->r2_score >= 0.7 ? 'Model Kuat' : ($metric->r2_score >= 0.4 ? 'Model Cukup' : 'Model Lemah');
+                $r2 = number_format($metric->r2_score, 2, ',', '.') . ' (' . $r2Status . ')';
+            }
+        }
+    @endphp
+
+    <!-- Metrik Evaluasi Akurasi Model Section -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0 text-dark" style="font-size: 14px;">
+            <i class="bi bi-award-fill me-2" style="color: #005BAA;"></i>Metrik Evaluasi Akurasi Model
+        </h5>
+        <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#accuracyCriteriaModal" style="border-radius: 8px; font-size: 11.5px; padding: 4px 10px;">
+            <i class="bi bi-info-circle"></i> Acuan Kriteria Akurasi
+        </button>
+    </div>
+    <div class="row g-3 mb-4">
+        <!-- Card 1: MAE -->
+        <div class="col-md-3">
+            <div class="card border-0 report-card-summary text-center h-100" style="padding: 22px 10px;">
+                <div class="card-body p-0 d-flex flex-column justify-content-center">
+                    <span class="metric-title d-block mb-2 text-uppercase text-secondary fw-semibold" style="font-size: 10px; letter-spacing: 0.5px; line-height: 1.4;">
+                        Mean Absolute Error<br>(MAE)
+                    </span>
+                    <h5 class="fw-bold mb-0 text-dark" style="font-size: 18px; font-variant-numeric: tabular-nums;">
+                        {{ $mae }}
+                    </h5>
+                </div>
+            </div>
+        </div>
+        <!-- Card 2: RMSE -->
+        <div class="col-md-3">
+            <div class="card border-0 report-card-summary text-center h-100" style="padding: 22px 10px;">
+                <div class="card-body p-0 d-flex flex-column justify-content-center">
+                    <span class="metric-title d-block mb-2 text-uppercase text-secondary fw-semibold" style="font-size: 10px; letter-spacing: 0.5px; line-height: 1.4;">
+                        Root Mean Squared Error<br>(RMSE)
+                    </span>
+                    <h5 class="fw-bold mb-0 text-dark" style="font-size: 18px; font-variant-numeric: tabular-nums;">
+                        {{ $rmse }}
+                    </h5>
+                </div>
+            </div>
+        </div>
+        <!-- Card 3: MAPE -->
+        <div class="col-md-3">
+            <div class="card border-0 report-card-summary text-center h-100" style="padding: 22px 10px;">
+                <div class="card-body p-0 d-flex flex-column justify-content-center">
+                    <span class="metric-title d-block mb-2 text-uppercase text-secondary fw-semibold" style="font-size: 10px; letter-spacing: 0.5px; line-height: 1.4;">
+                        Mean Absolute Pct<br>Error (MAPE)
+                    </span>
+                    <h5 class="fw-bold mb-0 text-success" style="font-size: 18px; font-variant-numeric: tabular-nums;">
+                        {{ $mape }}
+                    </h5>
+                </div>
+            </div>
+        </div>
+        <!-- Card 4: R2 -->
+        <div class="col-md-3">
+            <div class="card border-0 report-card-summary text-center h-100" style="padding: 22px 10px;">
+                <div class="card-body p-0 d-flex flex-column justify-content-center">
+                    <span class="metric-title d-block mb-2 text-uppercase text-secondary fw-semibold" style="font-size: 10px; letter-spacing: 0.5px; line-height: 1.4;">
+                        Koefisien Determinasi<br>(R²)
+                    </span>
+                    <h5 class="fw-bold mb-0 text-dark" style="font-size: 18px; font-variant-numeric: tabular-nums;">
+                        {{ $r2 }}
+                    </h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Filter Toolbar (Sleek Inline Design) -->
     <div class="card border-0 mb-4 filter-card">
-        <div class="card-body p-3">
+        <div class="card-body p-4">
+            <div class="text-center mb-4">
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 13.5px;"><i class="bi bi-filter-left me-1.5 text-primary"></i>Filter Periode & Wilayah Laporan</h6>
+                <span class="text-secondary" style="font-size: 11.5px;">Pilih rentang tanggal dan rayon untuk memfilter data laporan prediksi</span>
+            </div>
             <form method="GET" action="" class="row g-2 align-items-center">
                 <div class="col-lg-3 col-md-6">
                     <div class="input-group">
@@ -244,6 +352,15 @@
                     <a href="{{ request()->url() }}" class="btn-action-outline py-2" title="Reset Filter"><i class="bi bi-arrow-clockwise"></i></a>
                 </div>
             </form>
+            
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                <span class="badge bg-secondary-subtle text-secondary border px-3 py-1.5 rounded-pill" style="font-size: 11px;">
+                    <i class="bi bi-clock me-1"></i> Periode: <strong>{{ $summary['periode'] }}</strong>
+                </span>
+                <div class="d-flex gap-2">
+                    <a href="{{ route('kepala-upt.laporan.export-pdf', request()->query()) }}" class="btn btn-pdf btn-sm d-flex align-items-center gap-1.5 px-3 py-1.8" style="font-size: 11.5px;"><i class="bi bi-file-earmark-pdf"></i> Ekspor PDF</a>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -251,55 +368,55 @@
     <div class="row g-3 mb-4">
         <!-- Card 1: Jumlah Data -->
         <div class="col-md-3">
-            <div class="card border-0 report-card-summary">
+            <div class="card border-0 report-card-summary h-100">
                 <div class="card-body p-3.5 d-flex align-items-center gap-3">
                     <div class="icon-circle-wrapper bg-primary-subtle text-primary">
                         <i class="bi bi-calendar-range"></i>
                     </div>
                     <div>
                         <span class="metric-title d-block">Jumlah Laporan</span>
-                        <div class="metric-val">{{ $summary['total_data'] }}</div>
+                        <div class="metric-val text-dark">{{ $summary['total_data'] }}</div>
                     </div>
                 </div>
             </div>
         </div>
         <!-- Card 2: Realisasi Aktual -->
         <div class="col-md-3">
-            <div class="card border-0 report-card-summary">
+            <div class="card border-0 report-card-summary h-100">
                 <div class="card-body p-3.5 d-flex align-items-center gap-3">
                     <div class="icon-circle-wrapper bg-success-subtle text-success">
                         <i class="bi bi-cash-stack"></i>
                     </div>
                     <div>
                         <span class="metric-title d-block">Realisasi (Aktual)</span>
-                        <div class="metric-val text-success" style="font-size: 18px;">{{ $summary['total_aktual'] }}</div>
+                        <div class="metric-val text-success">{{ $summary['total_aktual'] }}</div>
                     </div>
                 </div>
             </div>
         </div>
         <!-- Card 3: Proyeksi Target -->
         <div class="col-md-3">
-            <div class="card border-0 report-card-summary">
+            <div class="card border-0 report-card-summary h-100">
                 <div class="card-body p-3.5 d-flex align-items-center gap-3">
                     <div class="icon-circle-wrapper bg-info-subtle text-info">
                         <i class="bi bi-graph-up-arrow"></i>
                     </div>
                     <div>
                         <span class="metric-title d-block">Proyeksi (SVR)</span>
-                        <div class="metric-val text-info" style="font-size: 18px;">{{ $summary['total_prediksi'] }}</div>
+                        <div class="metric-val text-info">{{ $summary['total_prediksi'] }}</div>
                     </div>
                 </div>
             </div>
         </div>
         <!-- Card 4: MAPE -->
         <div class="col-md-3">
-            <div class="card border-0 report-card-summary bg-dark text-white">
+            <div class="card border-0 report-card-summary h-100">
                 <div class="card-body p-3.5 d-flex align-items-center gap-3">
-                    <div class="icon-circle-wrapper bg-white-50 text-warning" style="background: rgba(255, 255, 255, 0.1);">
+                    <div class="icon-circle-wrapper bg-warning-subtle text-warning">
                         <i class="bi bi-percent"></i>
                     </div>
                     <div>
-                        <span class="metric-title d-block text-white-50">Rerata Kesalahan</span>
+                        <span class="metric-title d-block">Rerata Kesalahan</span>
                         <div class="metric-val text-warning">{{ $summary['mape'] }}</div>
                     </div>
                 </div>
@@ -311,14 +428,13 @@
     <div class="row g-4 mb-4">
         <!-- Left: Chart & Analysis -->
         <div class="col-lg-8">
-            <div class="card border-0 chart-container-card p-4">
+            <div class="card border-0 chart-container-card h-100 p-4">
                 <div class="card-body p-0">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <h5 class="fw-bold text-dark m-0" style="font-size: 14px;"><i class="bi bi-graph-up-arrow me-2 text-primary"></i>Tren Realisasi vs Prediksi SVR</h5>
                             <small class="text-secondary">Periode: {{ $summary['periode'] }}</small>
                         </div>
-                        <a href="{{ route('kepala-upt.laporan.export-pdf', request()->query()) }}" class="btn-action-outline btn-sm d-flex align-items-center gap-1.5" style="font-size: 12px; padding: 6px 12px;"><i class="bi bi-file-earmark-pdf text-danger"></i> Cetak PDF</a>
                     </div>
                     
                     @if(count($chartActualValues) > 0)
@@ -450,7 +566,7 @@
             <h5 class="fw-bold text-dark mb-3.5" style="font-size: 14px;"><i class="bi bi-table me-2 text-primary"></i>Tabel Rincian Harian</h5>
             
             <div class="table-responsive">
-                <table class="table table-modern align-middle mb-0">
+                <table class="table table-modern align-middle mb-0" id="laporanTable">
                     <thead>
                         <tr>
                             <th style="width: 60px; border-top-left-radius: 8px; border-bottom-left-radius: 8px;">No</th>
@@ -466,7 +582,7 @@
                         @forelse($reports as $rep)
                             <tr>
                                 <td>{{ $rep['no'] }}</td>
-                                <td>{{ $rep['tanggal'] }}</td>
+                                <td data-order="{{ date('Y-m-d', strtotime($rep['tanggal'])) }}">{{ $rep['tanggal'] }}</td>
                                 <td>
                                     <span class="badge bg-primary-subtle text-primary px-2.5 py-1 rounded-pill" style="font-size: 10px; font-weight: 500;">
                                         {{ $rep['rayon'] }}
@@ -580,6 +696,18 @@
                     if (errorMsg) errorMsg.innerText = err.message || 'Gagal memuat proyeksi masa depan. Pastikan server FastAPI ML aktif di port 8000.';
                     errorState.style.setProperty('display', 'block', 'important');
                 });
+            // Initialize DataTable for Laporan
+            $('#laporanTable').DataTable({
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/id.json'
+                },
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Semua"]],
+                order: [[1, 'asc']], // Sort by date column (second column) ascending
+                columnDefs: [
+                    { targets: 0, orderable: false } // No column not orderable
+                ]
+            });
         }
     });
 </script>
