@@ -253,7 +253,7 @@
             <td class="meta-value" style="width: 150px;">{{ $rayonName }}</td>
         </tr>
         <tr>
-            <td class="meta-label">Total Hari Kerja</td>
+            <td class="meta-label">Total Data Periode</td>
             <td>:</td>
             <td class="meta-value">{{ $summary['total_data'] }}</td>
             <td class="meta-label" style="text-align: right; padding-right: 10px;">Rerata Error (MAPE)</td>
@@ -290,14 +290,14 @@
 
     <!-- Data Table Header -->
     <h5 style="margin: 0 0 8px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; color: #1e293b;">
-        Rincian Transaksi Harian Retribusi Parkir
+        Rincian Transaksi {{ ucfirst($type ?? 'Harian') }} Retribusi Parkir
     </h5>
     <!-- Main Data Table -->
     <table class="data-table">
         <thead>
             <tr>
                 <th style="width: 30px;" class="text-center">No</th>
-                <th style="width: 80px;">Tanggal</th>
+                <th style="width: 100px;">Tanggal / Periode</th>
                 <th>Rayon Pemantauan</th>
                 <th style="text-align: right; width: 120px;">Realisasi Aktual (Rp)</th>
                 <th style="text-align: right; width: 120px;">Prediksi Target SVR (Rp)</th>
@@ -309,7 +309,7 @@
             @forelse($reports as $rep)
                 <tr>
                     <td class="text-center">{{ $rep['no'] }}</td>
-                    <td>{{ $rep['tanggal'] }}</td>
+                    <td>{{ $rep['tanggal_formatted'] ?? $rep['tanggal'] }}</td>
                     <td>{{ $rep['rayon'] }}</td>
                     <td class="text-right">Rp {{ number_format($rep['aktual'], 0, ',', '.') }}</td>
                     <td class="text-right" style="font-weight: 500; color: #005baa;">Rp {{ number_format($rep['prediksi'], 0, ',', '.') }}</td>

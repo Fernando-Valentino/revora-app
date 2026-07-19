@@ -315,20 +315,20 @@
                 <h6 class="fw-bold text-dark mb-1" style="font-size: 13.5px;"><i class="bi bi-filter-left me-1.5 text-primary"></i>Filter Periode & Wilayah Laporan</h6>
                 <span class="text-secondary" style="font-size: 11.5px;">Pilih rentang tanggal dan rayon untuk memfilter data laporan prediksi</span>
             </div>
-            <form method="GET" action="" class="row g-3 align-items-center">
-                <div class="col-lg-2.5 col-md-6">
+            <form method="GET" action="" class="row g-3 align-items-center" onsubmit="event.preventDefault(); submitLaporanFilterAjax();">
+                <div class="col-lg-3 col-md-6">
                     <div class="input-group">
                         <span class="input-group-text bg-transparent border-0 pe-0 text-secondary" style="font-size: 12px;"><i class="bi bi-calendar-event"></i></span>
                         <input type="date" name="start_date" class="form-control border-0 bg-transparent py-2" style="font-size: 13px; font-weight: 500;" value="{{ $startDate }}" title="Tanggal Mulai" />
                     </div>
                 </div>
-                <div class="col-lg-2.5 col-md-6">
+                <div class="col-lg-3 col-md-6">
                     <div class="input-group">
                         <span class="input-group-text bg-transparent border-0 pe-0 text-secondary" style="font-size: 12px;"><i class="bi bi-calendar-event"></i></span>
                         <input type="date" name="end_date" class="form-control border-0 bg-transparent py-2" style="font-size: 13px; font-weight: 500;" value="{{ $endDate }}" title="Tanggal Akhir" />
                     </div>
                 </div>
-                <div class="col-lg-2.5 col-md-6">
+                <div class="col-lg-3 col-md-6">
                     <div class="input-group">
                         <span class="input-group-text bg-transparent border-0 pe-0 text-secondary" style="font-size: 12px;"><i class="bi bi-geo-alt"></i></span>
                         <select name="rayon_id" class="form-select border-0 bg-transparent py-2" style="font-size: 13px; font-weight: 500;">
@@ -339,22 +339,23 @@
                         </select>
                     </div>
                 </div>
-                <div class="col-lg-2.5 col-md-6">
+                <div class="col-lg-2 col-md-4">
                     <div class="input-group">
                         <span class="input-group-text bg-transparent border-0 pe-0 text-secondary" style="font-size: 12px;"><i class="bi bi-layers"></i></span>
                         <select name="type" class="form-select border-0 bg-transparent py-2" style="font-size: 13px; font-weight: 500;">
                             <option value="harian" {{ request('type') == 'harian' ? 'selected' : '' }}>Laporan Harian</option>
+                            <option value="mingguan" {{ request('type') == 'mingguan' ? 'selected' : '' }}>Laporan Mingguan</option>
                             <option value="bulanan" {{ request('type') == 'bulanan' ? 'selected' : '' }}>Laporan Bulanan</option>
+                            <option value="tahunan" {{ request('type') == 'tahunan' ? 'selected' : '' }}>Laporan Tahunan</option>
                         </select>
                     </div>
                 </div>
-                <div class="col-lg-2 col-md-12 d-flex gap-2">
-                    <button type="submit" class="btn-action-primary w-100 py-2 d-flex align-items-center justify-content-center gap-1"><i class="bi bi-filter"></i> Saring</button>
-                    <a href="{{ request()->url() }}" class="btn-action-outline py-2" title="Reset Filter"><i class="bi bi-arrow-clockwise"></i></a>
+                <div class="col-lg-1 col-md-2 d-flex justify-content-lg-end">
+                    <a href="{{ request()->url() }}" class="btn-action-outline py-2 w-100 text-center" title="Reset Filter" style="border-radius: 8px;"><i class="bi bi-arrow-clockwise"></i></a>
                 </div>
             </form>
             
-            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top" id="report-meta-area">
                 <span class="badge bg-secondary-subtle text-secondary border px-3 py-1.5 rounded-pill" style="font-size: 11px;">
                     <i class="bi bi-clock me-1"></i> Periode: <strong>{{ $summary['periode'] }}</strong>
                 </span>
@@ -366,6 +367,7 @@
         </div>
     </div>
 
+    <div id="report-content-wrapper">
     <!-- Ringkasan Kinerja (Card Grid) -->
     <div class="row g-3 mb-4">
         <!-- Card 1: Jumlah Data -->
@@ -437,7 +439,11 @@
                     </h5>
                     @if(count($chartActualValues) > 0)
                         <div style="height: 290px; position: relative; width: 100%;">
-                            <canvas id="laporanChart"></canvas>
+                            <canvas id="laporanChart" 
+                                    data-labels="{{ json_encode($chartLabels) }}" 
+                                    data-actual="{{ json_encode($chartActualValues) }}" 
+                                    data-predict="{{ json_encode($chartPredictValues) }}">
+                            </canvas>
                         </div>
                     @else
                         <div class="text-center py-5">
@@ -452,9 +458,9 @@
         <!-- Right Column: Future Prediction Projections -->
         <div class="col-lg-4">
             <div class="card border-0 h-100 future-proj-card p-4">
-                <div class="card-body p-0 d-flex flex-column h-100" id="future-forecast-card-body" data-rayon-id="{{ $rayonId }}" data-forecast-url="{{ route('operator.laporan.forecast') }}">
+                <div class="card-body p-0 d-flex flex-column h-100" id="future-forecast-card-body" data-rayon-id="{{ $rayonId }}" data-forecast-url="{{ route('operator.laporan.forecast') }}" data-type="{{ $type ?? 'harian' }}">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h6 class="text-uppercase text-secondary fw-bold mb-0" style="font-size: 11px; letter-spacing: 0.5px;">
+                        <h6 class="text-uppercase text-secondary fw-bold mb-0" style="font-size: 11px; letter-spacing: 0.5px;" id="forecast-title">
                             <i class="bi bi-cpu text-primary me-1"></i> Prediksi 7 Hari Ke Depan
                         </h6>
                         <span class="badge bg-primary-subtle text-primary px-2.5 py-1 rounded-pill" style="font-size: 9px; font-weight: 600;">AI Proyeksi</span>
@@ -474,13 +480,13 @@
                             <span class="text-secondary small d-block mb-1">Estimasi Total Pendapatan</span>
                             <h3 class="fw-bold mb-1" id="forecast-total-predicted" style="font-size: 24px; color: #005BAA; font-variant-numeric: tabular-nums;">-</h3>
                             <span class="text-muted small">
-                                Rerata: <strong class="text-dark" id="forecast-avg-predicted">-</strong> / hari
+                                Rerata: <strong class="text-dark" id="forecast-avg-predicted">-</strong>
                             </span>
                         </div>
 
                         <!-- Mini list harian -->
                         <div class="mb-4 flex-grow-1">
-                            <span class="text-secondary d-block small mb-2 fw-semibold">Detail Harian</span>
+                            <span class="text-secondary d-block small mb-2 fw-semibold" id="forecast-detail-label">Detail Harian</span>
                             <div class="d-flex flex-column gap-2" id="forecast-daily-list" style="max-height: 185px; overflow-y: auto; padding-right: 2px;">
                                 <!-- Will be filled dynamically -->
                             </div>
@@ -516,18 +522,17 @@
                 <table class="table table-modern align-middle mb-0" id="laporanTable">
                     <thead>
                         <tr>
-                            <th style="border-top-left-radius: 8px; border-bottom-left-radius: 8px;">Tanggal</th>
+                            <th style="border-top-left-radius: 8px; border-bottom-left-radius: 8px;">Tanggal / Periode</th>
                             <th>Rayon</th>
                             <th style="text-align: right;">Aktual</th>
                             <th style="text-align: right;">Prediksi</th>
-                            <th style="text-align: right;">Selisih (Error)</th>
-                            <th style="width: 100px; text-align: center; border-top-right-radius: 8px; border-bottom-right-radius: 8px;">Aksi</th>
+                            <th style="text-align: right; border-top-right-radius: 8px; border-bottom-right-radius: 8px;">Selisih (Error)</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($reports as $rep)
                             <tr>
-                                <td data-order="{{ $rep['tanggal'] }}">{{ date('d-m-Y', strtotime($rep['tanggal'])) }}</td>
+                                <td data-order="{{ $rep['tanggal'] }}">{{ $rep['tanggal_formatted'] ?? $rep['tanggal'] }}</td>
                                 <td>
                                     <span class="badge bg-primary-subtle text-primary px-2.5 py-1 rounded-pill" style="font-size: 10px; font-weight: 500;">
                                         {{ $rep['rayon'] }}
@@ -538,13 +543,10 @@
                                 <td style="text-align: right; font-weight: 500; color: {{ $rep['error'] >= 0 ? '#10b981' : '#ef4444' }}; font-variant-numeric: tabular-nums;">
                                     {{ $rep['error'] >= 0 ? '+' : '' }}Rp {{ number_format($rep['error'], 0, ',', '.') }}
                                 </td>
-                                <td style="text-align: center;">
-                                    <button class="btn-table-action" title="Detail" onclick="alert('Detail data tanggal {{ date('d-m-Y', strtotime($rep['tanggal'])) }}')"><i class="bi bi-eye"></i></button>
-                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center py-4 text-secondary">Tidak ada data transaksi laporan yang cocok dengan kriteria filter.</td>
+                                <td colspan="5" class="text-center py-4 text-secondary">Tidak ada data transaksi laporan yang cocok dengan kriteria filter.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -561,17 +563,17 @@
         <div class="card-body p-0">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h5 class="fw-bold text-dark m-0" style="font-size: 14px;"><i class="bi bi-grid-3x3-gap-fill text-success me-2"></i>Analisis Akurasi Prediksi Per Rayon</h5>
-                <span class="badge bg-success-subtle text-success px-3 py-1.5 rounded-pill" style="font-size: 10px; font-weight: 500;">Berdasarkan Filter</span>
+                <span class="badge bg-success-subtle text-success px-3 py-1.5 rounded-pill" style="font-size: 10px; font-weight: 500; text-transform: uppercase;">Periode: {{ $type ?? 'Harian' }} ({{ $summary['total_data'] }})</span>
             </div>
 
             <div class="row g-3 mb-4">
                 <!-- Best Rayon -->
                 <div class="col-md-4">
-                    <div class="p-3.5 rounded-3 border-0 bg-success-subtle" style="background-color: rgba(220, 252, 231, 0.5) !important;">
-                        <span class="text-uppercase fw-semibold d-block text-secondary mb-1" style="font-size: 9px; letter-spacing: 0.4px;">Akurasi Tertinggi (Lowest Error)</span>
+                    <div class="card border-0 h-100 text-center p-4" style="border-radius: 12px; background-color: #f0fdf4; border: 1px solid #dcfce7 !important;">
+                        <span class="text-uppercase fw-semibold d-block text-secondary mb-2" style="font-size: 9.5px; letter-spacing: 0.5px;">Akurasi Terbaik</span>
                         @if($bestRayon)
-                            <div class="fw-bold text-success mb-1" style="font-size: 16px;">{{ $bestRayon->rayon_name }}</div>
-                            <span class="d-block small text-dark">Rerata MAPE: <strong>{{ number_format(abs($bestRayon->avg_mape), 2, ',', '.') }}%</strong></span>
+                            <h4 class="fw-bold text-success mb-1.5" style="font-size: 18px;">{{ $bestRayon->rayon_name }}</h4>
+                            <span class="text-muted small">Rata-rata Error: <strong>{{ number_format(abs($bestRayon->avg_mape), 2, ',', '.') }}%</strong></span>
                         @else
                             <span class="text-muted small">Data tidak tersedia</span>
                         @endif
@@ -580,23 +582,42 @@
 
                 <!-- Worst Rayon -->
                 <div class="col-md-4">
-                    <div class="p-3.5 rounded-3 border-0 bg-danger-subtle" style="background-color: rgba(254, 226, 226, 0.5) !important;">
-                        <span class="text-uppercase fw-semibold d-block text-secondary mb-1" style="font-size: 9px; letter-spacing: 0.4px;">Deviasi Terbesar</span>
+                    <div class="card border-0 h-100 text-center p-4" style="border-radius: 12px; background-color: #fef2f2; border: 1px solid #fee2e2 !important;">
+                        <span class="text-uppercase fw-semibold d-block text-secondary mb-2" style="font-size: 9.5px; letter-spacing: 0.5px;">Selisih Terbesar</span>
                         @if($worstRayon)
-                            <div class="fw-bold text-danger mb-1" style="font-size: 16px;">{{ $worstRayon->rayon_name }}</div>
-                            <span class="d-block small text-dark">Rerata MAPE: <strong>{{ number_format(abs($worstRayon->avg_mape), 2, ',', '.') }}%</strong></span>
+                            <h4 class="fw-bold text-danger mb-1.5" style="font-size: 18px;">{{ $worstRayon->rayon_name }}</h4>
+                            <span class="text-muted small">Rata-rata Error: <strong>{{ number_format(abs($worstRayon->avg_mape), 2, ',', '.') }}%</strong></span>
                         @else
                             <span class="text-muted small">Data tidak tersedia</span>
                         @endif
                     </div>
                 </div>
 
-                <!-- Avg Daily Deviation -->
+                <!-- Avg Deviation -->
                 <div class="col-md-4">
-                    <div class="p-3.5 rounded-3 border-0 bg-light" style="background-color: #f8fafc !important;">
-                        <span class="text-uppercase fw-semibold d-block text-secondary mb-1" style="font-size: 9px; letter-spacing: 0.4px;">Rerata Selisih Uang Nominal Harian</span>
-                        <div class="fw-bold text-dark mb-1" style="font-size: 16px; font-variant-numeric: tabular-nums;">Rp {{ number_format(abs($avgDailyDeviation), 0, ',', '.') }} / hari</div>
-                        <span class="d-block small text-secondary">Nilai batas wajar deviasi setoran jukir harian.</span>
+                    @php
+                        $deviationLabel = 'Rata-rata Selisih Harian';
+                        $deviationUnit = ' / hari';
+                        $deviationNote = 'Batas wajar selisih setoran juru parkir harian.';
+                        
+                        if (($type ?? 'harian') === 'mingguan') {
+                            $deviationLabel = 'Rata-rata Selisih Mingguan';
+                            $deviationUnit = ' / minggu';
+                            $deviationNote = 'Batas wajar selisih setoran juru parkir mingguan.';
+                        } elseif (($type ?? 'harian') === 'bulanan') {
+                            $deviationLabel = 'Rata-rata Selisih Bulanan';
+                            $deviationUnit = ' / bulan';
+                            $deviationNote = 'Batas wajar selisih setoran juru parkir bulanan.';
+                        } elseif (($type ?? 'harian') === 'tahunan') {
+                            $deviationLabel = 'Rata-rata Selisih Tahunan';
+                            $deviationUnit = ' / tahun';
+                            $deviationNote = 'Batas wajar selisih setoran juru parkir tahunan.';
+                        }
+                    @endphp
+                    <div class="card border-0 h-100 text-center p-4" style="border-radius: 12px; background-color: #f8fafc; border: 1px solid #e2e8f0 !important;">
+                        <span class="text-uppercase fw-semibold d-block text-secondary mb-2" style="font-size: 9.5px; letter-spacing: 0.5px;">{{ $deviationLabel }}</span>
+                        <h4 class="fw-bold text-dark mb-1.5" style="font-size: 18px; font-variant-numeric: tabular-nums;">Rp {{ number_format(abs($avgPeriodDeviation ?? $avgDailyDeviation), 0, ',', '.') }}{{ $deviationUnit }}</h4>
+                        <span class="text-muted small">{{ $deviationNote }}</span>
                     </div>
                 </div>
             </div>
@@ -605,7 +626,7 @@
             <!-- Breakdown Rayon Table -->
             <div class="border-top pt-4">
                 <h6 class="fw-bold text-dark mb-3" style="font-size: 13px;"><i class="bi bi-table me-2 text-primary"></i>Kinerja Seluruh Rayon</h6>
-                <div class="table-responsive">
+                <div class="table-responsive" style="overflow-x: hidden;">
                     <table class="table table-modern align-middle mb-0" style="font-size: 12.5px;">
                         <thead>
                             <tr>
@@ -613,8 +634,8 @@
                                 <th style="text-align: right;">Total Aktual</th>
                                 <th style="text-align: right;">Total Prediksi</th>
                                 <th style="text-align: right;">Avg Error</th>
-                                <th style="text-align: right; width: 120px;">Rerata MAPE</th>
-                                <th style="text-align: center; width: 120px; border-top-right-radius: 8px; border-bottom-right-radius: 8px;">Status</th>
+                                <th style="text-align: right;">Rerata MAPE</th>
+                                <th style="text-align: center; border-top-right-radius: 8px; border-bottom-right-radius: 8px;">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -648,17 +669,135 @@
         </div>
     </div>
     @endif
-
-
+    </div> <!-- Close report-content-wrapper -->
 </div>
 @endsection
 
 @section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    let laporanChartInstance = null;
+
+    function initLaporanChart() {
+        const canvas = document.getElementById('laporanChart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        
+        if (laporanChartInstance) {
+            laporanChartInstance.destroy();
+        }
+
+        let labels = [];
+        let actualValues = [];
+        let predictValues = [];
+
+        try {
+            labels = JSON.parse(canvas.getAttribute('data-labels') || '[]');
+            actualValues = JSON.parse(canvas.getAttribute('data-actual') || '[]');
+            predictValues = JSON.parse(canvas.getAttribute('data-predict') || '[]');
+        } catch (e) {
+            console.error('Error parsing chart data attributes:', e);
+        }
+
+        if (labels.length === 0) return;
+
+        const gradientActual = ctx.createLinearGradient(0, 0, 0, 260);
+        gradientActual.addColorStop(0, 'rgba(0, 91, 170, 0.08)');
+        gradientActual.addColorStop(1, 'rgba(0, 91, 170, 0.0)');
+
+        const gradientPredict = ctx.createLinearGradient(0, 0, 0, 260);
+        gradientPredict.addColorStop(0, 'rgba(244, 197, 66, 0.04)');
+        gradientPredict.addColorStop(1, 'rgba(244, 197, 66, 0.0)');
+
+        laporanChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Realisasi (Aktual)',
+                        data: actualValues,
+                        borderColor: '#005BAA',
+                        borderWidth: 2,
+                        backgroundColor: gradientActual,
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#005BAA',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 1,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    },
+                    {
+                        label: 'Proyeksi (Prediksi SVR)',
+                        data: predictValues,
+                        borderColor: '#F4C542',
+                        borderWidth: 2,
+                        backgroundColor: gradientPredict,
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#F4C542',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 1,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        borderDash: [5, 4]
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        align: 'end',
+                        labels: {
+                            boxWidth: 8,
+                            boxHeight: 8,
+                            font: { family: 'Inter', size: 11, weight: '500' }
+                        }
+                    },
+                    tooltip: {
+                        padding: 10,
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        titleFont: { family: 'Inter', size: 11, weight: 'bold' },
+                        bodyFont: { family: 'Inter', size: 11 },
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                let val = context.raw;
+                                return ' ' + label + ': Rp ' + new Intl.NumberFormat('id-ID').format(val);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        grid: { borderDash: [6, 6], color: '#e2e8f0', drawBorder: false },
+                        ticks: {
+                            callback: function(value) {
+                                return 'Rp ' + new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(value);
+                            },
+                            font: { family: 'Inter', size: 10 }
+                        }
+                    },
+                    x: {
+                        grid: { display: false, drawBorder: false },
+                        ticks: { font: { family: 'Inter', size: 9.5 } }
+                    }
+                }
+            }
+        });
+    }
+
+    function initFutureForecast() {
         const forecastCard = document.getElementById('future-forecast-card-body');
         if (forecastCard) {
             const rayonId = forecastCard.getAttribute('data-rayon-id') || 0;
+            const type = forecastCard.getAttribute('data-type') || 'harian';
             const forecastUrl = forecastCard.getAttribute('data-forecast-url');
             
             const loadingState = document.getElementById('forecast-loading-state');
@@ -666,12 +805,19 @@
             const errorState = document.getElementById('forecast-error-state');
             const errorMsg = document.getElementById('forecast-error-msg');
             
-            fetch(`${forecastUrl}?rayon_id=${rayonId}`)
+            // Set elements back to loading state
+            loadingState.style.setProperty('display', 'block', 'important');
+            contentState.style.setProperty('display', 'none', 'important');
+            errorState.style.setProperty('display', 'none', 'important');
+            
+            fetch(`${forecastUrl}?rayon_id=${rayonId}&type=${type}`)
                 .then(response => response.json())
                 .then(res => {
                     if (res.success && res.data) {
                         const data = res.data;
                         
+                        document.getElementById('forecast-title').innerHTML = `<i class="bi bi-cpu text-primary me-1"></i> ${data.title}`;
+                        document.getElementById('forecast-detail-label').innerText = data.detail_label;
                         document.getElementById('forecast-total-predicted').innerText = data.total_predicted;
                         document.getElementById('forecast-avg-predicted').innerText = data.avg_predicted;
                         
@@ -680,24 +826,12 @@
                         
                         if (data.detail_harian && data.detail_harian.length > 0) {
                             data.detail_harian.forEach(day => {
-                                const dateObj = new Date(day.tanggal);
-                                const dayNum = dateObj.getDay();
-                                const isWeekend = dayNum === 0 || dayNum === 6;
-                                
-                                const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-                                const dayName = dayNames[dayNum];
-                                
-                                const options = { day: 'numeric', month: 'short' };
-                                const formattedDate = dateObj.toLocaleDateString('id-ID', options);
-                                
                                 const formattedVal = new Intl.NumberFormat('id-ID').format(day.pendapatan);
-                                const weekendBadge = isWeekend ? `<span class="badge bg-warning-subtle text-warning px-1.5 py-0.5 rounded-pill ms-1" style="font-size: 8px;">Weekend</span>` : '';
                                 
                                 const dayHtml = `
                                     <div class="d-flex justify-content-between align-items-center list-proj-item">
                                         <span class="text-dark fw-medium" style="font-size: 11.5px;">
-                                            ${dayName}, ${formattedDate}
-                                            ${weekendBadge}
+                                            ${day.label}
                                         </span>
                                         <span class="fw-bold text-dark" style="font-variant-numeric: tabular-nums;">Rp ${formattedVal}</span>
                                     </div>
@@ -727,118 +861,102 @@
                     if (errorMsg) errorMsg.innerText = err.message || 'Gagal memuat proyeksi masa depan. Pastikan server FastAPI ML aktif di port 8000.';
                     errorState.style.setProperty('display', 'block', 'important');
                 });
-            // Initialize DataTable for Laporan
-            $('#laporanTable').DataTable({
-                language: {
-                    url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/id.json'
-                },
-                pageLength: 10,
-                lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Semua"]],
-                order: [[0, 'asc']], // Sort by date ascending
-                columnDefs: [
-                    { targets: 5, orderable: false } // Actions column not orderable
-                ]
-            });
         }
+    }
+
+    function initAllReportScripts() {
+        // Initialize Datatable
+        if ($.fn.DataTable.isDataTable('#laporanTable')) {
+            $('#laporanTable').DataTable().destroy();
+        }
+        $('#laporanTable').DataTable({
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/id.json'
+            },
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Semua"]],
+            order: [[0, 'asc']], // Sort by date ascending
+        });
+
+        // Initialize Forecast Card
+        initFutureForecast();
+
+        // Initialize Chart
+        initLaporanChart();
+    }
+
+    function submitLaporanFilterAjax() {
+        const form = document.querySelector('form');
+        const start_date = form.querySelector('input[name="start_date"]').value;
+        const end_date = form.querySelector('input[name="end_date"]').value;
+        const rayon_id = form.querySelector('select[name="rayon_id"]').value;
+        const type = form.querySelector('select[name="type"]').value;
+
+        const currentUrl = window.location.pathname;
+        const query = new URLSearchParams({
+            start_date,
+            end_date,
+            rayon_id,
+            type
+        }).toString();
+        const fetchUrl = `${currentUrl}?${query}`;
+
+        // Update address bar URL without reloading page
+        window.history.pushState(null, '', fetchUrl);
+
+        // Visual loading feedback
+        const wrapper = document.getElementById('report-content-wrapper');
+        if (wrapper) {
+            wrapper.style.opacity = '0.5';
+            wrapper.style.pointerEvents = 'none';
+        }
+
+        fetch(fetchUrl, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+
+            // Replace dynamic badge and print links
+            const oldMeta = document.getElementById('report-meta-area');
+            const newMeta = doc.getElementById('report-meta-area');
+            if (oldMeta && newMeta) {
+                oldMeta.innerHTML = newMeta.innerHTML;
+            }
+
+            // Replace main content tables and cards
+            const oldWrapper = document.getElementById('report-content-wrapper');
+            const newWrapper = doc.getElementById('report-content-wrapper');
+            if (oldWrapper && newWrapper) {
+                oldWrapper.innerHTML = newWrapper.innerHTML;
+                oldWrapper.style.opacity = '1';
+                oldWrapper.style.pointerEvents = 'auto';
+            }
+
+            // Re-initialize all libraries/charts/datatables
+            initAllReportScripts();
+        })
+        .catch(err => {
+            console.error('AJAX Filter failed:', err);
+            if (wrapper) {
+                wrapper.style.opacity = '1';
+                wrapper.style.pointerEvents = 'auto';
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Run script initializations
+        initAllReportScripts();
+
+        // Bind change events to all inputs for automatic AJAX submittal
+        document.querySelectorAll('form input[type="date"], form select').forEach(el => {
+            el.addEventListener('change', submitLaporanFilterAjax);
+        });
     });
 </script>
-
-@if(count($chartActualValues) > 0)
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const ctx = document.getElementById('laporanChart').getContext('2d');
-            
-            const gradientActual = ctx.createLinearGradient(0, 0, 0, 260);
-            gradientActual.addColorStop(0, 'rgba(0, 91, 170, 0.08)');
-            gradientActual.addColorStop(1, 'rgba(0, 91, 170, 0.0)');
-
-            const gradientPredict = ctx.createLinearGradient(0, 0, 0, 260);
-            gradientPredict.addColorStop(0, 'rgba(244, 197, 66, 0.04)');
-            gradientPredict.addColorStop(1, 'rgba(244, 197, 66, 0.0)');
-
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: @json($chartLabels),
-                    datasets: [
-                        {
-                            label: 'Realisasi (Aktual)',
-                            data: @json($chartActualValues),
-                            borderColor: '#005BAA',
-                            borderWidth: 2,
-                            backgroundColor: gradientActual,
-                            fill: true,
-                            tension: 0.3,
-                            pointBackgroundColor: '#005BAA',
-                            pointBorderColor: '#ffffff',
-                            pointBorderWidth: 1,
-                            pointRadius: 3,
-                            pointHoverRadius: 5
-                        },
-                        {
-                            label: 'Proyeksi (Prediksi SVR)',
-                            data: @json($chartPredictValues),
-                            borderColor: '#F4C542',
-                            borderWidth: 2,
-                            backgroundColor: gradientPredict,
-                            fill: true,
-                            tension: 0.3,
-                            pointBackgroundColor: '#F4C542',
-                            pointBorderColor: '#ffffff',
-                            pointBorderWidth: 1,
-                            pointRadius: 3,
-                            pointHoverRadius: 5,
-                            borderDash: [5, 4]
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top',
-                            align: 'end',
-                            labels: {
-                                boxWidth: 8,
-                                boxHeight: 8,
-                                font: { family: 'Inter', size: 11, weight: '500' }
-                            }
-                        },
-                        tooltip: {
-                            padding: 10,
-                            backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                            titleFont: { family: 'Inter', size: 11, weight: 'bold' },
-                            bodyFont: { family: 'Inter', size: 11 },
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    let val = context.raw;
-                                    return ' ' + label + ': Rp ' + new Intl.NumberFormat('id-ID').format(val);
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            grid: { borderDash: [6, 6], color: '#e2e8f0', drawBorder: false },
-                            ticks: {
-                                callback: function(value) {
-                                    return 'Rp ' + new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(value);
-                                },
-                                font: { family: 'Inter', size: 10 }
-                            }
-                        },
-                        x: {
-                            grid: { display: false, drawBorder: false },
-                            ticks: { font: { family: 'Inter', size: 9.5 } }
-                        }
-                    }
-                }
-            });
-        });
-    </script>
-@endif
 @endsection

@@ -11,13 +11,25 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Services\FastApiService;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class KepalaDishubLaporanController extends Controller
 {
-    public function index(Request $request)
+    private function getReportData(Request $request)
     {
+        Carbon::setLocale('id');
         $latestDate = Pendapatan::max('tanggal') ?? Carbon::now()->format('Y-m-d');
-        $defaultStartDate = Carbon::parse($latestDate)->subDays(7)->format('Y-m-d');
+        $type = $request->input('type', 'harian');
+        
+        if ($type === 'bulanan') {
+            $defaultStartDate = Carbon::parse($latestDate)->subMonths(5)->startOfMonth()->format('Y-m-d');
+        } elseif ($type === 'tahunan') {
+            $defaultStartDate = Carbon::parse($latestDate)->subYears(2)->startOfYear()->format('Y-m-d');
+        } elseif ($type === 'mingguan') {
+            $defaultStartDate = Carbon::parse($latestDate)->subWeeks(7)->startOfWeek()->format('Y-m-d');
+        } else {
+            $defaultStartDate = Carbon::parse($latestDate)->subDays(7)->format('Y-m-d');
+        }
         
         $startDate = $request->input('start_date', $defaultStartDate);
         $endDate = $request->input('end_date', $latestDate);
@@ -43,6 +55,12 @@ class KepalaDishubLaporanController extends Controller
         $totalActual = 0;
         $totalPredicted = 0;
         $avgPctError = 0;
+        
+        $chartLabels = [];
+        $chartActualValues = [];
+        $chartPredictValues = [];
+
+        $predictionResults = collect([]);
 
         if ($latestRun) {
             $query = $latestRun->predictionResults()
@@ -54,68 +72,222 @@ class KepalaDishubLaporanController extends Controller
 
             $predictionResults = $query->orderBy('tanggal', 'asc')->get();
 
-            foreach ($predictionResults as $index => $pred) {
-                $errorVal = $pred->actual_value - $pred->predicted_value;
-                $pctError = $pred->actual_value > 0 ? (abs($errorVal) / $pred->actual_value) * 100 : 0;
-                
-                $reports[] = [
-                    'no' => $index + 1,
-                    'tanggal' => date('d-m-Y', strtotime($pred->tanggal)),
-                    'tanggal_raw' => $pred->tanggal,
-                    'rayon' => $pred->rayon_name,
-                    'aktual' => (double)$pred->actual_value,
-                    'prediksi' => (double)$pred->predicted_value,
-                    'error' => (double)$errorVal,
-                    'pct_error' => number_format($pctError, 2, ',', '.') . '%'
-                ];
-                
-                $totalActual += $pred->actual_value;
-                $totalPredicted += $pred->predicted_value;
-            }
-
             if ($predictionResults->count() > 0) {
-                $avgPctError = $predictionResults->avg(function($p) {
-                    $err = $p->actual_value - $p->predicted_value;
-                    return $p->actual_value > 0 ? (abs($err) / $p->actual_value) * 100 : 0;
+                // Group the prediction results in PHP
+                $grouped = [];
+                foreach ($predictionResults as $pred) {
+                    $carbonDate = Carbon::parse($pred->tanggal);
+                    if ($type === 'mingguan') {
+                        $startOfWeek = $carbonDate->copy()->startOfWeek();
+                        $endOfWeek = $carbonDate->copy()->endOfWeek();
+                        $key = $startOfWeek->format('Y-m-d');
+                        $label = $startOfWeek->translatedFormat('d M Y') . ' - ' . $endOfWeek->translatedFormat('d M Y');
+                        $chartLabel = $startOfWeek->translatedFormat('d M') . ' - ' . $endOfWeek->translatedFormat('d M Y');
+                    } elseif ($type === 'bulanan') {
+                        $key = $carbonDate->format('Y-m');
+                        $label = $carbonDate->translatedFormat('F Y');
+                        $chartLabel = $carbonDate->translatedFormat('M Y');
+                    } elseif ($type === 'tahunan') {
+                        $key = $carbonDate->format('Y');
+                        $label = $carbonDate->translatedFormat('Y');
+                        $chartLabel = $carbonDate->translatedFormat('Y');
+                    } else {
+                        $key = $pred->tanggal;
+                        $label = $carbonDate->translatedFormat('d M Y');
+                        $chartLabel = $carbonDate->translatedFormat('d M Y');
+                    }
+
+                    // Group by period key and rayon ID to keep rayon-specific rows
+                    $groupKey = $key . '_' . $pred->rayon_id;
+
+                    if (!isset($grouped[$groupKey])) {
+                        $grouped[$groupKey] = [
+                            'tanggal_raw' => $key,
+                            'tanggal' => $label,
+                            'chart_label' => $chartLabel,
+                            'rayon' => $pred->rayon_name,
+                            'rayon_id' => $pred->rayon_id,
+                            'aktual' => 0.0,
+                            'prediksi' => 0.0,
+                        ];
+                    }
+
+                    $grouped[$groupKey]['aktual'] += (double)$pred->actual_value;
+                    $grouped[$groupKey]['prediksi'] += (double)$pred->predicted_value;
+                }
+
+                // Map to reports array
+                $index = 1;
+                foreach ($grouped as $gKey => $gData) {
+                    $errorVal = $gData['aktual'] - $gData['prediksi'];
+                    $pctError = $gData['aktual'] > 0 ? (abs($errorVal) / $gData['aktual']) * 100 : 0;
+
+                    $reports[] = [
+                        'no' => $index++,
+                        'tanggal' => $gData['tanggal_raw'],
+                        'tanggal_formatted' => $gData['tanggal'],
+                        'chart_label' => $gData['chart_label'],
+                        'rayon' => $gData['rayon'],
+                        'rayon_id' => $gData['rayon_id'],
+                        'aktual' => $gData['aktual'],
+                        'prediksi' => $gData['prediksi'],
+                        'error' => $errorVal,
+                        'pct_error' => number_format($pctError, 2, ',', '.') . '%'
+                    ];
+
+                    $totalActual += $gData['aktual'];
+                    $totalPredicted += $gData['prediksi'];
+                }
+
+                // Sort reports by raw date ascending
+                usort($reports, function($a, $b) {
+                    return strcmp($a['tanggal'], $b['tanggal']);
                 });
+
+                // Re-number after sorting
+                foreach ($reports as $idx => &$rep) {
+                    $rep['no'] = $idx + 1;
+                }
+                unset($rep);
+
+                // Group by period key for chart (across all rayons in that period)
+                $chartGrouped = [];
+                foreach ($grouped as $gData) {
+                    $key = $gData['tanggal_raw'];
+                    if (!isset($chartGrouped[$key])) {
+                        $chartGrouped[$key] = [
+                            'label' => $gData['chart_label'],
+                            'aktual' => 0,
+                            'prediksi' => 0,
+                        ];
+                    }
+                    $chartGrouped[$key]['aktual'] += $gData['aktual'];
+                    $chartGrouped[$key]['prediksi'] += $gData['prediksi'];
+                }
+
+                ksort($chartGrouped);
+
+                foreach ($chartGrouped as $key => $data) {
+                    $chartLabels[] = $data['label'];
+                    $chartActualValues[] = (int) $data['aktual'];
+                    $chartPredictValues[] = (int) $data['prediksi'];
+                }
+
+                // Calculate overall MAPE of grouped reports
+                if (count($reports) > 0) {
+                    $avgPctError = collect($reports)->avg(function($r) {
+                        return $r['aktual'] > 0 ? (abs($r['error']) / $r['aktual']) * 100 : 0;
+                    });
+                }
             }
         }
 
-        $chartLabels = [];
-        $chartActualValues = [];
-        $chartPredictValues = [];
+        // Calculate average period deviation
+        $avgPeriodDeviation = 0;
+        if (count($reports) > 0) {
+            $avgPeriodDeviation = collect($reports)->avg(function($r) {
+                return abs($r['error']);
+            });
+        }
+
+        // Rayon stats or details
+        $rayonStats = collect([]);
+        $bestRayon = null;
+        $worstRayon = null;
+        $avgDailyDeviation = 0;
+
+        if ($latestRun && $predictionResults->count() > 0) {
+            $rayonStats = $latestRun->predictionResults()
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->when($rayonId > 0, fn($q) => $q->where('rayon_id', $rayonId))
+                ->select(
+                    'rayon_name',
+                    DB::raw('AVG(percentage_error) as avg_mape'),
+                    DB::raw('AVG(error_value) as avg_error'),
+                    DB::raw('SUM(actual_value) as total_actual'),
+                    DB::raw('SUM(predicted_value) as total_predicted')
+                )
+                ->groupBy('rayon_name')
+                ->get();
+
+            $bestRayon  = $rayonStats->sortBy('avg_mape')->first();
+            $worstRayon = $rayonStats->sortByDesc('avg_mape')->first();
+
+            $avgDailyDeviation = $latestRun->predictionResults()
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->when($rayonId > 0, fn($q) => $q->where('rayon_id', $rayonId))
+                ->avg('error_value') ?? 0;
+        }
+
+        $unit = 'Hari';
+        if ($type === 'mingguan') {
+            $unit = 'Minggu';
+        } elseif ($type === 'bulanan') {
+            $unit = 'Bulan';
+        } elseif ($type === 'tahunan') {
+            $unit = 'Tahun';
+        }
+
+        $summary = [
+            'periode' => date('d M Y', strtotime($startDate)) . ' - ' . date('d M Y', strtotime($endDate)),
+            'total_data' => count($reports) . ' ' . $unit,
+            'total_aktual' => 'Rp ' . number_format($totalActual, 0, ',', '.'),
+            'total_prediksi' => 'Rp ' . number_format($totalPredicted, 0, ',', '.'),
+            'mape' => number_format($avgPctError, 2, ',', '.') . '%'
+        ];
+
+        return compact(
+            'summary',
+            'reports',
+            'rayons',
+            'startDate',
+            'endDate',
+            'rayonId',
+            'chartLabels',
+            'chartActualValues',
+            'chartPredictValues',
+            'bestRayon',
+            'worstRayon',
+            'avgDailyDeviation',
+            'avgPeriodDeviation',
+            'rayonStats',
+            'latestRun',
+            'type',
+            'totalActual',
+            'totalPredicted',
+            'avgPctError'
+        );
+    }
+
+    public function index(Request $request)
+    {
+        $data = $this->getReportData($request);
+
         $avgDailyActual = 0;
         $avgDailyPredicted = 0;
         $avgDailyDeviation = 0;
 
-        if ($latestRun && count($reports) > 0) {
-            $groupedByDate = $predictionResults->groupBy('tanggal')->sortKeys();
-            foreach ($groupedByDate as $date => $group) {
-                $chartLabels[] = date('d M Y', strtotime($date));
-                $chartActualValues[] = (int) $group->sum('actual_value');
-                $chartPredictValues[] = (int) $group->sum('predicted_value');
-            }
-
-            $avgDailyActual = $totalActual / count($chartActualValues);
-            $avgDailyPredicted = $totalPredicted / count($chartPredictValues);
+        if (count($data['chartActualValues']) > 0) {
+            $avgDailyActual = $data['totalActual'] / count($data['chartActualValues']);
+            $avgDailyPredicted = $data['totalPredicted'] / count($data['chartPredictValues']);
 
             $deviations = [];
-            foreach ($chartActualValues as $i => $actVal) {
-                $predVal = $chartPredictValues[$i] ?? 0;
+            foreach ($data['chartActualValues'] as $i => $actVal) {
+                $predVal = $data['chartPredictValues'][$i] ?? 0;
                 $deviations[] = abs($actVal - $predVal);
             }
             $avgDailyDeviation = array_sum($deviations) / count($deviations);
         }
 
         $statusAkurasi = 'Cukup Akurat (Perlu Pemantauan)';
-        $keteranganAkurasi = 'Model peramalan memiliki tingkat kesalahan sebesar ' . number_format($avgPctError, 2, ',', '.') . '%. Direkomendasikan bagi Operator untuk melakukan pelatihan ulang model agar lebih presisi.';
+        $keteranganAkurasi = 'Model peramalan memiliki tingkat kesalahan sebesar ' . $data['summary']['mape'] . '. Direkomendasikan bagi Operator untuk melakukan pelatihan ulang model agar lebih presisi.';
 
-        if ($avgPctError < 10) {
+        if ($data['avgPctError'] < 10) {
             $statusAkurasi = 'Sangat Akurat (Presisi Tinggi)';
-            $keteranganAkurasi = 'Model peramalan sangat presisi dengan tingkat kesalahan harian hanya ' . number_format($avgPctError, 2, ',', '.') . '%. Sangat andal digunakan sebagai acuan penetapan target retribusi parkir harian.';
-        } elseif ($avgPctError <= 20) {
+            $keteranganAkurasi = 'Model peramalan sangat presisi dengan tingkat kesalahan harian hanya ' . $data['summary']['mape'] . '. Sangat andal digunakan sebagai acuan penetapan target retribusi parkir harian.';
+        } elseif ($data['avgPctError'] <= 20) {
             $statusAkurasi = 'Baik (Andal)';
-            $keteranganAkurasi = 'Model peramalan memiliki tingkat kesalahan rendah sebesar ' . number_format($avgPctError, 2, ',', '.') . '%. Layak dijadikan panduan resmi target setoran jukir di lapangan.';
+            $keteranganAkurasi = 'Model peramalan memiliki tingkat kesalahan rendah sebesar ' . $data['summary']['mape'] . '. Layak dijadikan panduan resmi target setoran jukir di lapangan.';
         }
 
         $analysis = [
@@ -126,33 +298,27 @@ class KepalaDishubLaporanController extends Controller
             'keterangan_akurasi' => $keteranganAkurasi
         ];
 
-        $summary = [
-            'periode' => date('d M Y', strtotime($startDate)) . ' - ' . date('d M Y', strtotime($endDate)),
-            'total_data' => count($reports) . ' Hari',
-            'total_aktual' => 'Rp ' . number_format($totalActual, 0, ',', '.'),
-            'total_prediksi' => 'Rp ' . number_format($totalPredicted, 0, ',', '.'),
-            'mape' => number_format($avgPctError, 2, ',', '.') . '%'
-        ];
-        
-        $totalErrorVal = $totalActual - $totalPredicted;
+        $totalErrorVal = $data['totalActual'] - $data['totalPredicted'];
         $total_period = [
-            'aktual' => 'Rp ' . number_format($totalActual, 0, ',', '.'),
-            'prediksi' => 'Rp ' . number_format($totalPredicted, 0, ',', '.'),
+            'aktual' => 'Rp ' . number_format($data['totalActual'], 0, ',', '.'),
+            'prediksi' => 'Rp ' . number_format($data['totalPredicted'], 0, ',', '.'),
             'error' => 'Rp ' . number_format(abs($totalErrorVal), 0, ',', '.'),
-            'pct_error' => number_format($avgPctError, 2, ',', '.') . '%'
+            'pct_error' => number_format($data['avgPctError'], 2, ',', '.') . '%'
         ];
 
         $futureForecast = null;
 
-        return view('kepala-dishub.laporan.index', compact('summary', 'reports', 'total_period', 'rayons', 'startDate', 'endDate', 'rayonId', 'chartLabels', 'chartActualValues', 'chartPredictValues', 'analysis', 'futureForecast'));
+        return view('kepala-dishub.laporan.index', array_merge($data, [
+            'analysis' => $analysis,
+            'total_period' => $total_period,
+            'futureForecast' => $futureForecast
+        ]));
     }
 
-    /**
-     * Get future forecast data via AJAX with 10 minutes cache.
-     */
     public function getForecastData(Request $request)
     {
         $rayonId = (int)$request->input('rayon_id', 0);
+        $type = $request->input('type', 'harian');
 
         $latestRun = ModelRun::where('model_type', 'svr_gwo')
             ->where('status', 'success')
@@ -173,10 +339,9 @@ class KepalaDishubLaporanController extends Controller
             ]);
         }
 
-        // Cache the result for 10 minutes (600 seconds)
-        $cacheKey = "laporan_forecast_rayon_{$rayonId}_run_{$latestRun->id}";
-        $data = \Illuminate\Support\Facades\Cache::remember($cacheKey, 600, function () use ($latestRun, $rayonId) {
-            return $this->getFutureForecast($latestRun, $rayonId);
+        $cacheKey = "laporan_forecast_rayon_{$rayonId}_run_{$latestRun->id}_type_{$type}";
+        $data = \Illuminate\Support\Facades\Cache::remember($cacheKey, 600, function () use ($latestRun, $rayonId, $type) {
+            return $this->getFutureForecast($latestRun, $rayonId, $type);
         });
 
         if (!$data) {
@@ -192,10 +357,7 @@ class KepalaDishubLaporanController extends Controller
         ]);
     }
 
-    /**
-     * Ambil prediksi masa depan (7 hari ke depan setelah tanggal terakhir di DB)
-     */
-    private function getFutureForecast(?ModelRun $latestRun, int $rayonId): ?array
+    private function getFutureForecast(?ModelRun $latestRun, int $rayonId, string $type): ?array
     {
         if (!$latestRun) {
             return null;
@@ -203,7 +365,30 @@ class KepalaDishubLaporanController extends Controller
 
         $lastKnownDate = Pendapatan::max('tanggal') ?? '2025-07-20';
         $futureStart = Carbon::parse($lastKnownDate)->addDay()->format('Y-m-d');
-        $futureEnd = Carbon::parse($lastKnownDate)->addDays(7)->format('Y-m-d');
+        
+        $daysToPredict = 7;
+        $title = 'PREDIKSI 7 HARI KE DEPAN';
+        $detailLabel = 'Detail Proyeksi Harian';
+        $unitLabel = ' / hari';
+        
+        if ($type === 'mingguan') {
+            $daysToPredict = 28;
+            $title = 'PREDIKSI 4 MINGGU KE DEPAN';
+            $detailLabel = 'Detail Proyeksi Mingguan';
+            $unitLabel = ' / minggu';
+        } elseif ($type === 'bulanan') {
+            $daysToPredict = 180;
+            $title = 'PREDIKSI 6 BULAN KE DEPAN';
+            $detailLabel = 'Detail Proyeksi Bulanan';
+            $unitLabel = ' / bulan';
+        } elseif ($type === 'tahunan') {
+            $daysToPredict = 730;
+            $title = 'PREDIKSI 2 TAHUN KE DEPAN';
+            $detailLabel = 'Detail Proyeksi Tahunan';
+            $unitLabel = ' / tahun';
+        }
+        
+        $futureEnd = Carbon::parse($lastKnownDate)->addDays($daysToPredict)->format('Y-m-d');
         
         try {
             $fastApiService = app(FastApiService::class);
@@ -215,39 +400,106 @@ class KepalaDishubLaporanController extends Controller
             ]);
             
             if ($forecastRes && isset($forecastRes['status']) && $forecastRes['status'] === 'Sukses') {
-                $totalPred = $forecastRes['estimasi_total_pendapatan'];
-                $avgDaily = $totalPred / 7;
+                $detailHarian = $forecastRes['detail_harian'];
+                
+                $formattedDetails = [];
+                if ($type === 'harian') {
+                    foreach ($detailHarian as $day) {
+                        $formattedDetails[] = [
+                            'tanggal' => $day['tanggal'],
+                            'label' => Carbon::parse($day['tanggal'])->translatedFormat('l, d M Y'),
+                            'pendapatan' => $day['pendapatan']
+                        ];
+                    }
+                } elseif ($type === 'mingguan') {
+                    $grouped = [];
+                    foreach ($detailHarian as $day) {
+                        $carbonDate = Carbon::parse($day['tanggal']);
+                        $weekYear = $carbonDate->format('o-W');
+                        $startOfWeek = $carbonDate->copy()->startOfWeek()->translatedFormat('d M');
+                        $endOfWeek = $carbonDate->copy()->endOfWeek()->translatedFormat('d M Y');
+                        $label = "Mgg " . $carbonDate->format('W') . " (" . $startOfWeek . " - " . $endOfWeek . ")";
+                        
+                        if (!isset($grouped[$weekYear])) {
+                            $grouped[$weekYear] = [
+                                'label' => $label,
+                                'pendapatan' => 0
+                            ];
+                        }
+                        $grouped[$weekYear]['pendapatan'] += $day['pendapatan'];
+                    }
+                    ksort($grouped);
+                    $formattedDetails = array_values($grouped);
+                } elseif ($type === 'bulanan') {
+                    $grouped = [];
+                    foreach ($detailHarian as $day) {
+                        $carbonDate = Carbon::parse($day['tanggal']);
+                        $monthYear = $carbonDate->format('Y-m');
+                        $label = $carbonDate->translatedFormat('F Y');
+                        
+                        if (!isset($grouped[$monthYear])) {
+                            $grouped[$monthYear] = [
+                                'label' => $label,
+                                'pendapatan' => 0
+                            ];
+                        }
+                        $grouped[$monthYear]['pendapatan'] += $day['pendapatan'];
+                    }
+                    ksort($grouped);
+                    $formattedDetails = array_values($grouped);
+                } elseif ($type === 'tahunan') {
+                    $grouped = [];
+                    foreach ($detailHarian as $day) {
+                        $carbonDate = Carbon::parse($day['tanggal']);
+                        $year = $carbonDate->format('Y');
+                        $label = "Tahun " . $year;
+                        
+                        if (!isset($grouped[$year])) {
+                            $grouped[$year] = [
+                                'label' => $label,
+                                'pendapatan' => 0
+                            ];
+                        }
+                        $grouped[$year]['pendapatan'] += $day['pendapatan'];
+                    }
+                    ksort($grouped);
+                    $formattedDetails = array_values($grouped);
+                }
+                
+                $totalPredVal = array_sum(array_column($formattedDetails, 'pendapatan'));
+                $avgPred = count($formattedDetails) > 0 ? $totalPredVal / count($formattedDetails) : 0;
                 
                 $recommendations = [];
+                $avgDaily = $totalPredVal / $daysToPredict;
                 
                 $hasWeekendPeak = false;
-                foreach ($forecastRes['detail_harian'] as $day) {
+                foreach ($detailHarian as $day) {
                     $dayOfWeek = (int) date('N', strtotime($day['tanggal']));
-                    if ($dayOfWeek >= 6 && $day['pendapatan'] > $avgDaily * 1.1) {
+                    if (gmdate('N', strtotime($day['tanggal'])) >= 6 && $day['pendapatan'] > $avgDaily * 1.1) {
                         $hasWeekendPeak = true;
                     }
                 }
                 
                 if ($hasWeekendPeak) {
-                    $recommendations[] = "Pola kenaikan pendapatan terdeteksi pada hari akhir pekan. Disarankan untuk menempatkan petugas pengawas parkir ekstra di titik-titik keramaian.";
+                    $recommendations[] = "Pola kenaikan pendapatan terdeteksi pada akhir pekan. Tempatkan petugas pengawas ekstra di titik-titik keramaian.";
                 } else {
-                    $recommendations[] = "Pola pendapatan cenderung merata sepanjang minggu kerja. Pastikan kepatuhan jukir dalam menyetor retribusi parkir harian.";
+                    $recommendations[] = "Pola pendapatan cenderung merata. Pastikan kepatuhan jukir menyetor retribusi.";
                 }
-
+                
                 if ($rayonId > 0) {
-                    $recommendations[] = "Fokus pemantauan diarahkan khusus pada titik-titik parkir potensial di wilayah Rayon " . $rayonId . ".";
+                    $recommendations[] = "Fokus pemantauan diarahkan khusus pada titik-titik potensial di wilayah Rayon " . $rayonId . ".";
                 } else {
-                    $recommendations[] = "Lakukan pengawasan silang antar-rayon untuk memperkecil risiko kebocoran di rayon dengan volume transaksi tinggi.";
+                    $recommendations[] = "Lakukan pengawasan silang antar-rayon untuk memperkecil risiko kebocoran.";
                 }
-
-                $recommendations[] = "Gunakan nilai rata-rata estimasi harian sebesar Rp " . number_format($avgDaily, 0, ',', '.') . " sebagai batas wajar/target penyetoran jukir.";
-
+                
                 return [
+                    'title' => $title,
+                    'detail_label' => $detailLabel,
                     'start_date' => Carbon::parse($futureStart)->translatedFormat('d F Y'),
                     'end_date' => Carbon::parse($futureEnd)->translatedFormat('d F Y'),
-                    'total_predicted' => 'Rp ' . number_format($totalPred, 0, ',', '.'),
-                    'avg_predicted' => 'Rp ' . number_format($avgDaily, 0, ',', '.'),
-                    'detail_harian' => $forecastRes['detail_harian'],
+                    'total_predicted' => 'Rp ' . number_format($totalPredVal, 0, ',', '.'),
+                    'avg_predicted' => 'Rp ' . number_format($avgPred, 0, ',', '.') . $unitLabel,
+                    'detail_harian' => $formattedDetails,
                     'recommendations' => $recommendations
                 ];
             }
@@ -257,10 +509,69 @@ class KepalaDishubLaporanController extends Controller
         return null;
     }
 
-    public function exportPdf()
+    public function exportPdf(Request $request)
     {
-        return response()->streamDownload(function () {
-            echo "PDF Laporan Prediksi Retribusi Kepala Dishub (MOCK)";
-        }, 'laporan-prediksi-dishub.pdf');
+        $data = $this->getReportData($request);
+
+        $rayonName = 'Semua Rayon';
+        if ($data['rayonId'] > 0) {
+            $rayon = Rayon::find($data['rayonId']);
+            if ($rayon) {
+                $rayonName = $rayon->nama_rayon;
+            }
+        }
+
+        $totalErrorVal = $data['totalActual'] - $data['totalPredicted'];
+        $total_period = [
+            'aktual' => 'Rp ' . number_format($data['totalActual'], 0, ',', '.'),
+            'prediksi' => 'Rp ' . number_format($data['totalPredicted'], 0, ',', '.'),
+            'error' => 'Rp ' . number_format(abs($totalErrorVal), 0, ',', '.'),
+            'pct_error' => number_format($data['avgPctError'], 2, ',', '.') . '%'
+        ];
+
+        // Fetch metrics from ModelMetric
+        $mae = '-';
+        $rmse = '-';
+        $mape = '-';
+        $r2 = '-';
+
+        if ($data['latestRun']) {
+            $metric = $data['latestRun']->modelMetrics()->where('dataset_type', 'test')->first();
+            if ($metric) {
+                $mae = 'Rp ' . number_format($metric->mae, 0, ',', '.');
+                $rmse = 'Rp ' . number_format($metric->rmse, 0, ',', '.');
+                
+                $statusAkurasi = 'Cukup Akurat';
+                if ($metric->mape < 10) {
+                    $statusAkurasi = 'Sangat Akurat';
+                } elseif ($metric->mape <= 20) {
+                    $statusAkurasi = 'Baik';
+                }
+                $mape = number_format($metric->mape, 2, ',', '.') . '% (' . $statusAkurasi . ')';
+                
+                $r2Status = $metric->r2_score >= 0.7 ? 'Model Kuat' : ($metric->r2_score >= 0.4 ? 'Model Cukup' : 'Model Lemah');
+                $r2 = number_format($metric->r2_score, 2, ',', '.') . ' (' . $r2Status . ')';
+            }
+        }
+
+        $metrics = [
+            'mae' => $mae,
+            'rmse' => $rmse,
+            'mape' => $mape,
+            'r2' => $r2
+        ];
+
+        $pdf = Pdf::loadView('operator.laporan.pdf', [
+            'summary' => $data['summary'],
+            'reports' => $data['reports'],
+            'total_period' => $total_period,
+            'metrics' => $metrics,
+            'startDate' => $data['startDate'],
+            'endDate' => $data['endDate'],
+            'rayonName' => $rayonName,
+            'type' => $data['type']
+        ]);
+
+        return $pdf->download('laporan-prediksi-' . $data['type'] . '.pdf');
     }
 }
