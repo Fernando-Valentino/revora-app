@@ -109,6 +109,18 @@ class OperatorPrediksiController extends Controller
             }
         }
         
+        $allSvrPredictions = collect([]);
+        $allSvrMapped = [];
+        if ($lastRun) {
+            $allSvrPredictions = $lastRun->predictionResults()->orderBy('tanggal', 'asc')->get();
+            $allSvrMapped = $allSvrPredictions->map(fn($p) => [
+                'tanggal' => Carbon::parse($p->tanggal)->format('d M Y'),
+                'rayon_id' => (int)$p->rayon_id,
+                'actual_value' => (double)$p->actual_value,
+                'predicted_value' => (double)$p->predicted_value
+            ])->toArray();
+        }
+        
         $rayons = Rayon::all();
 
         // 4. Fetch raw dataset snapshot for preview
@@ -162,7 +174,9 @@ class OperatorPrediksiController extends Controller
             'rayons',
             'rawSnapshot',
             'historyRuns',
-            'pipelineData'
+            'pipelineData',
+            'allSvrPredictions',
+            'allSvrMapped'
         ));
     }
 

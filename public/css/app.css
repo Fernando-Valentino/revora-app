@@ -1176,3 +1176,86 @@ body, .form-control, .form-select, .btn, .badge, input, select, textarea {
 }
 
 
+/* ==========================================================================
+   SKELETON LOADING - Shimmer placeholders for async content
+   ========================================================================== */
+
+/* --- Keyframe Shimmer --- */
+@keyframes skeleton-shimmer {
+    0%   { background-position: -600px 0; }
+    100% { background-position: 600px 0; }
+}
+
+/* --- Base Skeleton Block --- */
+.skeleton {
+    background: linear-gradient(90deg, #e8edf3 25%, #f3f6f9 50%, #e8edf3 75%);
+    background-size: 1200px 100%;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+    border-radius: 6px;
+    display: block;
+}
+
+/* --- Skeleton Variants --- */
+.skeleton-text {
+    height: 14px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+.skeleton-text.sm { height: 11px; }
+.skeleton-text.lg { height: 20px; }
+.skeleton-text.xl { height: 26px; }
+
+.skeleton-circle {
+    border-radius: 50% !important;
+}
+
+.skeleton-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.skeleton-chart {
+    border-radius: 10px;
+    width: 100%;
+}
+
+/* --- Skeleton metric card --- */
+.skeleton-metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 10px;
+    text-align: center;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+/* --- Page Loading State --- */
+/* Show skeletons, hide real content while loading */
+body.is-loading  .sk-wrapper { display: block !important; }
+body.is-loading  .sk-content  { display: none !important; }
+
+/* Hide skeletons, show real content after loaded */
+body:not(.is-loading) .sk-wrapper { display: none !important; }
+body:not(.is-loading) .sk-content {
+    animation: sk-fade-in 0.35s ease forwards;
+}
+
+@keyframes sk-fade-in {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Skeleton row helper classes --- */
+.skeleton-row { display: flex; gap: 12px; margin-bottom: 10px; }
+.skeleton-row .skeleton { flex: 1; }
+
+/* Skeleton table rows */
+.skeleton-table-row td { padding: 12px 8px; }
+

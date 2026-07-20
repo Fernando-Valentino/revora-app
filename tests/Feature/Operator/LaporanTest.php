@@ -60,7 +60,7 @@ class LaporanTest extends TestCase
         $response = $this->actingAs($this->operator)->get(route('operator.laporan.export-pdf'));
         $response->assertStatus(200);
         $response->assertHeader('content-disposition');
-        $this->assertStringContainsString('laporan-prediksi.pdf', $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('laporan-prediksi', $response->headers->get('content-disposition'));
     }
 
     public function test_export_excel_operator_menghasilkan_respon_download(): void

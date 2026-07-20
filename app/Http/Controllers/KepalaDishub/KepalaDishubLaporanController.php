@@ -306,11 +306,44 @@ class KepalaDishubLaporanController extends Controller
             'pct_error' => number_format($data['avgPctError'], 2, ',', '.') . '%'
         ];
 
+        // Fetch metrics from ModelMetric
+        $mae = '-';
+        $rmse = '-';
+        $mape = '-';
+        $r2 = '-';
+
+        if ($data['latestRun']) {
+            $metric = $data['latestRun']->modelMetrics()->where('dataset_type', 'test')->first();
+            if ($metric) {
+                $mae = 'Rp ' . number_format($metric->mae, 0, ',', '.');
+                $rmse = 'Rp ' . number_format($metric->rmse, 0, ',', '.');
+                
+                $statusAkurasi = 'Cukup Akurat';
+                if ($metric->mape < 10) {
+                    $statusAkurasi = 'Sangat Akurat';
+                } elseif ($metric->mape <= 20) {
+                    $statusAkurasi = 'Baik';
+                }
+                $mape = number_format($metric->mape, 2, ',', '.') . '% (' . $statusAkurasi . ')';
+                
+                $r2Status = $metric->r2_score >= 0.7 ? 'Model Kuat' : ($metric->r2_score >= 0.4 ? 'Model Cukup' : 'Model Lemah');
+                $r2 = number_format($metric->r2_score, 2, ',', '.') . ' (' . $r2Status . ')';
+            }
+        }
+
+        $metrics = [
+            'mae' => $mae,
+            'rmse' => $rmse,
+            'mape' => $mape,
+            'r2' => $r2
+        ];
+
         $futureForecast = null;
 
         return view('kepala-dishub.laporan.index', array_merge($data, [
             'analysis' => $analysis,
             'total_period' => $total_period,
+            'metrics' => $metrics,
             'futureForecast' => $futureForecast
         ]));
     }

@@ -30,7 +30,7 @@
     <!-- External JavaScript -->
     <script src="{{ asset('js/app.js') }}" defer></script>
 </head>
-<body>
+<body class="is-loading">
 
     <!-- Sidebar component -->
     @include('layouts.sidebar')
@@ -60,7 +60,13 @@
 
     <!-- SweetAlert2 Toast Messages -->
     <script>
+        // Remove is-loading class to reveal real content and hide skeletons
         document.addEventListener('DOMContentLoaded', function() {
+            // Small timeout ensures skeleton is at least briefly visible
+            setTimeout(function() {
+                document.body.classList.remove('is-loading');
+            }, 80);
+
             @if(session('success'))
                 showToast('success', "{{ session('success') }}");
             @endif

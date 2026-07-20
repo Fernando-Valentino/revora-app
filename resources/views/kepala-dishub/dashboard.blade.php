@@ -25,6 +25,28 @@
             </div>
         </div>
 
+        {{-- Skeleton Placeholder --}}
+        <div class="sk-wrapper">
+            <x-ui.skeleton type="dashboard-card" />
+            <div class="row g-4 mb-4">
+                <div class="col-12 col-lg-8">
+                    <div class="skeleton-card p-4">
+                        <span class="skeleton skeleton-text lg" style="width: 240px; margin-bottom: 20px;"></span>
+                        <x-ui.skeleton type="chart" height="280px" />
+                    </div>
+                </div>
+                <div class="col-12 col-lg-4">
+                    <div class="skeleton-card p-4 h-100">
+                        <span class="skeleton skeleton-text lg" style="width: 150px; margin-bottom: 15px;"></span>
+                        <x-ui.skeleton type="forecast" />
+                    </div>
+                </div>
+            </div>
+            <x-ui.skeleton type="table" :rows="5" />
+        </div>
+
+        {{-- Real Content --}}
+        <div class="sk-content">
         <!-- 1. Metrics Grid (4 Premium Cards) -->
         <div class="row g-3 mb-4">
             <!-- Metric 1: Realisasi Pendapatan Terkini -->
@@ -286,6 +308,8 @@
             </div>
         </div>
     </div>
+</div> {{-- closes sk-content --}}
+</div>
 
     <!-- Load Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
