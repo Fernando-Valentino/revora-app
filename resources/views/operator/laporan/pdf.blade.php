@@ -224,8 +224,7 @@
     <table class="kop-table" cellpadding="0" cellspacing="0">
         <tr>
             <td class="kop-logo">
-                <!-- Fallback typographic logo representing Dishub -->
-                <div class="kop-logo-placeholder">DISHUB</div>
+                <img src="{{ public_path('img/logo/dishubpng.png') }}" alt="Logo Dishub" style="height: 55px; width: auto;">
             </td>
             <td class="kop-text">
                 <h2>PEMERINTAH KOTA CIREBON</h2>

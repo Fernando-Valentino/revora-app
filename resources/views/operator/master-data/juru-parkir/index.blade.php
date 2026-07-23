@@ -58,7 +58,7 @@
             processing: true,
             ajax: dataUrl,
             columns: [
-                { data: null, render: function(d, t, r, meta) { return meta.row + 1; } },
+                { data: null, render: function(d, t, r, meta) { return meta.settings._iDisplayStart + meta.row + 1; } },
                 { data: 'rayon.nama_rayon', className: 'fw-semibold', defaultContent: 'Tidak Diketahui' },
                 { data: 'jumlah_juru_parkir', className: 'text-end fw-semibold', render: function(d) { return `${d} Orang`; } },
                 { data: null, orderable: false, className: 'text-center', render: function(d, t, row) { const rn = row.rayon ? row.rayon.nama_rayon : ''; return `<div class="action-btns justify-content-center"><button class="btn-action btn-edit" title="Edit" data-id="${row.id}"><i class="bi bi-pencil-square"></i></button><button class="btn-action btn-delete" title="Hapus" data-id="${row.id}" data-rayon="${rn}"><i class="bi bi-trash"></i></button></div>`; } }

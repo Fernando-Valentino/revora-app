@@ -156,7 +156,11 @@
         color: var(--danger) !important;
     }
 
-    /* Table Cell Text Wrapping Fix */
+    /* Table Cell Text Wrapping Fix & Full Width */
+    table.dataTable,
+    .table-custom-nowrap {
+        width: 100% !important;
+    }
     .table-custom-nowrap th,
     .table-custom-nowrap td {
         white-space: nowrap !important;

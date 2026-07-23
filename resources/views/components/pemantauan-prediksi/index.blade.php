@@ -8,6 +8,7 @@
     'rayonId' => 0,
     'dataRoute',      // route for AJAX DataTable (e.g. 'kepala-upt.prediksi.data')
     'resetUrl',       // URL untuk reset filter
+    'target' => 'svr_default_upt',
 ])
 
 <div class="container-fluid p-0">
@@ -204,7 +205,7 @@
                     :rmse="$rmseVal"
                     :mae="$maeVal"
                     :meanActual="$meanActual"
-                    target="svr_default_view"
+                    target="{{ $target }}"
                     recTitle="Kesimpulan & Rekomendasi"
                 />
             </div>
@@ -278,7 +279,7 @@
                             <h5 class="card-title mb-0" style="font-size: 14px;"><i class="bi bi-table me-2 text-primary"></i>Tabel Hasil Prediksi (Data Testing)</h5>
                             <div class="d-flex align-items-center gap-2">
                                 <label for="filter_rayon_id" class="small fw-semibold text-secondary text-nowrap mb-0" style="font-size: 11.5px;">Filter Rayon:</label>
-                                <select id="filter_rayon_id" name="rayon_id" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 12px; height: 32px; width: auto;">
+                                <select id="filter_rayon_id" name="rayon_id" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 12px; height: 32px; width: auto; min-width: 140px;">
                                     <option value="0">Semua Rayon</option>
                                     @foreach($rayons as $rayon)
                                         <option value="{{ $rayon->id }}">{{ $rayon->nama_rayon }}</option>
@@ -287,7 +288,7 @@
                             </div>
                         </div>
                         <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0" id="predictionTable" style="font-size: 12.5px;">
+                            <table class="table table-hover align-middle mb-0 table-custom-nowrap" id="predictionTable" style="font-size: 13px;">
                                 <thead>
                                     <tr class="table-light">
                                         <th style="width: 50px;">No</th>
@@ -310,7 +311,7 @@
     @endif
 </div>
 
-@if($lastRun && count($chartActualValues) > 0)
+@if($lastRun)
 @php
     $allSvrPredictions = $lastRun->predictionResults()->orderBy('tanggal', 'asc')->get();
     $allSvrMapped = $allSvrPredictions->map(fn($p) => [
@@ -389,22 +390,54 @@
 
         const predTable = $('#predictionTable').DataTable({
             processing: true,
-            ajax: { url: dataRoute, data: function(d) { d.rayon_id = $('#filter_rayon_id').val(); } },
+            ajax: { url: dataRoute },
             columns: [
                 { data: null, render: function(d, t, r, meta) { return meta.row + 1; } },
-                { data: 'tanggal', render: function(d) { const p = d.split('-'); return p[2]+'-'+p[1]+'-'+p[0]; } },
-                { data: 'rayon_name', render: function(d) { return `<span class="badge bg-primary-subtle text-primary px-2 py-1" style="font-size:10px;">${d}</span>`; } },
-                { data: 'actual_value', className: 'text-end', render: function(d) { return 'Rp ' + parseInt(d).toLocaleString('id-ID'); } },
-                { data: 'predicted_value', className: 'text-end fw-semibold', render: function(d) { return 'Rp ' + parseInt(d).toLocaleString('id-ID'); } },
-                { data: null, className: 'text-end fw-semibold text-danger', render: function(d, t, row) { return 'Rp ' + Math.abs(row.actual_value - row.predicted_value).toLocaleString('id-ID'); } },
-                { data: 'percentage_error', className: 'text-end', render: function(d) { return parseFloat(d).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%'; } }
+                { 
+                    data: 'tanggal', 
+                    render: function(d, type) { 
+                        if (type === 'display' || type === 'filter') { 
+                            if (!d) return '-';
+                            const p = d.split('-'); 
+                            if (p.length === 3) {
+                                const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                                return parseInt(p[2], 10) + ' ' + months[parseInt(p[1], 10) - 1] + ' ' + p[0];
+                            }
+                            return d;
+                        } 
+                        return d; 
+                    } 
+                },
+                { data: 'rayon_name', render: function(d) { return `<span class="badge bg-light text-dark border">${d}</span>`; } },
+                { data: 'actual_value', className: 'text-end fw-semibold', render: function(d) { return 'Rp ' + parseInt(d).toLocaleString('id-ID'); } },
+                { data: 'predicted_value', className: 'text-end fw-bold text-primary-custom', render: function(d) { return 'Rp ' + parseInt(d).toLocaleString('id-ID'); } },
+                { data: null, className: 'text-end text-danger', render: function(d, t, row) { return 'Rp ' + Math.abs(row.actual_value - row.predicted_value).toLocaleString('id-ID'); } },
+                { data: 'percentage_error', className: 'text-end fw-semibold', render: function(d) { return parseFloat(d).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%'; } }
             ],
+            columnDefs: [
+                { orderable: false, targets: [0] }
+            ],
+            autoWidth: false,
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Semua"]],
+            order: [[1, 'asc']],
             language: { url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/id.json' }
         });
 
+        // Set consecutive numbering on table draw
+        predTable.on('draw.dt', function () {
+            const info = predTable.page.info();
+            predTable.column(0, { search: 'applied', order: 'applied' }).nodes().each(function (cell, i) {
+                cell.innerHTML = info.start + i + 1;
+            });
+        });
+
         $('#filter_rayon_id').on('change', function() {
-            predTable.ajax.reload();
-            if (typeof window.updateSvrChart === 'function') window.updateSvrChart(this.value);
+            const val = $(this).val();
+            const text = val > 0 ? $(this).find('option:selected').text() : '';
+            predTable.column(2).search(text ? '^' + text + '$' : '', true, false).draw();
+            
+            if (typeof window.updateSvrChart === 'function') window.updateSvrChart(val);
         });
     });
 </script>

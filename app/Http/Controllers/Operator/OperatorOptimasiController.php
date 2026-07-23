@@ -326,11 +326,7 @@ class OperatorOptimasiController extends Controller
                     ->orderBy('tanggal', 'asc')
                     ->get();
             }
-            $gsPredictionsQuery = $gsRun->predictionResults()->orderBy('tanggal', 'desc');
-            if ($rayonId > 0) {
-                $gsPredictionsQuery->where('rayon_id', $rayonId);
-            }
-            $gsPredictions = $gsPredictionsQuery->paginate(10, ['*'], 'page_gs')->withQueryString();
+            $gsPredictions = $gsRun->predictionResults()->orderBy('tanggal', 'desc')->get();
         }
 
         // 2. GWO Evaluation Data
@@ -351,11 +347,7 @@ class OperatorOptimasiController extends Controller
                     ->orderBy('tanggal', 'asc')
                     ->get();
             }
-            $gwoPredictionsQuery = $gwoRun->predictionResults()->orderBy('tanggal', 'desc');
-            if ($rayonId > 0) {
-                $gwoPredictionsQuery->where('rayon_id', $rayonId);
-            }
-            $gwoPredictions = $gwoPredictionsQuery->paginate(10, ['*'], 'page_gwo')->withQueryString();
+            $gwoPredictions = $gwoRun->predictionResults()->orderBy('tanggal', 'desc')->get();
         }
         
         $pipelineData = null;

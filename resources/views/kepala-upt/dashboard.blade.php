@@ -14,7 +14,7 @@
                 <p class="mb-0 opacity-75 small" style="font-size: 12.5px;">Pantau kepatuhan setoran juru parkir, pencapaian target harian, dan analisis kontribusi per rayon secara real-time.</p>
             </div>
             <div>
-                <span class="badge bg-info bg-opacity-15 text-info px-3 py-2 fw-semibold border border-info border-opacity-25" style="font-size: 11.5px; border-radius: 8px;">
+                <span class="badge px-3 py-2 fw-semibold" style="font-size: 11.5px; border-radius: 8px; background-color: rgba(13, 202, 240, 0.15) !important; color: #0dcaf0 !important; border: 1px solid rgba(13, 202, 240, 0.25) !important;">
                     <i class="bi bi-shield-check me-1"></i> Kepala UPT Parkir
                 </span>
             </div>

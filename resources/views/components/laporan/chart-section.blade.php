@@ -7,6 +7,23 @@
     'forecastRoute',
 ])
 
+@php
+    $bestModelRun = \App\Models\ModelRun::where('status', 'success')
+        ->whereIn('model_type', ['svr_default', 'svr_grid_search', 'svr_gwo'])
+        ->join('model_metrics', 'model_runs.id', '=', 'model_metrics.model_run_id')
+        ->where('model_metrics.dataset_type', 'test')
+        ->orderBy('model_metrics.mape', 'asc')
+        ->select('model_runs.model_type')
+        ->first();
+    $bestModelType = $bestModelRun ? $bestModelRun->model_type : 'svr_gwo';
+    $typeMapping = [
+        'svr_default' => 'baseline',
+        'svr_grid_search' => 'grid_search',
+        'svr_gwo' => 'gwo'
+    ];
+    $bestModelTypeParam = $typeMapping[$bestModelType] ?? 'gwo';
+@endphp
+
 {{-- Skeleton Placeholder --}}
 <div class="sk-wrapper">
     <div class="row g-4 mb-4">
@@ -67,7 +84,15 @@
                         </h2>
                         <p class="section-desc mb-0">Proyeksi estimasi pendapatan retribusi parkir untuk periode mendatang berdasarkan analisis data historis.</p>
                     </div>
-                    <span class="badge bg-primary-subtle text-primary px-2.5 py-1 rounded-pill" style="font-size: 10px; font-weight: 600;">Proyeksi</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <select id="forecastModel" class="form-select form-select-sm"
+                            style="font-size: 11px; width: 170px; height: 32px; border-radius: 6px; padding: 4px 8px;"
+                            onchange="changeForecastModel(this.value)">
+                            <option value="baseline" {{ $bestModelTypeParam === 'baseline' ? 'selected' : '' }}>SVR Baseline {{ $bestModelTypeParam === 'baseline' ? '(Terbaik)' : '' }}</option>
+                            <option value="grid_search" {{ $bestModelTypeParam === 'grid_search' ? 'selected' : '' }}>SVR Grid Search {{ $bestModelTypeParam === 'grid_search' ? '(Terbaik)' : '' }}</option>
+                            <option value="gwo" {{ $bestModelTypeParam === 'gwo' ? 'selected' : '' }}>SVR GWO {{ $bestModelTypeParam === 'gwo' ? '(Terbaik)' : '' }}</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Loading State: Skeleton -->
@@ -99,6 +124,12 @@
                             <span class="text-muted small">
                                 Rerata: <strong class="text-dark" id="forecast-avg-predicted">-</strong>
                             </span>
+                        </div>
+
+                        <!-- Info Alert -->
+                        <div id="forecastInfoAlert" class="alert alert-info py-2 px-3 mb-3 border-info-subtle rounded-2 d-none" style="font-size: 10.5px; line-height: 1.4;">
+                            <i class="bi bi-info-circle-fill me-1"></i>
+                            <span id="forecastInfoText">Menggunakan model terbaik secara otomatis.</span>
                         </div>
 
                         <!-- Recommendations -->

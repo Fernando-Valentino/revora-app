@@ -221,18 +221,30 @@
                                 <span class="text-secondary small d-block" style="font-size: 11px;">Estimasi proyeksi
                                     pendapatan parkir ke depan</span>
                             </div>
-                            <div class="d-flex align-items-center gap-2">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <select id="forecastModel" class="form-select form-select-sm"
+                                    style="font-size: 11.5px; width: 170px; height: 32px; border-radius: 6px;"
+                                    onchange="changeForecastModel(this.value)">
+                                    <option value="baseline" {{ $bestModelTypeParam === 'baseline' ? 'selected' : '' }}>SVR Baseline {{ $bestModelTypeParam === 'baseline' ? '(Terbaik)' : '' }}</option>
+                                    <option value="grid_search" {{ $bestModelTypeParam === 'grid_search' ? 'selected' : '' }}>SVR Grid Search {{ $bestModelTypeParam === 'grid_search' ? '(Terbaik)' : '' }}</option>
+                                    <option value="gwo" {{ $bestModelTypeParam === 'gwo' ? 'selected' : '' }}>SVR GWO {{ $bestModelTypeParam === 'gwo' ? '(Terbaik)' : '' }}</option>
+                                </select>
                                 <select id="forecastPeriod" class="form-select form-select-sm"
-                                    style="font-size: 11.5px; width: 160px; height: 32px; border-radius: 6px;"
+                                    style="font-size: 11.5px; width: 150px; height: 32px; border-radius: 6px;"
                                     onchange="changeForecastPeriod(this.value)">
-                                    <option value="7" selected>7 Hari ke Depan</option>
-                                    <option value="14">14 Hari ke Depan</option>
-                                    <option value="30">30 Hari ke Depan</option>
+                                    <option value="7" selected>1 Minggu ke Depan</option>
+                                    <option value="30">1 Bulan ke Depan</option>
+                                    <option value="90">3 Bulan ke Depan</option>
+                                    <option value="365">1 Tahun ke Depan</option>
                                 </select>
                             </div>
                         </div>
-                        <div id="forecastChartContainer" class="d-none" style="height: 260px; position: relative;">
+                        <div id="forecastChartContainer" class="d-none" style="height: 230px; position: relative;">
                             <canvas id="futureForecastChart"></canvas>
+                        </div>
+                        <div id="forecastInfoAlert" class="alert alert-info py-2 px-3 mt-3 mb-0 border-info-subtle rounded-2 d-none" style="font-size: 11px; line-height: 1.4;">
+                            <i class="bi bi-info-circle-fill me-1"></i>
+                            <span id="forecastInfoText">Menggunakan model terbaik secara otomatis.</span>
                         </div>
                         <div id="forecastPlaceholder"
                             class="d-flex flex-column align-items-center justify-content-center text-center text-secondary"
@@ -241,7 +253,7 @@
                                 style="width: 60px; height: 60px;">
                                 <i class="bi bi-bar-chart text-muted fs-3"></i>
                             </div>
-                            @if($performanceMetrics['mape_gwo'] === null)
+                            @if($performanceMetrics['mape_gwo'] === null && $performanceMetrics['mape_gs'] === null && $performanceMetrics['mape_default'] === null)
                                 <h6 class="fw-bold text-dark mb-1" id="forecastPlaceholderTitle" style="font-size: 13.5px;">
                                     Proyeksi Belum Tersedia</h6>
                                 <p class="mb-0 small px-3 text-secondary" id="forecastPlaceholderText"
@@ -365,33 +377,29 @@
                         </div>
                     </div>
 
-                    <!-- Rayons Stats Card -->
-                    <div class="card bg-white" style="border-radius: 12px; padding: 20px 24px;">
-                        <h5 class="fw-bold mb-3 text-dark pb-2 border-bottom" style="font-size: 14px;">Daftar Rayon Aktif
-                        </h5>
-                        <div class="d-flex flex-column gap-3">
-                            @forelse($rayons as $rayon)
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div class="d-flex align-items-center">
-                                        <div>
-                                            <strong class="d-block text-dark small"
-                                                style="font-size: 12.5px;">{{ $rayon->nama_rayon }}</strong>
-                                            <span class="text-secondary d-block"
-                                                style="font-size: 10.5px; line-height: 1.2;">{{ $rayon->kecamatan }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="text-end">
-                                        <span class="badge bg-secondary-subtle text-secondary"
-                                            style="font-size: 10px;">{{ $rayon->jumlah_juru_parkir }} Jukir</span>
-                                        <small class="d-block text-muted mt-1"
-                                            style="font-size: 9.5px;">{{ $rayon->pendapatans_count }} entri</small>
-                                    </div>
+                </div>
+            </div>
+
+            <!-- Rayons Stats Card (Horizontal Grid Layout) -->
+            <div class="card bg-white mt-4 mb-4" style="border-radius: 12px; padding: 20px 24px;">
+                <h5 class="fw-bold mb-3 text-dark pb-2 border-bottom" style="font-size: 14px;">Daftar Rayon Aktif</h5>
+                <div class="row g-3">
+                    @forelse($rayons as $rayon)
+                        <div class="col-12 col-sm-6 col-md-4 col-lg">
+                            <div class="p-3 bg-light rounded-3 border d-flex align-items-center justify-content-between h-100">
+                                <div>
+                                    <strong class="d-block text-dark small" style="font-size: 12.5px;">{{ $rayon->nama_rayon }}</strong>
+                                    <span class="text-secondary d-block" style="font-size: 10.5px; line-height: 1.2;">{{ $rayon->kecamatan }}</span>
                                 </div>
-                            @empty
-                                <div class="text-center py-3 text-secondary small">Belum ada data rayon terdaftar.</div>
-                            @endforelse
+                                <div class="text-end ms-2">
+                                    <span class="badge bg-secondary-subtle text-secondary" style="font-size: 10px;">{{ $rayon->jumlah_juru_parkir }} Jukir</span>
+                                    <small class="d-block text-muted mt-1" style="font-size: 9.5px;">{{ $rayon->pendapatans_count }} entri</small>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    @empty
+                        <div class="col-12 text-center py-3 text-secondary small">Belum ada data rayon terdaftar.</div>
+                    @endforelse
                 </div>
             </div>
         </div>
@@ -537,17 +545,30 @@
 
             // --- FUTURE FORECAST CHART INITIALIZATION ---
             let forecastChart = null;
-            const isModelTrained = @json($performanceMetrics['mape_gwo'] !== null);
+            const isModelTrained = @json($performanceMetrics['mape_gwo'] !== null || $performanceMetrics['mape_gs'] !== null || $performanceMetrics['mape_default'] !== null);
+
+            window.changeForecastModel = function (model) {
+                const days = document.getElementById('forecastPeriod').value;
+                loadForecast(days, model);
+            };
 
             window.changeForecastPeriod = function (days) {
+                const model = document.getElementById('forecastModel').value;
+                loadForecast(days, model);
+            };
+
+            function loadForecast(days, model) {
                 const chartContainer = document.getElementById('forecastChartContainer');
                 const placeholder = document.getElementById('forecastPlaceholder');
                 const placeholderTitle = document.getElementById('forecastPlaceholderTitle');
                 const placeholderText = document.getElementById('forecastPlaceholderText');
+                const infoAlert = document.getElementById('forecastInfoAlert');
+                const infoText = document.getElementById('forecastInfoText');
 
                 if (!isModelTrained) {
                     chartContainer.classList.add('d-none');
                     placeholder.classList.remove('d-none');
+                    if (infoAlert) infoAlert.classList.add('d-none');
                     if (placeholderTitle) placeholderTitle.innerText = "Proyeksi Belum Tersedia";
                     if (placeholderText) {
                         placeholderText.innerText = "Model SVR belum dilatih. Harap lakukan training atau optimasi model terlebih dahulu untuk memproyeksikan estimasi pendapatan mendatang.";
@@ -558,10 +579,11 @@
                 // Show loading state initially
                 chartContainer.classList.add('d-none');
                 placeholder.classList.remove('d-none');
+                if (infoAlert) infoAlert.classList.add('d-none');
                 if (placeholderTitle) placeholderTitle.innerText = "Memuat Proyeksi...";
                 if (placeholderText) placeholderText.innerText = "Sedang mengambil data proyeksi dari server.";
 
-                fetch(`{{ route('operator.dashboard.forecast') }}?days=${days}`)
+                fetch(`{{ route('operator.dashboard.forecast') }}?days=${days}&model_type=${model}`)
                     .then(async r => {
                         const data = await r.json().catch(() => ({}));
                         if (!r.ok) {
@@ -574,12 +596,28 @@
                             placeholder.classList.add('d-none');
                             chartContainer.classList.remove('d-none');
 
+                            if (infoAlert && infoText) {
+                                infoAlert.classList.remove('d-none');
+                                let modelNameMap = {
+                                    'baseline': 'SVR Baseline (Standar)',
+                                    'grid_search': 'SVR Grid Search Tuning',
+                                    'gwo': 'SVR Grey Wolf Optimizer (GWO)'
+                                };
+                                let selectedModelName = modelNameMap[data.model_type] || data.model_type;
+                                let bestModelName = modelNameMap[data.best_model_type] || data.best_model_type;
+                                let isBestText = (data.model_type === data.best_model_type) 
+                                    ? `<strong>terpilih otomatis</strong> karena performanya paling optimal`
+                                    : `diatur secara manual (model dengan akurasi terbaik adalah <strong>${bestModelName}</strong>)`;
+                                
+                                infoText.innerHTML = `Model <strong>${selectedModelName}</strong> ${isBestText}. <br><i class="bi bi-shield-fill-check text-success me-1"></i> <strong>Keyakinan:</strong> ${data.confidence_note}`;
+                            }
+
                             const canvasForecast = document.getElementById('futureForecastChart');
                             if (!canvasForecast) return;
 
                             const ctxForecast = canvasForecast.getContext('2d');
 
-                            const gradientForecast = ctxForecast.createLinearGradient(0, 0, 0, 260);
+                            const gradientForecast = ctxForecast.createLinearGradient(0, 0, 0, 230);
                             gradientForecast.addColorStop(0, 'rgba(16, 185, 129, 0.12)');
                             gradientForecast.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
 
@@ -592,7 +630,7 @@
                                 data: {
                                     labels: data.labels,
                                     datasets: [{
-                                        label: 'Estimasi Pendapatan Harian',
+                                        label: 'Estimasi Pendapatan Harian (' + model.toUpperCase() + ')',
                                         data: data.values,
                                         borderColor: '#10B981',
                                         borderWidth: 2.5,

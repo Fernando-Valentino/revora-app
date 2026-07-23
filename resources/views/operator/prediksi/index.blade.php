@@ -207,23 +207,28 @@
         const predTable = $('#predictionTable').DataTable({
             processing: true,
             ajax: {
-                url: '{{ route("operator.prediksi.data") }}',
-                data: function (d) {
-                    d.rayon_id = $('#filter_rayon_id').val();
-                }
+                url: '{{ route("operator.prediksi.data") }}'
             },
             columns: [
                 { 
                     data: null, 
                     render: function (data, type, row, meta) {
-                        return meta.row + 1;
+                        return meta.settings._iDisplayStart + meta.row + 1;
                     }
                 },
                 { 
                     data: 'tanggal',
-                    render: function (data) {
-                        const date = new Date(data);
-                        return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                    render: function (data, type) {
+                        if (type === 'display' || type === 'filter') {
+                            if (!data) return '-';
+                            const p = data.split('-');
+                            if (p.length === 3) {
+                                const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                                return parseInt(p[2], 10) + ' ' + months[parseInt(p[1], 10) - 1] + ' ' + p[0];
+                            }
+                            return data;
+                        }
+                        return data;
                     }
                 },
                 { 
@@ -261,16 +266,34 @@
                     }
                 }
             ],
+            columnDefs: [
+                { orderable: false, targets: [0] }
+            ],
+            autoWidth: false,
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Semua"]],
+            order: [[1, 'asc']],
             language: {
                 url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/id.json'
             }
         });
 
-        // Trigger AJAX reload on rayon filter change
+        // Set consecutive numbering on table draw
+        predTable.on('draw.dt', function () {
+            const info = predTable.page.info();
+            predTable.column(0, { search: 'applied', order: 'applied' }).nodes().each(function (cell, i) {
+                cell.innerHTML = info.start + i + 1;
+            });
+        });
+
+        // Trigger client-side filtering on rayon filter change
         $('#filter_rayon_id').on('change', function() {
-            predTable.ajax.reload();
+            const val = $(this).val();
+            const text = val > 0 ? $(this).find('option:selected').text() : '';
+            predTable.column(2).search(text ? '^' + text + '$' : '', true, false).draw();
+            
             if (typeof window.updateSvrChart === 'function') {
-                window.updateSvrChart(this.value);
+                window.updateSvrChart(val);
             }
         });
 

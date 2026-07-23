@@ -17,8 +17,8 @@
                 </div>
                 <div>
                     <span
-                        class="badge bg-warning bg-opacity-15 text-warning px-3 py-2 fw-semibold border border-warning border-opacity-25"
-                        style="font-size: 11.5px; border-radius: 8px;">
+                        class="badge px-3 py-2 fw-semibold"
+                        style="font-size: 11.5px; border-radius: 8px; background-color: rgba(255, 193, 7, 0.15) !important; color: #ffc107 !important; border: 1px solid rgba(255, 193, 7, 0.25) !important;">
                         <i class="bi bi-award me-1"></i> Kepala Dinas
                     </span>
                 </div>

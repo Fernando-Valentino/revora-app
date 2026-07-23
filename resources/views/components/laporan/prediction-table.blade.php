@@ -56,13 +56,21 @@
                                     </span>
                                 </td>
                                 <td style="text-align: right; font-weight: 500; font-variant-numeric: tabular-nums;">
-                                    Rp {{ number_format($rep['aktual'], 0, ',', '.') }}
+                                    @if($rep['aktual'] > 0)
+                                        Rp {{ number_format($rep['aktual'], 0, ',', '.') }}
+                                    @else
+                                        -
+                                    @endif
                                 </td>
                                 <td style="text-align: right; font-weight: 600; color: #005BAA; font-variant-numeric: tabular-nums;">
                                     Rp {{ number_format($rep['prediksi'], 0, ',', '.') }}
                                 </td>
                                 <td style="text-align: right; font-weight: 500; color: {{ $rep['error'] >= 0 ? '#1A7F4E' : '#C22B2B' }}; font-variant-numeric: tabular-nums;">
-                                    {{ $rep['error'] >= 0 ? '+' : '' }}Rp {{ number_format($rep['error'], 0, ',', '.') }}
+                                    @if($rep['aktual'] > 0)
+                                        {{ $rep['error'] >= 0 ? '+' : '' }}Rp {{ number_format($rep['error'], 0, ',', '.') }}
+                                    @else
+                                        -
+                                    @endif
                                 </td>
                             </tr>
                         @empty

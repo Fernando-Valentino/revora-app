@@ -10,9 +10,12 @@
     ]);
 @endphp
 <div class="sidebar">
-    <div class="sidebar-brand">
-        <h2>REVORA</h2>
-        <p>Dishub Kota Cirebon</p>
+    <div class="sidebar-brand d-flex align-items-center gap-2">
+        <img src="{{ asset('img/logo/dishubpng.png') }}" alt="Logo Dishub" style="height: 38px; width: auto; object-fit: contain;">
+        <div>
+            <h2 class="m-0" style="line-height: 1.1;">REVORA</h2>
+            <p class="m-0" style="margin-top: 2px !important; line-height: 1.1;">Dishub Kota Cirebon</p>
+        </div>
     </div>
 
     <nav class="sidebar-menu">

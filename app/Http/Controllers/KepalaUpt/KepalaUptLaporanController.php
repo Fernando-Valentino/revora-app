@@ -61,6 +61,8 @@ class KepalaUptLaporanController extends Controller
         $chartPredictValues = [];
 
         $predictionResults = collect([]);
+        $lastKnownDate = Pendapatan::max('tanggal') ?? '2025-07-20';
+        $hasFutureDates = Carbon::parse($endDate)->gt(Carbon::parse($lastKnownDate));
 
         if ($latestRun) {
             $query = $latestRun->predictionResults()
@@ -71,12 +73,92 @@ class KepalaUptLaporanController extends Controller
             }
 
             $predictionResults = $query->orderBy('tanggal', 'asc')->get();
+        }
 
-            if ($predictionResults->count() > 0) {
-                // Group the prediction results in PHP
-                $grouped = [];
-                foreach ($predictionResults as $pred) {
-                    $carbonDate = Carbon::parse($pred->tanggal);
+        if ($hasFutureDates) {
+            $daysToPredict = Carbon::parse($lastKnownDate)->diffInDays(Carbon::parse($endDate));
+            if ($daysToPredict > 0) {
+                $recentDates = Pendapatan::select('tanggal')
+                    ->groupBy('tanggal')
+                    ->orderBy('tanggal', 'desc')
+                    ->take(30)
+                    ->pluck('tanggal')
+                    ->toArray();
+                    
+                if (count($recentDates) < 30) {
+                    $seedDataQuery = Pendapatan::with(['rayon', 'juruParkir'])->orderBy('tanggal', 'asc');
+                } else {
+                    $minDate = end($recentDates);
+                    $seedDataQuery = Pendapatan::with(['rayon', 'juruParkir'])
+                        ->where('tanggal', '>=', $minDate)
+                        ->orderBy('tanggal', 'asc');
+                }
+                
+                $seedData = $seedDataQuery->get()->map(function($item) {
+                    return [
+                        'Tanggal' => $item->tanggal,
+                        'Rayon' => (int)$item->rayon_id,
+                        'Total_Pendapatan' => (double)$item->jumlah,
+                        'Jumlah_Jukir' => $item->juruParkir->jumlah_juru_parkir ?? ($item->rayon->jumlah_juru_parkir ?? 80),
+                    ];
+                })->toArray();
+                
+                $typeMapping = [
+                    'svr_default' => 'baseline',
+                    'svr_grid_search' => 'grid_search',
+                    'svr_gwo' => 'gwo'
+                ];
+                $bestModelRun = ModelRun::where('status', 'success')
+                    ->whereIn('model_type', ['svr_default', 'svr_grid_search', 'svr_gwo'])
+                    ->join('model_metrics', 'model_runs.id', '=', 'model_metrics.model_run_id')
+                    ->where('model_metrics.dataset_type', 'test')
+                    ->orderBy('model_metrics.mape', 'asc')
+                    ->select('model_runs.model_type')
+                    ->first();
+                $bestModelType = $bestModelRun ? $bestModelRun->model_type : 'svr_gwo';
+                $modelType = $typeMapping[$bestModelType] ?? 'gwo';
+
+                try {
+                    $fastApiService = app(FastApiService::class);
+                    $forecastRes = $fastApiService->post('api/v1/predict/forecast', [
+                        'rayon_id' => $rayonId > 0 ? $rayonId : 0,
+                        'horizon_days' => $daysToPredict,
+                        'model_type' => $modelType,
+                        'seed_data' => $seedData
+                    ]);
+                    
+                    if ($forecastRes && isset($forecastRes['status']) && $forecastRes['status'] === 'Sukses') {
+                        $forecastData = $forecastRes['detail_harian'];
+                        $futurePredictions = collect([]);
+                        foreach ($forecastData as $item) {
+                            $itemDate = $item['tanggal'];
+                            if (Carbon::parse($itemDate)->between(Carbon::parse($startDate), Carbon::parse($endDate))) {
+                                if (Carbon::parse($itemDate)->gt(Carbon::parse($lastKnownDate))) {
+                                    $mockPred = new \stdClass();
+                                    $mockPred->tanggal = $itemDate;
+                                    $mockPred->rayon_id = $item['rayon_id'];
+                                    $mockPred->rayon_name = $item['rayon'];
+                                    $mockPred->actual_value = 0.0;
+                                    $mockPred->predicted_value = $item['prediksi_rp'];
+                                    $mockPred->percentage_error = 0.0;
+                                    $mockPred->error_value = 0.0;
+                                    $futurePredictions->push($mockPred);
+                                }
+                            }
+                        }
+                        $predictionResults = $predictionResults->concat($futurePredictions);
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("Failed to fetch recursive forecast in getReportData: " . $e->getMessage());
+                }
+            }
+        }
+
+        if ($predictionResults->count() > 0) {
+            // Group the prediction results in PHP
+            $grouped = [];
+            foreach ($predictionResults as $pred) {
+                $carbonDate = Carbon::parse($pred->tanggal);
                     if ($type === 'mingguan') {
                         $startOfWeek = $carbonDate->copy()->startOfWeek();
                         $endOfWeek = $carbonDate->copy()->endOfWeek();
@@ -180,7 +262,6 @@ class KepalaUptLaporanController extends Controller
                     });
                 }
             }
-        }
 
         // Calculate average period deviation
         $avgPeriodDeviation = 0;
@@ -232,6 +313,7 @@ class KepalaUptLaporanController extends Controller
             'periode' => date('d M Y', strtotime($startDate)) . ' - ' . date('d M Y', strtotime($endDate)),
             'total_data' => count($reports) . ' ' . $unit,
             'total_aktual' => 'Rp ' . number_format($totalActual, 0, ',', '.'),
+            'total_aktual_val' => $totalActual,
             'total_prediksi' => 'Rp ' . number_format($totalPredicted, 0, ',', '.'),
             'mape' => number_format($avgPctError, 2, ',', '.') . '%'
         ];
@@ -352,29 +434,57 @@ class KepalaUptLaporanController extends Controller
     {
         $rayonId = (int)$request->input('rayon_id', 0);
         $type = $request->input('type', 'harian');
+        $modelTypeInput = $request->input('model_type');
 
-        $latestRun = ModelRun::where('model_type', 'svr_gwo')
+        // Query the best model run (lowest MAPE)
+        $bestModelRun = ModelRun::where('status', 'success')
+            ->whereIn('model_type', ['svr_default', 'svr_grid_search', 'svr_gwo'])
+            ->join('model_metrics', 'model_runs.id', '=', 'model_metrics.model_run_id')
+            ->where('model_metrics.dataset_type', 'test')
+            ->orderBy('model_metrics.mape', 'asc')
+            ->select('model_runs.model_type', 'model_metrics.mape')
+            ->first();
+            
+        $bestModelType = $bestModelRun ? $bestModelRun->model_type : 'svr_gwo';
+        
+        $typeMapping = [
+            'svr_default' => 'baseline',
+            'svr_grid_search' => 'grid_search',
+            'svr_gwo' => 'gwo'
+        ];
+        
+        $bestModelTypeParam = $typeMapping[$bestModelType] ?? 'gwo';
+        $modelType = $modelTypeInput ?: $bestModelTypeParam;
+
+        if (!in_array($modelType, ['baseline', 'grid_search', 'gwo'])) {
+            $modelType = $bestModelTypeParam;
+        }
+
+        $mappedType = array_search($modelType, $typeMapping);
+        $latestRun = ModelRun::where('model_type', $mappedType)
             ->where('status', 'success')
             ->orderBy('id', 'desc')
             ->first();
             
         if (!$latestRun) {
-            $latestRun = ModelRun::where('model_type', 'svr_default')
-                ->where('status', 'success')
-                ->orderBy('id', 'desc')
+            $latestRun = ModelRun::where('status', 'success')
+                ->whereIn('model_type', ['svr_gwo', 'svr_grid_search', 'svr_default'])
+                ->orderByRaw("FIELD(model_type, 'svr_gwo', 'svr_grid_search', 'svr_default') ASC")
                 ->first();
+                
+            if ($latestRun) {
+                $modelType = $typeMapping[$latestRun->model_type];
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Model SVR belum dilatih di server.'
+                ]);
+            }
         }
 
-        if (!$latestRun) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Model SVR belum dilatih di server.'
-            ]);
-        }
-
-        $cacheKey = "laporan_forecast_rayon_{$rayonId}_run_{$latestRun->id}_type_{$type}";
-        $data = \Illuminate\Support\Facades\Cache::remember($cacheKey, 600, function () use ($latestRun, $rayonId, $type) {
-            return $this->getFutureForecast($latestRun, $rayonId, $type);
+        $cacheKey = "laporan_forecast_rayon_{$rayonId}_run_{$latestRun->id}_type_{$type}_model_{$modelType}";
+        $data = \Illuminate\Support\Facades\Cache::remember($cacheKey, 600, function () use ($latestRun, $rayonId, $type, $modelType, $bestModelTypeParam) {
+            return $this->getFutureForecast($latestRun, $rayonId, $type, $modelType, $bestModelTypeParam);
         });
 
         if (!$data) {
@@ -390,7 +500,7 @@ class KepalaUptLaporanController extends Controller
         ]);
     }
 
-    private function getFutureForecast(?ModelRun $latestRun, int $rayonId, string $type): ?array
+    private function getFutureForecast(?ModelRun $latestRun, int $rayonId, string $type, string $modelType, string $bestModelTypeParam): ?array
     {
         if (!$latestRun) {
             return null;
@@ -400,7 +510,7 @@ class KepalaUptLaporanController extends Controller
         $futureStart = Carbon::parse($lastKnownDate)->addDay()->format('Y-m-d');
         
         $daysToPredict = 7;
-        $title = 'PREDIKSI 7 HARI KE DEPAN';
+        $title = 'PREDIKSI 1 MINGGU KE DEPAN';
         $detailLabel = 'Detail Proyeksi Harian';
         $unitLabel = ' / hari';
         
@@ -410,26 +520,52 @@ class KepalaUptLaporanController extends Controller
             $detailLabel = 'Detail Proyeksi Mingguan';
             $unitLabel = ' / minggu';
         } elseif ($type === 'bulanan') {
-            $daysToPredict = 180;
-            $title = 'PREDIKSI 6 BULAN KE DEPAN';
+            $daysToPredict = 90;
+            $title = 'PREDIKSI 3 BULAN KE DEPAN';
             $detailLabel = 'Detail Proyeksi Bulanan';
             $unitLabel = ' / bulan';
         } elseif ($type === 'tahunan') {
-            $daysToPredict = 730;
-            $title = 'PREDIKSI 2 TAHUN KE DEPAN';
+            $daysToPredict = 365;
+            $title = 'PREDIKSI 1 TAHUN KE DEPAN';
             $detailLabel = 'Detail Proyeksi Tahunan';
             $unitLabel = ' / tahun';
         }
         
         $futureEnd = Carbon::parse($lastKnownDate)->addDays($daysToPredict)->format('Y-m-d');
         
+        // Ambil 30 hari data pendapatan terakhir sebagai seed window
+        $recentDates = Pendapatan::select('tanggal')
+            ->groupBy('tanggal')
+            ->orderBy('tanggal', 'desc')
+            ->take(30)
+            ->pluck('tanggal')
+            ->toArray();
+            
+        if (count($recentDates) < 30) {
+            $seedDataQuery = Pendapatan::with(['rayon', 'juruParkir'])->orderBy('tanggal', 'asc');
+        } else {
+            $minDate = end($recentDates);
+            $seedDataQuery = Pendapatan::with(['rayon', 'juruParkir'])
+                ->where('tanggal', '>=', $minDate)
+                ->orderBy('tanggal', 'asc');
+        }
+        
+        $seedData = $seedDataQuery->get()->map(function($item) {
+            return [
+                'Tanggal' => $item->tanggal,
+                'Rayon' => (int)$item->rayon_id,
+                'Total_Pendapatan' => (double)$item->jumlah,
+                'Jumlah_Jukir' => $item->juruParkir->jumlah_juru_parkir ?? ($item->rayon->jumlah_juru_parkir ?? 80),
+            ];
+        })->toArray();
+
         try {
             $fastApiService = app(FastApiService::class);
-            $forecastRes = $fastApiService->post('api/v1/predict', [
-                'tanggal_mulai' => $futureStart,
-                'tanggal_akhir' => $futureEnd,
+            $forecastRes = $fastApiService->post('api/v1/predict/forecast', [
                 'rayon_id' => $rayonId > 0 ? $rayonId : 0,
-                'daftar_libur_nasional' => []
+                'horizon_days' => $daysToPredict,
+                'model_type' => $modelType,
+                'seed_data' => $seedData
             ]);
             
             if ($forecastRes && isset($forecastRes['status']) && $forecastRes['status'] === 'Sukses') {
@@ -441,7 +577,10 @@ class KepalaUptLaporanController extends Controller
                         $formattedDetails[] = [
                             'tanggal' => $day['tanggal'],
                             'label' => Carbon::parse($day['tanggal'])->translatedFormat('l, d M Y'),
-                            'pendapatan' => $day['pendapatan']
+                            'pendapatan' => $day['prediksi_rp'],
+                            'source_features' => $day['source_features'] ?? 'recursive',
+                            'confidence' => $day['confidence'] ?? 'Sedang',
+                            'confidence_note' => $day['confidence_note'] ?? ''
                         ];
                     }
                 } elseif ($type === 'mingguan') {
@@ -459,7 +598,7 @@ class KepalaUptLaporanController extends Controller
                                 'pendapatan' => 0
                             ];
                         }
-                        $grouped[$weekYear]['pendapatan'] += $day['pendapatan'];
+                        $grouped[$weekYear]['pendapatan'] += $day['prediksi_rp'];
                     }
                     ksort($grouped);
                     $formattedDetails = array_values($grouped);
@@ -476,7 +615,7 @@ class KepalaUptLaporanController extends Controller
                                 'pendapatan' => 0
                             ];
                         }
-                        $grouped[$monthYear]['pendapatan'] += $day['pendapatan'];
+                        $grouped[$monthYear]['pendapatan'] += $day['prediksi_rp'];
                     }
                     ksort($grouped);
                     $formattedDetails = array_values($grouped);
@@ -493,7 +632,7 @@ class KepalaUptLaporanController extends Controller
                                 'pendapatan' => 0
                             ];
                         }
-                        $grouped[$year]['pendapatan'] += $day['pendapatan'];
+                        $grouped[$year]['pendapatan'] += $day['prediksi_rp'];
                     }
                     ksort($grouped);
                     $formattedDetails = array_values($grouped);
@@ -508,7 +647,7 @@ class KepalaUptLaporanController extends Controller
                 $hasWeekendPeak = false;
                 foreach ($detailHarian as $day) {
                     $dayOfWeek = (int) date('N', strtotime($day['tanggal']));
-                    if (gmdate('N', strtotime($day['tanggal'])) >= 6 && $day['pendapatan'] > $avgDaily * 1.1) {
+                    if (gmdate('N', strtotime($day['tanggal'])) >= 6 && $day['prediksi_rp'] > $avgDaily * 1.1) {
                         $hasWeekendPeak = true;
                     }
                 }
@@ -525,6 +664,8 @@ class KepalaUptLaporanController extends Controller
                     $recommendations[] = "Lakukan pengawasan silang antar-rayon untuk memperkecil risiko kebocoran.";
                 }
                 
+                $lastConfidenceNote = $detailHarian[count($detailHarian)-1]['confidence_note'] ?? '';
+                
                 return [
                     'title' => $title,
                     'detail_label' => $detailLabel,
@@ -533,7 +674,10 @@ class KepalaUptLaporanController extends Controller
                     'total_predicted' => 'Rp ' . number_format($totalPredVal, 0, ',', '.'),
                     'avg_predicted' => 'Rp ' . number_format($avgPred, 0, ',', '.') . $unitLabel,
                     'detail_harian' => $formattedDetails,
-                    'recommendations' => $recommendations
+                    'recommendations' => $recommendations,
+                    'model_type' => $modelType,
+                    'best_model_type' => $bestModelTypeParam,
+                    'confidence_note' => $lastConfidenceNote
                 ];
             }
         } catch (\Exception $e) {

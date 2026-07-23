@@ -158,6 +158,10 @@
         });
     }
 
+    window.changeForecastModel = function (model) {
+        initFutureForecast();
+    };
+
     function initFutureForecast() {
         const forecastCard = document.getElementById('future-forecast-card-body');
         if (!forecastCard) return;
@@ -165,6 +169,8 @@
         const rayonId = forecastCard.getAttribute('data-rayon-id') || 0;
         const type = forecastCard.getAttribute('data-type') || 'harian';
         const forecastUrl = forecastCard.getAttribute('data-forecast-url');
+        const modelSelect = document.getElementById('forecastModel');
+        const modelType = modelSelect ? modelSelect.value : '';
 
         const loadingState = document.getElementById('forecast-loading-state');
         const contentState = document.getElementById('forecast-content-state');
@@ -175,14 +181,33 @@
         contentState.style.setProperty('display', 'none', 'important');
         errorState.style.setProperty('display', 'none', 'important');
 
-        fetch(`${forecastUrl}?rayon_id=${rayonId}&type=${type}`)
+        fetch(`${forecastUrl}?rayon_id=${rayonId}&type=${type}&model_type=${modelType}`)
             .then(response => response.json())
             .then(res => {
                 if (res.success && res.data) {
                     const data = res.data;
-                    document.getElementById('forecast-title').innerText = 'Prediksi Ke Depan';
+                    document.getElementById('forecast-title').innerText = data.title || 'Prediksi Ke Depan';
                     document.getElementById('forecast-total-predicted').innerText = data.total_predicted;
                     document.getElementById('forecast-avg-predicted').innerText = data.avg_predicted;
+                    
+                    const infoAlert = document.getElementById('forecastInfoAlert');
+                    const infoText = document.getElementById('forecastInfoText');
+                    if (infoAlert && infoText) {
+                        infoAlert.classList.remove('d-none');
+                        let modelNameMap = {
+                            'baseline': 'SVR Baseline (Standar)',
+                            'grid_search': 'SVR Grid Search Tuning',
+                            'gwo': 'SVR Grey Wolf Optimizer (GWO)'
+                        };
+                        let selectedModelName = modelNameMap[data.model_type] || data.model_type;
+                        let bestModelName = modelNameMap[data.best_model_type] || data.best_model_type;
+                        let isBestText = (data.model_type === data.best_model_type) 
+                            ? `<strong>terpilih otomatis</strong> karena performanya paling optimal`
+                            : `diatur secara manual (model dengan akurasi terbaik adalah <strong>${bestModelName}</strong>)`;
+                        
+                        infoText.innerHTML = `Model <strong>${selectedModelName}</strong> ${isBestText}. <br><i class="bi bi-shield-fill-check text-success me-1"></i> <strong>Keyakinan:</strong> ${data.confidence_note}`;
+                    }
+
                     const quickFactValue = document.getElementById('fact-future-projection-value');
                     if (quickFactValue) {
                         quickFactValue.innerText = data.total_predicted;
@@ -307,7 +332,8 @@
         // Sync hidden date inputs from dynamic period selectors
         if (typeof computePeriodDates === 'function') computePeriodDates();
 
-        const form = document.querySelector('form');
+        const form = document.getElementById('laporan-filter-form');
+        if (!form) return;
         const start_date = form.querySelector('input[name="start_date"]').value;
         const end_date = form.querySelector('input[name="end_date"]').value;
         const rayon_id = form.querySelector('select[name="rayon_id"]').value;

@@ -198,28 +198,81 @@ class OperatorDashboardController extends Controller
             'r2_gwo'       => $r2GwoVal,
         ];
 
-        return view('operator.dashboard', compact('metrics', 'incomes', 'chartLabels', 'chartActualValues', 'chartPredictGwoValues', 'chartPredictGsValues', 'rayons', 'performanceMetrics'));
+        // Query the best model run (lowest MAPE)
+        $bestModelRun = ModelRun::where('status', 'success')
+            ->whereIn('model_type', ['svr_default', 'svr_grid_search', 'svr_gwo'])
+            ->join('model_metrics', 'model_runs.id', '=', 'model_metrics.model_run_id')
+            ->where('model_metrics.dataset_type', 'test')
+            ->orderBy('model_metrics.mape', 'asc')
+            ->select('model_runs.model_type', 'model_metrics.mape')
+            ->first();
+            
+        $bestModelType = $bestModelRun ? $bestModelRun->model_type : 'svr_gwo';
+        
+        $typeMapping = [
+            'svr_default' => 'baseline',
+            'svr_grid_search' => 'grid_search',
+            'svr_gwo' => 'gwo'
+        ];
+        
+        $bestModelTypeParam = $typeMapping[$bestModelType] ?? 'gwo';
+
+        return view('operator.dashboard', compact('metrics', 'incomes', 'chartLabels', 'chartActualValues', 'chartPredictGwoValues', 'chartPredictGsValues', 'rayons', 'performanceMetrics', 'bestModelTypeParam'));
     }
 
     public function getForecast(Request $request)
     {
         $days = (int) $request->input('days', 7);
-        if (!in_array($days, [7, 14, 30])) {
+        if (!in_array($days, [7, 30, 90, 365])) {
             $days = 7;
         }
 
-        // Check if there is an active trained model (GWO, Grid Search, or Default)
-        $latestModel = ModelRun::where('status', 'success')
-            ->whereIn('model_type', ['svr_gwo', 'svr_grid_search', 'svr_default'])
-            ->orderByRaw("FIELD(model_type, 'svr_gwo', 'svr_grid_search', 'svr_default') ASC")
-            ->orderBy('id', 'desc')
-            ->first();
+        $modelTypeInput = $request->input('model_type');
 
-        if (!$latestModel) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Model SVR belum dilatih. Harap lakukan training atau optimasi model terlebih dahulu untuk memproyeksikan estimasi pendapatan mendatang.'
-            ], 422);
+        // Query the best model run (lowest MAPE)
+        $bestModelRun = ModelRun::where('status', 'success')
+            ->whereIn('model_type', ['svr_default', 'svr_grid_search', 'svr_gwo'])
+            ->join('model_metrics', 'model_runs.id', '=', 'model_metrics.model_run_id')
+            ->where('model_metrics.dataset_type', 'test')
+            ->orderBy('model_metrics.mape', 'asc')
+            ->select('model_runs.model_type', 'model_metrics.mape')
+            ->first();
+            
+        $bestModelType = $bestModelRun ? $bestModelRun->model_type : 'svr_gwo';
+        
+        $typeMapping = [
+            'svr_default' => 'baseline',
+            'svr_grid_search' => 'grid_search',
+            'svr_gwo' => 'gwo'
+        ];
+        
+        $bestModelTypeParam = $typeMapping[$bestModelType] ?? 'gwo';
+        $modelType = $modelTypeInput ?: $bestModelTypeParam;
+
+        if (!in_array($modelType, ['baseline', 'grid_search', 'gwo'])) {
+            $modelType = $bestModelTypeParam;
+        }
+
+        // Verify if the requested model has been trained, otherwise fallback to any trained model
+        $mappedType = array_search($modelType, $typeMapping);
+        $trainedModel = ModelRun::where('status', 'success')
+            ->where('model_type', $mappedType)
+            ->first();
+            
+        if (!$trainedModel) {
+            $trainedModel = ModelRun::where('status', 'success')
+                ->whereIn('model_type', ['svr_gwo', 'svr_grid_search', 'svr_default'])
+                ->orderByRaw("FIELD(model_type, 'svr_gwo', 'svr_grid_search', 'svr_default') ASC")
+                ->first();
+                
+            if ($trainedModel) {
+                $modelType = $typeMapping[$trainedModel->model_type];
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Model SVR belum dilatih. Harap lakukan training atau optimasi model terlebih dahulu.'
+                ], 422);
+            }
         }
 
         $latestDate = Pendapatan::max('tanggal');
@@ -230,23 +283,39 @@ class OperatorDashboardController extends Controller
             ], 422);
         }
 
-        $startDate = Carbon::parse($latestDate)->addDay()->format('Y-m-d');
-        $endDate = Carbon::parse($latestDate)->addDays($days)->format('Y-m-d');
-
-        // Fetch national holidays in this range
-        $holidays = HariLibur::where('tipe', 'Libur Nasional')
-            ->whereBetween('tanggal', [$startDate, $endDate])
+        // Ambil 30 hari data pendapatan terakhir sebagai seed window
+        $recentDates = Pendapatan::select('tanggal')
+            ->groupBy('tanggal')
+            ->orderBy('tanggal', 'desc')
+            ->take(30)
             ->pluck('tanggal')
-            ->map(fn($t) => Carbon::parse($t)->format('Y-m-d'))
             ->toArray();
+            
+        if (count($recentDates) < 30) {
+            $seedDataQuery = Pendapatan::with(['rayon', 'juruParkir'])->orderBy('tanggal', 'asc');
+        } else {
+            $minDate = end($recentDates);
+            $seedDataQuery = Pendapatan::with(['rayon', 'juruParkir'])
+                ->where('tanggal', '>=', $minDate)
+                ->orderBy('tanggal', 'asc');
+        }
+        
+        $seedData = $seedDataQuery->get()->map(function($item) {
+            return [
+                'Tanggal' => $item->tanggal,
+                'Rayon' => (int)$item->rayon_id,
+                'Total_Pendapatan' => (double)$item->jumlah,
+                'Jumlah_Jukir' => $item->juruParkir->jumlah_juru_parkir ?? ($item->rayon->jumlah_juru_parkir ?? 80),
+            ];
+        })->toArray();
 
         try {
             $fastApiService = app(FastApiService::class);
-            $response = $fastApiService->post('api/v1/predict', [
-                'tanggal_mulai' => $startDate,
-                'tanggal_akhir' => $endDate,
-                'daftar_libur_nasional' => $holidays,
-                'rayon_id' => 0
+            $response = $fastApiService->post('api/v1/predict/forecast', [
+                'rayon_id' => 0,
+                'horizon_days' => $days,
+                'model_type' => $modelType,
+                'seed_data' => $seedData
             ]);
 
             if ($response === null || !isset($response['detail_harian'])) {
@@ -256,18 +325,33 @@ class OperatorDashboardController extends Controller
                 ], 500);
             }
 
+            $dateSum = [];
+            $confidenceNote = "";
+            foreach ($response['detail_harian'] as $item) {
+                $tgl = $item['tanggal'];
+                $pred = $item['prediksi_rp'];
+                if (!isset($dateSum[$tgl])) {
+                    $dateSum[$tgl] = 0;
+                }
+                $dateSum[$tgl] += $pred;
+                $confidenceNote = $item['confidence_note'];
+            }
+
             $labels = [];
             $values = [];
-            foreach ($response['detail_harian'] as $item) {
-                $labels[] = date('d M Y', strtotime($item['tanggal']));
-                $values[] = (int) $item['pendapatan'];
+            foreach ($dateSum as $tgl => $total) {
+                $labels[] = date('d M Y', strtotime($tgl));
+                $values[] = (int) $total;
             }
 
             return response()->json([
                 'success' => true,
                 'labels' => $labels,
                 'values' => $values,
-                'total_forecast' => (int) $response['estimasi_total_pendapatan']
+                'total_forecast' => array_sum($values),
+                'model_type' => $modelType,
+                'confidence_note' => $confidenceNote,
+                'best_model_type' => $bestModelTypeParam
             ]);
 
         } catch (\Exception $e) {

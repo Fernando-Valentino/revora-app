@@ -208,19 +208,16 @@
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="card-title mb-0 border-0 pb-0"><i class="bi bi-table me-2 text-primary-custom"></i>Tabel Hasil Prediksi GWO (Data Testing)</h5>
 
-                            <!-- Rayon Filter Form -->
-                            <form method="GET" action="{{ route('operator.optimasi.index') }}" class="d-flex align-items-center gap-2">
-                                <input type="hidden" name="method" value="gwo">
-                                <input type="hidden" name="gwo_step" value="4">
-                                <input type="hidden" name="grid_step" value="{{ request('grid_step', 1) }}">
+                            <!-- Rayon Filter -->
+                            <div class="d-flex align-items-center gap-2">
                                 <label for="rayon_id_gwo" class="small fw-semibold text-secondary text-nowrap mb-0" style="font-size: 11.5px;">Filter Rayon:</label>
-                                <select id="rayon_id_gwo" name="rayon_id" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 12px; height: 32px;" onchange="this.form.submit()">
+                                <select id="rayon_id_gwo" name="rayon_id" class="form-select form-select-sm optimasi-rayon-filter" style="font-size: 12px; padding: 4px 12px; height: 32px; width: auto; min-width: 140px;">
                                     <option value="0">Semua Rayon</option>
                                     @foreach($rayons as $rayon)
-                                        <option value="{{ $rayon->id }}" {{ $rayonId == $rayon->id ? 'selected' : '' }}>{{ $rayon->nama_rayon }}</option>
+                                        <option value="{{ $rayon->id }}">{{ $rayon->nama_rayon }}</option>
                                     @endforeach
                                 </select>
-                            </form>
+                            </div>
                         </div>
                         <x-optimasi.tables.result-table :predictions="$gwoPredictions" method="gwo" :bestRayon="$gwoBestRayon" :worstRayon="$gwoWorstRayon" :avgDailyDeviation="$gwoAvgDailyDeviation" :readonly="$readonly" />
                     </div>

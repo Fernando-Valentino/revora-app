@@ -126,13 +126,7 @@ class KepalaDishubPrediksiController extends Controller
             return response()->json(['data' => []]);
         }
 
-        $predictionsQuery = $lastRun->predictionResults()->orderBy('tanggal', 'desc');
-
-        if ($request->filled('rayon_id') && $request->rayon_id > 0) {
-            $predictionsQuery->where('rayon_id', $request->rayon_id);
-        }
-
-        $predictions = $predictionsQuery->get();
+        $predictions = $lastRun->predictionResults()->orderBy('tanggal', 'desc')->get();
         return response()->json(['data' => $predictions]);
     }
 }

@@ -13,7 +13,7 @@
         </div>
     @else
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 12.5px;">
+            <table class="table table-hover align-middle mb-0 history-datatable" style="font-size: 12.5px;">
                 <thead class="table-light">
                     <tr>
                         <th class="ps-3">Waktu</th>

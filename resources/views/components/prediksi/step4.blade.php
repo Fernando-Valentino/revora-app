@@ -287,7 +287,7 @@
                             <!-- Rayon Filter -->
                             <div class="d-flex align-items-center gap-2">
                                 <label for="filter_rayon_id" class="small fw-semibold text-secondary text-nowrap mb-0" style="font-size: 11.5px;">Filter Rayon:</label>
-                                <select id="filter_rayon_id" name="rayon_id" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 12px; height: 32px;">
+                                <select id="filter_rayon_id" name="rayon_id" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 12px; height: 32px; width: auto; min-width: 140px;">
                                     <option value="0">Semua Rayon</option>
                                     @foreach($rayons as $rayon)
                                         <option value="{{ $rayon->id }}">{{ $rayon->nama_rayon }}</option>

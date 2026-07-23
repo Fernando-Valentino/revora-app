@@ -14,5 +14,6 @@
     :rayonId="$rayonId ?? 0"
     :dataRoute="route('kepala-upt.prediksi.data')"
     :resetUrl="request()->url()"
+    :target="'svr_default_upt'"
 />
 @endsection

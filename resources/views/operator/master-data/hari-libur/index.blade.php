@@ -66,7 +66,7 @@
             processing: true,
             ajax: dataUrl,
             columns: [
-                { data: null, render: function(d, t, r, meta) { return meta.row + 1; } },
+                { data: null, render: function(d, t, r, meta) { return meta.settings._iDisplayStart + meta.row + 1; } },
                 { data: 'tanggal', render: function(d) { const p = d.split('-'); return p[2]+'-'+p[1]+'-'+p[0]; } },
                 { data: 'hari' },
                 { data: 'keterangan' },

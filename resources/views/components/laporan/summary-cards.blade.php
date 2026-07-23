@@ -41,18 +41,28 @@
     <div class="report-card mb-4">
         <!-- HERO: one number, one sentence -->
         <div class="hero" style="margin-bottom: 24px;">
-            <div class="eyebrow">Kualitas prediksi &middot; {{ $summary['periode'] }}</div>
-            <div class="row">
-                <div class="figure num">{{ $accuracyPct }}<small>% akurat</small></div>
-            </div>
-            <div class="hero-bar">
-                <i style="width: {{ $accuracyPct }}%;"></i>
-            </div>
-            <p>
-                Dari {{ $summary['total_data'] }} data yang diuji, prediksi sistem rata-rata meleset sekitar 
-                <strong>Rp {{ number_format($avgPeriodDeviation, 0, ',', '.') }}</strong> per {{ $periodUnit }} — 
-                dalam batas wajar dan bisa dipakai untuk menyusun target pendapatan mendatang.
-            </p>
+            @if(isset($summary['total_aktual_val']) && $summary['total_aktual_val'] > 0)
+                <div class="eyebrow">Kualitas prediksi &middot; {{ $summary['periode'] }}</div>
+                <div class="row">
+                    <div class="figure num">{{ $accuracyPct }}<small>% akurat</small></div>
+                </div>
+                <div class="hero-bar">
+                    <i style="width: {{ $accuracyPct }}%;"></i>
+                </div>
+                <p>
+                    Dari {{ $summary['total_data'] }} data yang diuji, prediksi sistem rata-rata meleset sekitar 
+                    <strong>Rp {{ number_format($avgPeriodDeviation, 0, ',', '.') }}</strong> per {{ $periodUnit }} — 
+                    dalam batas wajar dan bisa dipakai untuk menyusun target pendapatan mendatang.
+                </p>
+            @else
+                <div class="eyebrow">Estimasi Proyeksi Pendapatan &middot; {{ $summary['periode'] }}</div>
+                <div class="row">
+                    <div class="figure num" style="font-size: 26px; color: #005BAA; font-weight: 800;">{{ $summary['total_prediksi'] }}</div>
+                </div>
+                <p style="margin-top: 8px;">
+                    Sistem mendeteksi bahwa periode ini sepenuhnya merupakan <strong>proyeksi masa depan</strong> (belum ada data transaksi aktual di database). Menampilkan estimasi pendapatan hasil peramalan rekursif model SVR.
+                </p>
+            @endif
         </div>
 
         <!-- QUICK FACTS -->

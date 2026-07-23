@@ -175,6 +175,10 @@
     .metric-value-custom.text-success {
         color: var(--success) !important;
     }
+    table.dataTable,
+    .table-custom-nowrap {
+        width: 100% !important;
+    }
     .table-custom-nowrap th,
     .table-custom-nowrap td {
         white-space: nowrap !important;

@@ -158,6 +158,24 @@ export function goToGridStep(stepNum) {
             }
         }
     }
+
+    if (typeof $ !== 'undefined' && $.fn.DataTable) {
+        setTimeout(() => {
+            if ($('#comparisonTable').length && $.fn.DataTable.isDataTable('#comparisonTable')) {
+                $('#comparisonTable').DataTable().columns.adjust().draw();
+            }
+            $('.result-datatable').each(function() {
+                if ($.fn.DataTable.isDataTable(this)) {
+                    $(this).DataTable().columns.adjust().draw();
+                }
+            });
+            $('.history-datatable').each(function() {
+                if ($.fn.DataTable.isDataTable(this)) {
+                    $(this).DataTable().columns.adjust().draw();
+                }
+            });
+        }, 150);
+    }
 }
 
 export function goToGwoStep(stepNum) {
@@ -263,6 +281,24 @@ export function goToGwoStep(stepNum) {
                 if (descEl) descEl.innerText = "Silakan kembali ke Langkah 2 untuk mengonfigurasi dan menjalankan Grey Wolf Optimizer.";
             }
         }
+    }
+
+    if (typeof $ !== 'undefined' && $.fn.DataTable) {
+        setTimeout(() => {
+            if ($('#comparisonTable').length && $.fn.DataTable.isDataTable('#comparisonTable')) {
+                $('#comparisonTable').DataTable().columns.adjust().draw();
+            }
+            $('.result-datatable').each(function() {
+                if ($.fn.DataTable.isDataTable(this)) {
+                    $(this).DataTable().columns.adjust().draw();
+                }
+            });
+            $('.history-datatable').each(function() {
+                if ($.fn.DataTable.isDataTable(this)) {
+                    $(this).DataTable().columns.adjust().draw();
+                }
+            });
+        }, 150);
     }
 }
 

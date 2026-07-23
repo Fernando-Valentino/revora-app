@@ -86,6 +86,19 @@ window.confirmResetOptimasiAll = function (target) {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    if (config.readonly) {
+        initializeAllCharts();
+        if (typeof $ !== 'undefined' && $.fn.DataTable) {
+            $('#comparisonTable').DataTable({
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Semua"]],
+                order: [[6, 'asc']],
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/id.json' }
+            });
+        }
+        return;
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     const savedMethod = urlParams.get('method') || sessionStorage.getItem('optimasi_method') || 'grid';
 
@@ -137,4 +150,65 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.switchMethod(savedMethod);
     initializeAllCharts();
+
+    if (typeof $ !== 'undefined' && $.fn.DataTable) {
+        if ($('#comparisonTable').length && !$.fn.DataTable.isDataTable('#comparisonTable')) {
+            $('#comparisonTable').DataTable({
+                autoWidth: false,
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Semua"]],
+                order: [[6, 'asc']],
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/id.json' }
+            });
+        }
+        $('.history-datatable').each(function() {
+            if (!$.fn.DataTable.isDataTable(this)) {
+                const dt = $(this).DataTable({
+                    autoWidth: false,
+                    pageLength: 10,
+                    lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Semua"]],
+                    order: [[0, 'desc']],
+                    language: { url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/id.json' }
+                });
+                dt.on('draw.dt', function() {
+                    const info = dt.page.info();
+                    dt.column(0, { search: 'applied', order: 'applied' }).nodes().each(function(cell, i) {
+                        cell.innerHTML = info.start + i + 1;
+                    });
+                });
+                dt.draw();
+            }
+        });
+        $('.result-datatable').each(function() {
+            if (!$.fn.DataTable.isDataTable(this)) {
+                const dt = $(this).DataTable({
+                    autoWidth: false,
+                    columnDefs: [
+                        { orderable: false, targets: [0] }
+                    ],
+                    pageLength: 10,
+                    lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Semua"]],
+                    order: [[1, 'asc']],
+                    language: { url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/id.json' }
+                });
+                dt.on('draw.dt', function() {
+                    const info = dt.page.info();
+                    dt.column(0, { search: 'applied', order: 'applied' }).nodes().each(function(cell, i) {
+                        cell.innerHTML = info.start + i + 1;
+                    });
+                });
+                dt.draw();
+            }
+        });
+
+        $(document).on('change', '.optimasi-rayon-filter', function() {
+            const val = $(this).val();
+            const text = val > 0 ? $(this).find('option:selected').text() : '';
+            const tableCard = $(this).closest('.card-body');
+            const dt = tableCard.find('.result-datatable').DataTable();
+            if (dt) {
+                dt.column(2).search(text ? '^' + text + '$' : '', true, false).draw();
+            }
+        });
+    }
 });

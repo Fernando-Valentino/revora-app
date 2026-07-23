@@ -8,7 +8,7 @@
 
 <div>
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0 table-custom-nowrap" style="font-size: 13px;">
+        <table class="table table-hover align-middle mb-0 table-custom-nowrap result-datatable" style="font-size: 13px;">
             <thead class="table-light">
                 <tr>
                     <th>No</th>
@@ -23,8 +23,8 @@
             <tbody>
                 @forelse($predictions as $index => $pred)
                     <tr>
-                        <td>{{ $predictions->firstItem() + $index }}</td>
-                        <td>{{ Carbon\Carbon::parse($pred->tanggal)->translatedFormat('d F Y') }}</td>
+                        <td>{{ $index + 1 }}</td>
+                        <td data-order="{{ $pred->tanggal }}">{{ Carbon\Carbon::parse($pred->tanggal)->translatedFormat('d F Y') }}</td>
                         <td><span class="badge bg-light text-dark border">{{ $pred->rayon_name }}</span></td>
                         <td class="text-end fw-semibold">Rp {{ number_format($pred->actual_value, 0, ',', '.') }}</td>
                         <td class="text-end fw-bold text-primary-custom">Rp {{ number_format($pred->predicted_value, 0, ',', '.') }}</td>
@@ -39,18 +39,6 @@
             </tbody>
         </table>
     </div>
-
-    <!-- Pagination container -->
-    @if($predictions->hasPages())
-        <div class="pagination-container mt-4 d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-            <div class="text-secondary small">
-                Menampilkan {{ $predictions->firstItem() ?? 0 }} - {{ $predictions->lastItem() ?? 0 }} dari {{ $predictions->total() }} data
-            </div>
-            <div>
-                {!! $predictions->appends(request()->query())->links('components.pagination') !!}
-            </div>
-        </div>
-    @endif
 
     <!-- Analisis Ringkas Rayon -->
     @if($bestRayon || $worstRayon || $avgDailyDeviation)

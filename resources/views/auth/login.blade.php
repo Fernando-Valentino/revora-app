@@ -155,7 +155,7 @@
         <div class="login-card mb-4">
             <!-- Header Logo and Titles -->
             <div class="text-center mb-4 pb-4 border-bottom">
-                <div class="logo-placeholder">R</div>
+                <img src="{{ asset('img/logo/dishubpng.png') }}" alt="Logo Dishub" class="mb-3" style="height: 65px; width: auto; object-fit: contain;">
                 <div class="app-name mb-1">REVORA</div>
                 <div class="app-subtitle">Sistem <strong>Prediksi</strong> Pendapatan Retribusi Parkir</div>
                 <div class="text-uppercase text-secondary fw-semibold mt-1" style="font-size: 10px; letter-spacing: 0.5px;">Dinas Perhubungan Kota Cirebon</div>

@@ -82,7 +82,7 @@
             processing: true,
             ajax: { url: dataUrl, data: function(d) { d.start_date = $('#filter_start_date').val(); d.end_date = $('#filter_end_date').val(); } },
             columns: [
-                { data: null, render: function(d, t, r, meta) { return meta.row + 1; } },
+                { data: null, render: function(d, t, r, meta) { return meta.settings._iDisplayStart + meta.row + 1; } },
                 { data: 'tanggal', render: function(d) { const p = d.split('-'); return p[2]+'-'+p[1]+'-'+p[0]; } },
                 { data: 'rayon.nama_rayon', className: 'fw-semibold', defaultContent: 'Tidak Diketahui' },
                 { data: null, render: function(d, t, row) { const c = (row.juru_parkir && row.juru_parkir.jumlah_juru_parkir !== undefined) ? row.juru_parkir.jumlah_juru_parkir : (row.rayon ? row.rayon.jumlah_juru_parkir : 80); return c + ' Jukir'; } },

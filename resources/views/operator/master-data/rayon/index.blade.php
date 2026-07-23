@@ -55,7 +55,7 @@
             processing: true,
             ajax: dataUrl,
             columns: [
-                { data: null, render: function(d, t, r, meta) { return meta.row + 1; } },
+                { data: null, render: function(d, t, r, meta) { return meta.settings._iDisplayStart + meta.row + 1; } },
                 { data: 'nama_rayon', className: 'fw-semibold' },
                 { data: 'kecamatan' },
                 { data: 'lokasi' },
